@@ -1,0 +1,174 @@
+; winnow self-extraction — corpus: d10 design-completion session (2026-07-15)
+; user=Joe, assistant=Claude (fable 5). Transfer payload for fresh thread.
+; Receives from: d9-d10-session-transfer.wno (77-node version) + winnow-v0.1 aimpack.
+; Session outcome: a7 DONE (d9 patches merged into spec), d10 design CONVERGED
+;   (all forks resolved, fire tier + ladder + window thesis added).
+;   Single remaining todo: a5 = author new section 10 + patch set (inventory in
+;   comments at end of this file).
+
+(delta :turn 4
+  ; t1-4: handoff received; stale 53-node version detected via prior-convo relay;
+  ; d9 patch texts supplied as prose; a7 executed immediately
+  (term winnow :gloss "streaming semantic distillation protocol; s-expr delta log over typed semantic graph")
+  (term d9 :gloss "v0.2 feature: partial resolution, shipped as structural patterns A/B")
+  (term d10 :gloss "v0.2 feature: compaction-safety invariant; grew into full tier architecture this session")
+  (add (claim c1 (was first-upload stale-53-node-version) :by user :src t3))
+  (add (claim c2 (are d9-patch-texts spec-prose-not-semantic-content) :by user :src t3))
+  (add (action a1 (merge d9-patches spec) :status done :by assistant :src t4))
+  (add (artifact r1 "winnow-spec-v0.1.md with d9 merged: s2 question note line 52, s6 graduation principle line 136, s9 patterns subsection line 227" :by assistant :src t4))
+  (add (artifact r2 "d9-merge.diff — unified forward diff vs pristine, aimpack-appendable via X-Aimpack-Patch-Target" :by assistant :src t4))
+  (add (edge (about r2 a1))))
+
+(delta :turn 6
+  ; t5-6: 77-node handoff verified (77/51/26, validation OK); d10 draft design
+  ; produced; three forks posed
+  (add (claim c3 (validated handoff-77 clean) :by assistant :src t6))
+  (add (action a2 (design d10-full) :status doing :by assistant :src t6))
+  (add (question q1 (choose protection-scope) :status open :by assistant :src t6))
+  (add (question q2 (choose reach-persistence) :status open :by assistant :src t6))
+  (add (question q3 (choose spec-placement) :status open :by assistant :src t6)))
+
+(delta :turn 10
+  ; t7-10: plain-language translation requested and given; Joe reframes memory as
+  ; access-latency, adds FIRE tier + cooling-velocity tunability; all 3 forks resolve
+  (term fire-tier :gloss "message-boundary working set: what last exchange touched plus forward projection; renders first and in full in digest")
+  (term cooling-profile :gloss "declared knob-set folded with the log: tail length, fire window, protection edge-set, transient-promotion TTL, widening base; travels with log like the term registry")
+  (term cooling-velocity :gloss "tier-transition rate; endpoints (fire, ice) are hard facts, transition schedule is tunable per species then per individual")
+  (add (claim c4 (is memory-question access-latency-not-erasure) :by user :src t9))
+  (add (decision d1 (adopt fire-tier) :status frozen :by user :src t9))
+  (add (edge (motivates c4 d1)))
+  (add (claim c5 (fixes fire-first-rendering seventh-block-cliff) :by assistant :src t10))
+  (add (claim c6 (mirrors pre-heat reach) :by assistant :src t10))
+  (add (edge (supports c5 d1)))
+  (add (edge (about c6 d1)))
+  (add (decision d2 (adopt cooling-profiles) :status frozen :by user :src t9))
+  (add (claim c7 (are tiers pure-function-of-log-and-profile) :by assistant :src t10))
+  (add (claim c8 (are prior-attention-measurements human-default-profile) :by assistant :src t10))
+  (add (edge (about c7 d2)))
+  (add (edge (supports c8 d2)))
+  (add (decision d3 (set protection-scope all-edges-one-hop-as-profile-default) :status frozen :by user :src t9))
+  (add (edge (answers d3 q1)))
+  (update q1 :status answered)
+  (add (decision d4 (keep reach ephemeral-telemetry-in-sidecar) :status frozen :by assistant :src t10))
+  (add (edge (answers d4 q2)))
+  (update q2 :status answered)
+  (add (decision d5 (place d10 new-section-10-with-renumber) :status frozen :by assistant :src t10))
+  (add (edge (answers d5 q3)))
+  (update q3 :status answered)
+  (add (decision d6 (learn cooling-profile never-per-node-scores) :status frozen :by assistant :src t10))
+  (add (claim c9 (rebuild per-node-scores fuzzy-graph-d9-killed) :by assistant :src t10))
+  (add (edge (motivates c9 d6)))
+  (add (action a3 (fix s3-hash-id-crossref) :status todo :by assistant :src t10)))
+
+(delta :turn 12
+  ; t11-12: DeepSeek cascade restored — four losses recovered from author memory:
+  ; verifier, geometric widening, global-KB rung, honest-miss terminus
+  (term push-interface :gloss "fast menu compiled at delta time: what previous message touched and projects forward")
+  (term pull-interface :gloss "JIT assembly immediately before generation; reaches back for exactly what the next message needs")
+  (term handshake-verifier :gloss "checks push meets pull: procedural first (term hits, ids, stubs), cheap inference model only on lexical miss; owns the duck problem")
+  (term resolution-ladder :gloss "rung 0 fire / 1 hot frontier / 2 warm dormant widening 3-9-27 / 3 cold raw log via fold-replay / 4 global KB cross-conversation / 5 honest miss")
+  (term honest-miss :gloss "unresolvable reference becomes open question addressed to the human, never a fabricated referent; open = frontier-resident until answered")
+  (term global-kb :gloss "time-independent cross-conversation knowledge store; v0.2 specs the query interface only, construction defers to hash-id future work")
+  (add (claim c10 (lost first-transfer verifier-widening-kb-rung-miss) :by user :src t11))
+  (add (decision d7 (adopt resolution-ladder) :status frozen :by user :src t11))
+  (add (edge (motivates c10 d7)))
+  (add (claim c11 (fills handshake-verifier recognition-hole) :by assistant :src t12))
+  (add (claim c12 (sits widening-27-cap inside deep-reference-band-12-36) :by assistant :src t12))
+  (add (claim c13 (computes fold-upto rung-2-cached-contracts-today) :by assistant :src t12))
+  (add (claim c14 (are verifier-escalations reach-telemetry) :by assistant :src t12))
+  (add (edge (supports c11 d7)))
+  (add (edge (supports c12 d7)))
+  (add (edge (supports c13 d7)))
+  (add (edge (supports c14 d6))))
+
+(delta :turn 14
+  ; t13-14: the two critical restorations — context-window abandonment (survived as
+  ; evidence, died as commitment) and side-effect definition (total loss; my t10
+  ; improvisation was wrong and is corrected here)
+  (term immediate-context-window :gloss "JIT-compiled per message exchange: exactly what generation needs; ephemeral, derived, discarded after; pure function of log + profile + incoming message")
+  (term side-effect-state :gloss "temperature-exempt layer: history that alters how push/pull operate = term registry + cooling profile + live hard constraints; never cools because it is the machinery's own configuration")
+  (add (decision d8 (abandon traditional-context-window) :status frozen :by user :src t13))
+  (add (claim c15 (survived ctx-window-thesis as-evidence-not-commitment) :by assistant :src t14))
+  (add (edge (about c15 d8)))
+  (add (claim c16 (is traditional-window memo-vs-memory-conflation) :by assistant :src t14))
+  (add (claim c17 (answers ladder gam-latency-objection) :by assistant :src t14))
+  (add (edge (supports c16 d8)))
+  (add (edge (supports c17 d8)))
+  (add (claim c18 (equals side-effect-contract delta) :status corrected :by assistant :src t10))
+  (add (def f1 side-effect-state "history altering interface operation; the temperature-exempt class" :by user :src t13))
+  (add (edge (contradicts f1 c18)))
+  (add (claim c19 (explains side-effect-state registry-tier-exemption-as-instance) :by assistant :src t14))
+  (add (edge (supports c19 f1)))
+  (add (decision d9 (define window-anatomy side-effect-state-push-menu-pull-results) :status frozen :by assistant :src t14))
+  (add (edge (refines d9 d8)))
+  (add (claim c20 (survives evidence-extraction dies stance-extraction) :by assistant :src t14))
+  (add (edge (supports c15 c20))))
+
+(delta :turn 16
+  ; t15-16: loss diagnosis — operator cadence, not protocol failure; and the
+  ; failure reproduces winnow's own founding thesis; two hardening patches adopted
+  (term batch-cadence-failure :gloss "3 washes across 9 dumps = batch extraction cadence; observed losses match s1 predicted batch degradation — thesis self-demonstration")
+  (term stance-extraction :gloss "position taken toward reference material is first-class extraction target; the verdict outranks the evidence it rests on")
+  (add (claim c21 (caused attention-saturation transfer-losses) :by user :src t15))
+  (add (claim c22 (demonstrates batch-cadence-failure founding-thesis) :by assistant :src t16))
+  (add (edge (supports c21 c22)))
+  (add (claim c23 (passed representation-layer all-losses-expressible-in-v0.1-vocab) :by assistant :src t16))
+  (add (claim c24 (drops saturation cross-turn-stance-binding-first) :by assistant :src t16))
+  (add (edge (supports c24 c20)))
+  (add (claim c25 (is checkpoint-cadence prevention) :by user :src t15))
+  (add (claim c26 (is author-memory-audit salvage-only) :by assistant :src t16))
+  (add (decision d10 (harden trigger-policy bulk-ingestion-named-trigger) :status frozen :by assistant :src t16))
+  (add (decision d11 (harden signal-policy stance-first-class) :status frozen :by assistant :src t16))
+  (add (edge (motivates c22 d10)))
+  (add (edge (motivates c24 d11)))
+  (add (edge (supports c25 d10))))
+
+(delta :turn 18
+  ; t17-18: quota wall; wrap and hand off. q4 deliberately open — the audit
+  ; question was never answered; honest-miss discipline says it stays hot.
+  (add (question q4 (complete deepseek-doc-audit) :status open :by assistant :src t16))
+  (add (action a4 (produce session-handoff) :status done :by assistant :src t18))
+  (add (artifact r3 "d10-design-session-transfer.wno — this file" :by assistant :src t18))
+  (add (action a5 (author section-10 plus patch-set) :status todo :by user :src t17))
+  (add (constraint k1 (requires a5 this-handoff-plus-v0.1-aimpack-plus-merged-spec) :strength hard :by assistant :src t18))
+  (add (edge (depends a5 r3)))
+  (add (edge (depends a5 r1)))
+  (add (edge (depends a5 d5)))
+  (update a2 :status done))
+
+; ============================================================
+; a5 AUTHORING INVENTORY (prose checklist — next session's work)
+; ============================================================
+; NEW SECTION 10 "Tiers" (renumber Demonstration 10->11, Limits 11->12,
+; then grep for stale section refs):
+;   1. Opening thesis: no context window (d8). Immediate context window per
+;      message boundary — JIT, ephemeral, derived. Anatomy (d9):
+;      side-effect-state / push menu (fire) / pull results.
+;   2. Tiers: fire / hot frontier / warm dormant / cold log (d1, prior d5).
+;      Tier state = pure function of (log, cooling-profile) (c7). Never logged.
+;      Excluded from s6 equivalence test exactly like :conf.
+;   3. The invariant: demote only if no resident holds an incident edge —
+;      one hop, all eight edge types, as profile DEFAULT not law (d3).
+;      Clusters detach as units. Tiered decay falls out structurally.
+;   4. Demotion/promotion (naming: NOT "compaction" — s7 owns that word;
+;      add one-line cross-ref in s7). P1 update / P2 new edge / P3 reach.
+;      Cross-session = P1/P2 across folded logs.
+;   5. Resolution ladder (d7): 6 rungs, widening 3-9-27 as profile knobs,
+;      verifier procedural-then-cheap-inference, rung 2 = fold --upto,
+;      rung 4 = global-KB interface only, rung 5 = honest miss -> open
+;      question, frontier-resident until human answers.
+;   6. Side-effect state (f1): registry + profile + live hard constraints.
+;      Temperature-exempt. Duck problem recognition floor lives here;
+;      second breadcrumb = dormant-edge stubs on frontier nodes.
+;   7. Cooling profiles (d2): knob list, human defaults from measured
+;      attention (prior-graph c40/c41), learnability via reach telemetry
+;      (c14), guardrail: profile learns, never per-node scores (d6).
+;   8. d9 synergy line: Pattern A retention is GUARANTEED by the invariant.
+; SECTION 7 PATCH: (reach QUERY) wire-note — extractor-to-orchestrator,
+;   never persisted to log; plus compaction-naming cross-ref.
+; SECTION 9 PATCHES: bulk-ingestion as named high-stakes trigger (d10);
+;   stance-first-class line in signal policy + extractor prompt bullet (d11).
+; SECTION 3 FIX: hash-id cross-ref points at s10; content lives in Limits (a3).
+; ============================================================
+; NEXT-SESSION BOOT: upload winnow-v0_1_aimpack.txt + merged spec (r1) +
+; this file. Fold this file, verify clean, execute a5.

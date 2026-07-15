@@ -1,0 +1,47 @@
+--- pristine-spec.md	2026-07-15 19:49:06.637635184 +0000
++++ winnow-spec-v0.1.md	2026-07-15 19:49:31.326417900 +0000
+@@ -49,6 +49,7 @@
+ Notes:
+ 
+ - `constraint :strength hard|soft` covers both requirements and preferences — one frame, one knob.
++- Partial resolution is structural, not a status: an `answers` edge without a status flip to `answered` means "progress recorded, thread still open." The question stays in the frontier. See §9 patterns.
+ - `decision` vs `claim`: decisions are normative (we choose X), claims are descriptive (X is the case). A design detail explaining a decision is a claim `about` the decision.
+ - `action` status is deliberately fine-grained. Distinguishing *discussed* from *done* was the single biggest extraction-quality lesson from prior decomp work; the frame bakes it in.
+ - The frame **distribution is itself signal**: zero actions + heavy claim/decision churn = design exploration; heavy actions = execution session.
+@@ -132,6 +133,8 @@
+ - **R11** Restatement with identical canonical payload → silent drop (dedup). Status-changing restatement → `update`.
+ - **R12** Numbers/units preserved as literals; prose quantities normalized (`"seventy km"` → `"70km"`).
+ 
++**Graduation principle.** Scalars belong to the map (extraction-process metadata: `:conf`); structure belongs to the territory (the semantic content). Express degree-of-resolution through structure — edges, decomposition, supersession — not continuous annotations on status. This keeps the §6 equivalence test decidable: two extractors either both emit an edge or they don't.
++
+ **Equivalence test.** Two extractions of the same text are equivalent iff their folded graphs are isomorphic modulo id renaming. Procedure: canonical-sort nodes by `(frame, payload-string, src)`, canonical-sort edges after id-mapping, compare. This is the testable meaning of "collapses reliably to a single representation." Byte-identical output across different extractor models is not promised; canonical-form invariance given a shared registry is.
+ 
+ ## 7. Delta protocol
+@@ -221,6 +224,27 @@
+ 
+ Stage B is mechanical enough for a small model, and large parts (alias lookup, slot ordering, id assignment, dedup) can go fully procedural.
+ 
++### Partial resolution (questions, but the patterns generalize)
++
++**Pattern A — vague residual.** Record the partial answer as a node with an `answers` edge; leave the question `open`. It stays in the frontier; the evidence accumulates structurally.
++
++```lisp
++(add (claim c42 (...) :by user :src t9))
++(add (edge (answers c42 q3)))
++; q3 stays open — thread not closed
++```
++
++**Pattern B — nameable residual.** Close the original, spawn the leftover as a new question linked via `refines`.
++
++```lisp
++(add (edge (answers c42 q3)))
++(update q3 :status answered)
++(add (question q4 (...) :status open ...))
++(add (edge (refines q4 q3)))
++```
++
++Use A when the gap is vague ("something like that"). Use B when the unresolved piece is articulable. Both generalize: a "leaning" decision is support-edge accumulation on a proposed node; partial constraint relaxation is supersession by a `:strength soft` replacement; partial claim correction means R2 should have split it.
++
+ ---
+ 
+ ## 10. Demonstration — real corpus
