@@ -48,11 +48,22 @@ For winnow extraction/normalization, default (omit `--think`) is fine. The tasks
 
 For winnow: RE2 is a good fit for both the extractor and normalizer since they're doing structured extraction, not open-ended reasoning.
 
+## Thinking is on by default
+
+Both pro and flash run reasoning by default — a minimal API call returns
+`reasoning_content`. For dense prompts (like winnow's extractor/normalizer)
+the reasoning chain can run 1-4 minutes even though the API round trip
+itself is ~1.5s. If a call seems slow, it's probably thinking, not stuck:
+check with streaming on (`--out FILE` + `tail -f`). For single-pass
+structured tasks, `--re2` (which implies `--think off`) is usually the
+better trade.
+
 ## Sessions and persistence
 
 `--persist` controls session persistence (context window continuity across calls):
 
-- `--persist no`: Stateless single-shot call. No session file created. **Use this for winnow** — each extractor/normalizer call is independent.
+- `--persist no`: Stateless single-shot call. No session file created. **Use this for winnow** — each extractor/normalizer call is independent (the orchestrator passes digest + registry explicitly, so a session would double up context).
+- Note: ongoing persistence (`--persist on`/named sessions) has known quirks — Joe: "persist is a bit broken or something." Prefer `--session FILE.jsonl` explicitly or momentary `--persist no`.
 - `--persist yes` / bare `--persist`: Creates/continues a session file in `~/.ds/sessions/`.
 - `--persist NAME`: Target a named session.
 - `--persist off`: Deactivate the current shell's session.
