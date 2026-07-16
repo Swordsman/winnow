@@ -46,4 +46,6 @@
       with extractor re-pass, `--seed` session continuation
 - [x] merge.py: cross-log merge on content-hash join keys; conflicts
       surface as open questions; self-merge is a fixed point
-- [x] tests: 70 across fold/orchestrator/merge/reach
+- [x] split.py: procedural slicing (query/seed + hops/component expansion,
+      validity closure, constraint carry, cut-edge comments, --rest cover)
+- [x] tests: 85 across fold/orchestrator/merge/reach/split

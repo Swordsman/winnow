@@ -371,10 +371,10 @@ class Graph:
                      f"(reach QUERY) to promote ---")
         return "\n".join(lines)
 
-    def query(self, expr):
+    def query_ids(self, expr):
         """Trivial query layer (spec 12): space-separated key=value pairs
         over (frame, status, term, by, src). term matches any symbol
-        appearing in the payload."""
+        appearing in the payload. Returns matching node ids."""
         crit = dict(p.split("=", 1) for p in expr.split())
         out = []
         for nid in sorted(self.nodes, key=self._node_key):
@@ -392,8 +392,11 @@ class Graph:
                 if not ok:
                     break
             if ok:
-                out.append(self._full_line(nid))
-        return "\n".join(out)
+                out.append(nid)
+        return out
+
+    def query(self, expr):
+        return "\n".join(self._full_line(i) for i in self.query_ids(expr))
 
     def hash_id(self, nid, _stack=frozenset()):
         """Content-hash id prototype (docs/hash-ids.md): sha256 over

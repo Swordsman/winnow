@@ -56,6 +56,13 @@ Merge logs from different sessions on content-hash join keys (`docs/hash-ids.md`
 python3 merge.py a.wno b.wno --out merged.wno
 ```
 
+Split is the procedural inverse-ish: slice a valid sub-log out of a folded log — topic handoffs, live/dormant archival partition, KB ingestion filtering. Seeds come from a query or explicit ids; expansion walks edges *and* payload node-refs; payload references are always closure-pulled (validity); live hard constraints ride along (§10.6); cut edges become comments; parent ids are preserved:
+
+```sh
+python3 split.py log.wno --seed d3 --component --out cluster.wno --rest remainder.wno
+python3 split.py log.wno --query "status=superseded" --hops 0 --out dormant.wno
+```
+
 Tests: `python3 -m unittest discover tests`
 
 `demo-deltas.wno` is a real extraction of an 8-turn filesystem-design conversation, walked through in spec §11: a design superseded mid-stream, hard requirements delivered inside doomsday jokes, a convention stated two contradictory ways, and a wrong user premise entering the graph faithfully and getting corrected structurally.
@@ -68,6 +75,7 @@ Tests: `python3 -m unittest discover tests`
 | `fold.py` | reference implementation (parse, fold, validate, snapshot, frontier, digest, query, hashes) |
 | `winnow.py` | streaming extraction orchestrator (spec §9 loop + §10.5 resolution ladder; live via the Anthropic SDK, or deterministic `--replay` mode) |
 | `merge.py` | cross-log merge on content-hash join keys (v0.3 feature, shipped early) |
+| `split.py` | procedural log slicing — topic slices, archival partition, component extraction |
 | `demo-deltas.wno` | runnable demo log (spec §11) |
 | `tests/` | unit tests for the fold, orchestrator, ladder, and merge (`python3 -m unittest discover tests`) |
 | `docs/hash-ids.md` | content-hash id design note + the merge design `merge.py` implements |
