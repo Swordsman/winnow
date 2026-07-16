@@ -57,6 +57,15 @@ note the stance -- the verdict outranks the summary
 Never note: greetings, filler, vibes, meta-chatter about the conversation \
 itself.
 
+The vocabulary (loose phrasing welcome, but stay inside it):
+- node frames: claim, question, decision, constraint, def, action, artifact
+- links, always exactly (type from to): supports, contradicts, \
+supersedes (new old), refines (detail parent), answers (x question), \
+motivates (reason thing), depends (x y), about (x topic)
+Eight link types, no others. A relationship that doesn't fit is content, \
+not a link -- put it inside a node's proposition instead, e.g. \
+(add (claim x3 (maps-to subthread original-messages) :by user :src t7)).
+
 Emit ops as s-expressions, one per line, e.g.:
 (term some-term :gloss "...")
 (add (claim x1 (relation subj obj) :by user :src t3))
@@ -72,14 +81,53 @@ storage or turn it into an open question. Never invent a referent."""
 NORMALIZER_SYSTEM = """\
 You are the winnow normalizer. Input: a candidate delta plus the current \
 term registry. Output: the canonical ops, one s-expression per line, \
-nothing else.
+nothing else -- no commentary, no code fences.
 
-Apply R1-R12: canonical kebab-case term ids (nearest registry match beats \
-minting; minted terms get a (term ...) entry), one proposition per node, \
-fixed slot order per the relation's direction gloss, tense/modality/\
-polarity as annotations, active voice, no synonym relations. Keep the \
-extractor's placeholder node ids -- serial ids are assigned after you. \
-Drop ops that restate existing graph content unless the status changed."""
+Node frames (only these seven): claim, question, decision, constraint, \
+def, action, artifact. A node is (FRAME ID PAYLOAD :anns...) and the \
+payload proposition is mandatory: (RELATION ARG1 ARG2 ...), args being \
+term ids, node ids, "literals", or numbers. Default statuses (omit them): \
+claim/constraint/def/artifact live, question open, decision proposed, \
+action todo.
+
+Edge types (only these eight), always exactly (TYPE FROM TO), no extra \
+args: supports (evidence first), contradicts (challenger first), \
+supersedes (new first), refines (detail first), answers (answer first, \
+question second), motivates (reason first), depends (dependent first), \
+about (node first, topic second). A candidate edge with any other type: \
+map it to the nearest of the eight when meaning allows -- \
+references/addresses/relates-to are usually about; because/rationale/\
+mechanism are usually motivates; fulfills is usually answers or refines. \
+If no mapping preserves the meaning, re-express the relationship as a \
+proposition inside a node. Never output a non-canonical edge type. Extra \
+edge annotations (:conf etc.) are dropped.
+
+The rules:
+R1 terms -> canonical registry ids: kebab-case; nearest registry match \
+beats minting; minted terms get a (term ID :gloss "...") entry.
+R2 one proposition per node -- split conjunctions into multiple nodes.
+R3 slot order fixed: agent/subject/source first, patient/object/target \
+second.
+R4 tense, modality, polarity -> annotations (:time :modal :neg), never \
+new relations or terms.
+R5 passive voice -> active; swap args to canonical direction.
+R6 verb phrases nominalize to registry relations -- nearest match beats \
+invention.
+R7 annotation keys in fixed order: :status :conf :status-conf :strength \
+:by :src :time :modal :neg; omit defaults.
+R8 keep the extractor's placeholder node ids -- serial ids are assigned \
+after you.
+R9 no synonym relations -- nearest registry relation, or a new (term ...) \
+entry.
+R10 unwrap rhetoric: humor, hypotheticals-as-emphasis, framing devices \
+reduce to their payload proposition; phatic content reduces to nothing.
+R11 identical canonical payloads within the delta collapse to one node \
+(graph-level dedup runs after you).
+R12 numbers/units stay literal; prose quantities normalize ("seventy km" \
+-> "70km").
+
+Every node keeps :by (speaker) and :src (tN). An op you cannot \
+canonicalize becomes (reject "reason"). Output ops only."""
 
 
 # ------------------------------------------------------------ transcript
@@ -376,6 +424,12 @@ class Normalizer:
                 frame, xid = item[0], item[1]
                 if frame not in FRAMES:
                     rejects.append(f"unknown frame {frame}")
+                    continue
+                need = 4 if frame == "def" else 3
+                if len(item) < need or any(
+                        isinstance(x, str) and x.startswith(":")
+                        for x in item[2:need]):
+                    rejects.append(f"node missing payload ({frame} {xid})")
                     continue
                 if frame == "def":
                     payload, tail = [item[2], item[3]], item[4:]
