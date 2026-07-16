@@ -347,7 +347,14 @@ class Normalizer:
             if head == "add":
                 item = op[1]
                 if item[0] == "edge":
-                    et, a, b = item[1]
+                    edge_args = item[1]
+                    if len(edge_args) < 3:
+                        rejects.append(f"malformed edge (too few args): {edge_args}")
+                        continue
+                    if len(edge_args) != 3:
+                        rejects.append(f"malformed edge (expected 3 args, got {len(edge_args)}): {edge_args}")
+                        continue
+                    et, a, b = edge_args
                     a, b = self._map(a, idmap), self._map(b, idmap)
                     if not isinstance(et, str) or not isinstance(a, str) \
                        or not isinstance(b, str):
