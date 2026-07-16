@@ -1,0 +1,186 @@
+#!/usr/bin/env python3
+"""winnow cross-log merge (v0.3 prototype) — implements docs/hash-ids.md.
+
+Fold each input log, compute content-hash ids for every node, and join on
+the hashes: identical (frame, canonical-payload) pairs collapse to one
+node with unioned provenance; edges rewire to the merged ids; term
+registries union. Conflicts surface structurally — a status disagreement
+becomes an open question node hung off the disputed node — never resolved
+silently.
+
+Serial ids are reassigned in the output; hashes are join keys only, so
+the wire format is unchanged (spec section 7 untouched).
+
+Usage:
+    python3 merge.py A.wno B.wno [C.wno ...] [--out merged.wno]
+
+Output is a valid .wno log (meta header + one all-adds delta at :turn 0),
+foldable by fold.py. Without --out it prints to stdout.
+"""
+import sys
+
+from fold import (Graph, Lit, parse, tokenize, sx, ANN_ORDER, FRAME_ORDER)
+
+ID_PREFIX = {"claim": "c", "decision": "d", "question": "q",
+             "constraint": "k", "def": "f", "action": "a", "artifact": "r"}
+
+
+def load(path):
+    g = Graph()
+    for form in parse(tokenize(open(path).read())):
+        if form and form[0] == "meta":
+            g.set_meta(form)
+        else:
+            g.apply(form)
+    errs = g.validate()
+    if errs:
+        sys.exit(f"{path}: refusing to merge an invalid log: {errs}")
+    return g
+
+
+def _src_union(a, b):
+    def as_list(v):
+        if v is None:
+            return []
+        return list(v) if isinstance(v, list) else [v]
+    seen = list(dict.fromkeys(as_list(a) + as_list(b)))
+    return seen[0] if len(seen) == 1 else seen
+
+
+def merge(graphs):
+    """Return (terms, nodes, edges, conflicts) of the merged graph.
+    nodes is an ordered dict new_id -> node dict; edges a sorted list of
+    (etype, src, dst) over new ids; conflicts a list of
+    (new_id, kept_status, other_status)."""
+    by_hash = {}          # hash -> merged node dict
+    hash_order = []       # first-seen order
+    conflicts = []
+    terms = {}
+    per_graph_map = []    # per graph: old nid -> hash
+
+    for g in graphs:
+        nid_to_hash = {}
+        for tid, tail in g.terms.items():
+            if tid not in terms:
+                terms[tid] = tail
+        for nid in sorted(g.nodes, key=g._node_key):
+            h = g.hash_id(nid)
+            nid_to_hash[nid] = h
+            n = g.nodes[nid]
+            if h not in by_hash:
+                by_hash[h] = dict(n)
+                hash_order.append(h)
+                continue
+            m = by_hash[h]
+            m["src"] = _src_union(m.get("src"), n.get("src"))
+            if n["status"] != m["status"]:
+                conflicts.append((h, m["status"], n["status"]))
+            for k, v in n.items():
+                m.setdefault(k, v)
+        per_graph_map.append(nid_to_hash)
+
+    # assign fresh serials, frame-grouped, in first-seen order
+    serial = {f: 0 for f in ID_PREFIX}
+    hash_to_id = {}
+    for f in FRAME_ORDER:
+        for h in hash_order:
+            if by_hash[h]["frame"] == f:
+                serial[f] += 1
+                hash_to_id[h] = f"{ID_PREFIX[f]}{serial[f]}"
+
+    def rewrite(payload, nid_to_hash):
+        """Node-id args in payloads point at merged ids."""
+        if isinstance(payload, list):
+            return [rewrite(x, nid_to_hash) for x in payload]
+        if not isinstance(payload, Lit) and payload in nid_to_hash:
+            return hash_to_id[nid_to_hash[payload]]
+        return payload
+
+    nodes = {}
+    rewritten = set()
+    for g, nid_to_hash in zip(graphs, per_graph_map):
+        for nid, h in nid_to_hash.items():
+            new_id = hash_to_id[h]
+            if new_id not in rewritten:
+                node = by_hash[h]
+                node["payload"] = rewrite(node["payload"], nid_to_hash)
+                nodes[new_id] = node
+                rewritten.add(new_id)
+
+    edges = set()
+    for g, nid_to_hash in zip(graphs, per_graph_map):
+        for t, a, b in g.edges:
+            if a in nid_to_hash and b in nid_to_hash:
+                edges.add((t, hash_to_id[nid_to_hash[a]],
+                           hash_to_id[nid_to_hash[b]]))
+
+    # status conflicts become open questions about the disputed node;
+    # the first-seen status stands until a human or later delta resolves it
+    conflict_ops = []
+    for h, kept, other in conflicts:
+        serial["question"] += 1
+        qid = f"q{serial['question']}"
+        target = hash_to_id[h]
+        conflict_ops.append((qid, target, kept, other))
+        edges.add(("about", qid, target))
+
+    ordered = {nid: nodes[nid] for h in hash_order
+               for nid in [hash_to_id[h]]}
+    return terms, ordered, sorted(edges), conflict_ops
+
+
+def render(terms, nodes, edges, conflict_ops):
+    lines = ['(meta :winnow-version "0.2" :semantic-rep "registry-v0.1")',
+             '', '(delta :turn 0']
+    for tid in sorted(terms):
+        lines.append("  " + sx(["term", tid] + list(terms[tid])))
+    for nid, n in nodes.items():
+        parts = [n["frame"], nid]
+        parts += n["payload"] if n["frame"] == "def" else [n["payload"]]
+        for k in ANN_ORDER:
+            if k in n:
+                parts += [":" + k, n[k]]
+        lines.append("  " + sx(["add", parts]))
+    for qid, target, kept, other in conflict_ops:
+        lines.append("  " + sx(["add", ["question", qid,
+                                        ["reconcile-status", target,
+                                         kept, other],
+                                        ":status", "open",
+                                        ":by", "merge-tool",
+                                        ":src", "t0"]]))
+    for e in edges:
+        lines.append("  " + sx(["add", ["edge", list(e)]]))
+    lines[-1] += ")"
+    return "\n".join(lines) + "\n"
+
+
+def main():
+    import argparse
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("logs", nargs="+", help="two or more .wno logs")
+    ap.add_argument("--out", help="write merged log here (default stdout)")
+    ns = ap.parse_args()
+    if len(ns.logs) < 2:
+        ap.error("need at least two logs to merge")
+    out = ns.out
+    text = render(*merge([load(p) for p in ns.logs]))
+    if out:
+        with open(out, "w") as f:
+            f.write(text)
+        # sanity: the merged log must fold clean
+        g = Graph()
+        for form in parse(tokenize(text)):
+            if form[0] == "meta":
+                g.set_meta(form)
+            else:
+                g.apply(form)
+        errs = g.validate()
+        print(f"wrote {out}: {len(g.nodes)} nodes, {len(g.edges)} edges, "
+              f"{len(g.terms)} terms; validation "
+              f"{'OK' if not errs else errs}", file=sys.stderr)
+    else:
+        print(text, end="")
+
+
+if __name__ == "__main__":
+    main()

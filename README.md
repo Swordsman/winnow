@@ -45,6 +45,15 @@ from spec §9, procedural stage-B enforcement, one `.wno` log out:
 ```sh
 python3 winnow.py transcript.txt --out log.wno          # live (needs anthropic + API key)
 python3 winnow.py transcript.txt --out log.wno --replay fixtures.txt   # offline/deterministic
+python3 winnow.py transcript.txt --out log.wno --seed prior.wno        # continue a session
+```
+
+When the extractor can't place a reference it emits `(reach QUERY)`; the orchestrator walks the §10.5 resolution ladder (resident hit → warm widening → cold scan → honest miss), promotes what it finds into the fire tier with a TTL, re-passes the extractor with the pull results, and turns unresolvable references into open questions addressed to the human — never a fabricated referent.
+
+Merge logs from different sessions on content-hash join keys (`docs/hash-ids.md`) — identical propositions collapse with unioned provenance, status conflicts surface as open questions:
+
+```sh
+python3 merge.py a.wno b.wno --out merged.wno
 ```
 
 Tests: `python3 -m unittest discover tests`
@@ -57,13 +66,14 @@ Tests: `python3 -m unittest discover tests`
 |---|---|
 | `winnow-spec-v0.2.md` | the specification |
 | `fold.py` | reference implementation (parse, fold, validate, snapshot, frontier, digest, query, hashes) |
-| `winnow.py` | streaming extraction orchestrator (spec §9 loop; live via the Anthropic SDK, or deterministic `--replay` mode) |
+| `winnow.py` | streaming extraction orchestrator (spec §9 loop + §10.5 resolution ladder; live via the Anthropic SDK, or deterministic `--replay` mode) |
+| `merge.py` | cross-log merge on content-hash join keys (v0.3 feature, shipped early) |
 | `demo-deltas.wno` | runnable demo log (spec §11) |
-| `tests/` | unit tests for the fold and the orchestrator (`python3 -m unittest discover tests`) |
-| `docs/hash-ids.md` | content-hash id design note (v0.3) + rationale for the `--hashes` prototype |
+| `tests/` | unit tests for the fold, orchestrator, ladder, and merge (`python3 -m unittest discover tests`) |
+| `docs/hash-ids.md` | content-hash id design note + the merge design `merge.py` implements |
 | `sessions/` | winnow self-extractions of winnow's own design sessions — the protocol taking notes on its own development, kept as provenance for v0.2 design decisions |
 | `TODO.md` | open items and deferred questions |
 
 ## Status
 
-v0.2 — spec, reference fold, and a working orchestrator loop (validated in replay mode; live-run evaluation pending). Reach handling, promotion TTLs, and profile learning are orchestrator future work; cross-session merge is designed (`docs/hash-ids.md`) with hash ids prototyped in `fold.py`; the global knowledge base stays deferred (spec §12).
+v0.2 complete, plus the two headline v0.3 features shipped early: cross-log merge (`merge.py`) and the resolution ladder with reach handling and P3 promotion TTLs (`winnow.py` + `fold.py`). Validated offline/replay; live-run evaluation pending an API credential or the DeepSeek harness. Still deferred: profile learning (§10.4 — wants live reach telemetry first), global KB construction (§12, rung 4 interface reserved), session-namespaced provenance for merged logs (`TODO.md`).

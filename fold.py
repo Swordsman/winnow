@@ -142,6 +142,7 @@ class Graph:
         self.meta = {}
         self.profile = dict(PROFILE_DEFAULTS)
         self.touched = set()   # node ids touched by the most recent delta
+        self.promotions = {}   # nid -> deltas remaining (P3 reach promotion)
 
     # -- header ------------------------------------------------------
     def set_meta(self, form):
@@ -162,6 +163,8 @@ class Graph:
         if "turn" in head_anns:
             self.turn = head_anns["turn"]
         self.touched = set()
+        self.promotions = {nid: left - 1 for nid, left
+                           in self.promotions.items() if left > 1}
         for op in (x for x in delta[1:] if isinstance(x, list)):
             head = op[0]
             if head == "term":
@@ -300,16 +303,24 @@ class Graph:
                      f"full graph on request")
         return "\n".join(lines)
 
+    def promote(self, nid):
+        """P3: a reach query resolved to nid -> fire with transient TTL
+        (spec 10.3). Called by the orchestrator, never by the fold."""
+        if nid in self.nodes:
+            self.promotions[nid] = int(self.profile["promotion-ttl"])
+
     def tiers(self):
         """fire/hot/warm/cold per spec section 10; pure function of
-        (log, profile). Never logged, excluded from equivalence."""
+        (log, profile) plus transient P3 promotions. Never logged,
+        excluded from equivalence."""
         protect = self.profile["protect"]
         adj = {}
         for t, a, b in self.edges:
             if t in protect:
                 adj.setdefault(a, set()).add(b)
                 adj.setdefault(b, set()).add(a)
-        fire = {i for i in self.touched if i in self.nodes}
+        fire = {i for i in self.touched | set(self.promotions)
+                if i in self.nodes}
         for _ in range(int(self.profile["fire-hops"])):
             fire |= {nb for i in fire for nb in adj.get(i, ())
                      if nb in self.nodes}

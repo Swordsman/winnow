@@ -1,6 +1,10 @@
 # Content-hash node ids — design note
 
-Status: design + prototype (`fold.py --hashes`). Target: winnow v0.3.
+Status: implemented — hashing in `fold.py --hashes` / `Graph.hash_id`,
+cross-log merge in `merge.py` (the sketch below is now code; conflicts
+surface as `reconcile-status` questions, self-merge verified as a fixed
+point). Remaining v0.3 items: session-namespaced `:src`, alias-aware
+registry reconciliation (see TODO.md).
 Spec context: §3 (ids), §12 (hash ids for merge, global KB).
 
 ## Problem

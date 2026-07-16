@@ -62,7 +62,12 @@ Emit ops as s-expressions, one per line, e.g.:
 (add (claim x1 (relation subj obj) :by user :src t3))
 (add (edge (supports x1 x2)))
 (update q2 :status answered)
-Use any placeholder ids you like; the normalizer assigns real ones."""
+Use any placeholder ids you like; the normalizer assigns real ones.
+
+If the new turns reference something that isn't on the digest -- an \
+earlier decision, a term you don't see, "that thing from before" -- emit \
+(reach the-reference) and the orchestrator will pull it from deeper \
+storage or turn it into an open question. Never invent a referent."""
 
 NORMALIZER_SYSTEM = """\
 You are the winnow normalizer. Input: a candidate delta plus the current \
@@ -127,6 +132,84 @@ def replay_client(path):
     return call
 
 
+# ------------------------------------------------------------ resolver
+
+def kebab(s):
+    return re.sub(r"[^a-z0-9]+", "-", str(s).lower()).strip("-")
+
+
+class Resolver:
+    """Pull interface + handshake verifier (spec 10.5). Walks the
+    resolution ladder procedurally: rung 0/1 resident hits, rung 2 warm
+    widening, rung 3 cold scan (the materialized-graph equivalent of
+    fold-replay), rung 5 honest miss. Rung 4 (global KB) is interface-
+    reserved and skipped. An optional llm callable is the cheap-inference
+    escalation on lexical miss; the procedural floor runs first always."""
+
+    def __init__(self, graph, llm=None):
+        self.g = graph
+        self.llm = llm
+        self.surface = {}          # surface form -> canonical term id
+        for tid, tail in graph.terms.items():
+            self.surface[kebab(tid)] = tid
+            tail_anns = anns(list(tail))
+            for aka in tail_anns.get("aka", []) or []:
+                self.surface[kebab(aka)] = tid
+
+    def _matches(self, tokens, ids):
+        """Nodes among ids whose id or payload symbols hit any token."""
+        toks = {kebab(t) for t in tokens}
+        terms = {self.surface[t] for t in toks if t in self.surface}
+        out = []
+        for nid in ids:
+            n = self.g.nodes[nid]
+            syms = {kebab(s) for s in _payload_syms(n["payload"])}
+            if nid in toks or syms & toks or syms & terms:
+                out.append(nid)
+        return out
+
+    def resolve(self, tokens):
+        """Return (rung, [node ids]) or (5, []) for an honest miss."""
+        fire, hot, warm, cold = self.g.tiers()
+        resident = list(fire) + list(hot)
+        hit = self._matches(tokens, resident)
+        if hit:
+            return (0 if set(hit) & fire else 1), hit
+        hit = self._matches(tokens, warm)
+        if hit:                                   # rung 2: widen around hits
+            base = int(self.g.profile["widening-base"])
+            adj = {}
+            for t, a, b in self.g.edges:
+                adj.setdefault(a, set()).add(b)
+                adj.setdefault(b, set()).add(a)
+            widened = list(hit)
+            for nid in hit:
+                widened += [x for x in adj.get(nid, ()) if x in self.g.nodes]
+            return 2, list(dict.fromkeys(widened))[:base ** 2]
+        hit = self._matches(tokens, cold)
+        if hit:
+            return 3, hit
+        if self.llm:                              # lexical miss escalation
+            guess = self.llm(
+                "Map the query to canonical term ids from the registry, "
+                "one per line; output nothing else. Registry:\n" +
+                "\n".join(sorted(self.g.terms)),
+                " ".join(str(t) for t in tokens))
+            terms = [t.strip() for t in guess.splitlines()
+                     if t.strip() in self.g.terms]
+            if terms:
+                hit = self._matches(terms, list(self.g.nodes))
+                if hit:
+                    return 3, hit
+        return 5, []                              # honest miss
+
+
+def _payload_syms(v):
+    if isinstance(v, list):
+        return [s for x in v for s in _payload_syms(x)]
+    return [str(v)]
+
+
 # ------------------------------------------------------------ normalizer
 
 def extract_forms(text):
@@ -162,6 +245,34 @@ def extract_forms(text):
             flat.append(form)
     known = {"term", "add", "update", "supersede", "merge", "del"}
     return [f for f in flat if f[0] in known]
+
+
+def extract_reaches(text):
+    """(reach QUERY...) forms from extractor output — wire-level only,
+    never persisted (spec section 7 wire note)."""
+    forms, depth, start, in_str = [], 0, None, False
+    for i, ch in enumerate(text):
+        if ch == '"':
+            in_str = not in_str
+        if in_str:
+            continue
+        if ch == "(":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == ")" and depth > 0:
+            depth -= 1
+            if depth == 0:
+                forms.append(text[start:i + 1])
+    out = []
+    for f in forms:
+        try:
+            for form in parse(tokenize(f)):
+                if isinstance(form, list) and form and form[0] == "reach":
+                    out.append(form[1:])
+        except (IndexError, AssertionError):
+            continue
+    return out
 
 
 class Normalizer:
@@ -286,12 +397,19 @@ def render_delta(turn, ops):
 
 
 def run(transcript_path, out_path, llm, llm_normalize=True,
-        per_turn=False, verbose=True):
+        per_turn=False, verbose=True, seed=None):
     turns = parse_transcript(open(transcript_path).read())
     if not turns:
         sys.exit("no [tN speaker] turns found in transcript")
     g = Graph()
     log_parts = ['(meta :winnow-version "0.2" :semantic-rep "registry-v0.1")']
+    if seed:            # continue from a prior log (text of a .wno file)
+        for form in parse(tokenize(seed)):
+            if form and form[0] == "meta":
+                g.set_meta(form)
+            elif form:
+                g.apply(form)
+                log_parts.append(sx(form))
 
     # group turns into triggers
     batches, cur = [], []
@@ -315,13 +433,47 @@ def run(transcript_path, out_path, llm, llm_normalize=True,
         loose = llm(EXTRACTOR_SYSTEM,
                     f"NOTE GRAPH SO FAR (digest):\n{digest}\n\n"
                     f"NEW TURNS:\n{new_text}")
+
+        # reach handling: pull interface + ladder (spec 10.5). Resolved
+        # material triggers one extractor re-pass with the pull results;
+        # honest misses become open questions addressed to the human.
+        misses = []
+        reaches = extract_reaches(loose)
+        if reaches:
+            resolver = Resolver(g)
+            pulls = []
+            for q in reaches:
+                rung, hits = resolver.resolve(q)
+                if hits:
+                    for nid in hits:
+                        g.promote(nid)             # P3, with TTL
+                    pulls.append(f"; reach {' '.join(map(str, q))} "
+                                 f"-> rung {rung}")
+                    pulls += [resolver.g._full_line(nid) for nid in hits]
+                else:
+                    misses.append(q)
+            if pulls:
+                loose = llm(EXTRACTOR_SYSTEM,
+                            f"NOTE GRAPH SO FAR (digest):\n{digest}\n\n"
+                            f"PULL RESULTS (your reach queries, resolved):\n"
+                            + "\n".join(pulls) +
+                            f"\n\nNEW TURNS:\n{new_text}")
+
         if llm_normalize:
             loose = llm(NORMALIZER_SYSTEM,
                         f"TERM REGISTRY:\n{registry}\n\n"
                         f"CANDIDATE DELTA:\n{loose}")
 
+        forms = extract_forms(loose)
+        for i, q in enumerate(misses):            # rung 5: honest miss
+            toks = [kebab(t) for t in q if kebab(t)]
+            forms.append(["add", ["question", f"xmiss{i}",
+                                  ["locate"] + toks,
+                                  ":status", "open",
+                                  ":by", "orchestrator",
+                                  ":src", f"t{turn_no}"]])
         norm = Normalizer(g)
-        ops, rejects = norm.normalize(extract_forms(loose))
+        ops, rejects = norm.normalize(forms)
         for r in rejects:
             print(f"  (reject \"{r}\")", file=sys.stderr)
         if not ops:
@@ -356,13 +508,15 @@ def main():
                     help="one delta per turn instead of per exchange")
     ap.add_argument("--no-llm-normalizer", action="store_true",
                     help="skip stage-B LLM; procedural enforcement only")
+    ap.add_argument("--seed", help="prior .wno log to continue from")
     args = ap.parse_args()
 
     llm = (replay_client(args.replay) if args.replay
            else anthropic_client(args.model))
     run(args.transcript, args.out, llm,
         llm_normalize=not args.no_llm_normalizer,
-        per_turn=args.per_turn)
+        per_turn=args.per_turn,
+        seed=open(args.seed).read() if args.seed else None)
 
 
 if __name__ == "__main__":
