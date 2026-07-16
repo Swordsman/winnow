@@ -179,7 +179,7 @@ def deepseek_client(model="flash", ds_path=None):
         result = subprocess.run(
             [ds_path, "--persist", "no", "-m", model,
              "--timeout", "120", "-q", "--system", system, user],
-            capture_output=True, text=True, timeout=180,
+            capture_output=True, text=True, timeout=600,
         )
         if result.returncode != 0:
             raise RuntimeError(f"ds failed (exit {result.returncode}): "
