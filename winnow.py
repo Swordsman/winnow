@@ -57,6 +57,15 @@ note the stance -- the verdict outranks the summary
 Never note: greetings, filler, vibes, meta-chatter about the conversation \
 itself.
 
+The vocabulary (loose phrasing welcome, but stay inside it):
+- node frames: claim, question, decision, constraint, def, action, artifact
+- links, always exactly (type from to): supports, contradicts, \
+supersedes (new old), refines (detail parent), answers (x question), \
+motivates (reason thing), depends (x y), about (x topic)
+Eight link types, no others. A relationship that doesn't fit is content, \
+not a link -- put it inside a node's proposition instead, e.g. \
+(add (claim x3 (maps-to subthread original-messages) :by user :src t7)).
+
 Emit ops as s-expressions, one per line, e.g.:
 (term some-term :gloss "...")
 (add (claim x1 (relation subj obj) :by user :src t3))
@@ -72,14 +81,60 @@ storage or turn it into an open question. Never invent a referent."""
 NORMALIZER_SYSTEM = """\
 You are the winnow normalizer. Input: a candidate delta plus the current \
 term registry. Output: the canonical ops, one s-expression per line, \
-nothing else.
+nothing else -- no commentary, no code fences.
 
-Apply R1-R12: canonical kebab-case term ids (nearest registry match beats \
-minting; minted terms get a (term ...) entry), one proposition per node, \
-fixed slot order per the relation's direction gloss, tense/modality/\
-polarity as annotations, active voice, no synonym relations. Keep the \
-extractor's placeholder node ids -- serial ids are assigned after you. \
-Drop ops that restate existing graph content unless the status changed."""
+Node frames (only these seven): claim, question, decision, constraint, \
+def, action, artifact. A node is (FRAME ID PAYLOAD :anns...) and the \
+payload proposition is mandatory: (RELATION ARG1 ARG2 ...), args being \
+term ids, node ids, "literals", or numbers. Default statuses (omit them): \
+claim/constraint/def/artifact live, question open, decision proposed, \
+action todo.
+
+Edge types (only these eight), always exactly (TYPE FROM TO), no extra \
+args: supports (evidence first), contradicts (challenger first), \
+supersedes (new first), refines (detail first), answers (answer first, \
+question second), motivates (reason first), depends (dependent first), \
+about (node first, topic second). A candidate edge with any other type: \
+map it to the nearest of the eight when meaning allows -- \
+references/addresses/relates-to are usually about; because/rationale/\
+mechanism are usually motivates; fulfills is usually answers or refines. \
+If no mapping preserves the meaning, re-express the relationship as a \
+proposition inside a node. Never output a non-canonical edge type. Extra \
+edge annotations (:conf etc.) are dropped.
+
+The rules:
+R1 terms -> canonical registry ids: kebab-case; nearest registry match \
+beats minting; minted terms get a (term ID :gloss "...") entry.
+R2 one proposition per node -- split conjunctions into multiple nodes.
+R3 slot order fixed: agent/subject/source first, patient/object/target \
+second.
+R4 tense, modality, polarity -> annotations (:time :modal :neg), never \
+new relations or terms.
+R5 passive voice -> active; swap args to canonical direction.
+R6 verb phrases nominalize to registry relations -- nearest match beats \
+invention.
+R7 annotation keys in fixed order: :status :conf :status-conf :strength \
+:by :src :time :modal :neg; omit defaults.
+R8 keep the extractor's placeholder node ids -- serial ids are assigned \
+after you.
+R9 no synonym relations -- nearest registry relation, or a new (term ...) \
+entry.
+R10 unwrap rhetoric: humor, hypotheticals-as-emphasis, framing devices \
+reduce to their payload proposition; phatic content reduces to nothing.
+R11 identical canonical payloads within the delta collapse to one node \
+(graph-level dedup runs after you).
+R12 numbers/units stay literal; prose quantities normalize ("seventy km" \
+-> "70km").
+
+Op syntax, exactly:
+(term ID :gloss "...")
+(add (FRAME ID PAYLOAD :anns...))
+(add (edge (TYPE FROM TO)))
+(update ID :key val)
+(supersede NEW OLD)
+
+Every node keeps :by (speaker) and :src (tN). An op you cannot \
+canonicalize becomes (reject "reason"). Output ops only."""
 
 
 # ------------------------------------------------------------ transcript
@@ -100,9 +155,14 @@ def parse_transcript(text):
 
 # ------------------------------------------------------------ llm clients
 
-def anthropic_client(model):
-    import anthropic
-    client = anthropic.Anthropic()
+def anthropic_client(model, base_url=None, api_key_env=None):
+    import anthropic, os
+    kwargs = {}
+    if base_url:
+        kwargs["base_url"] = base_url
+    if api_key_env:
+        kwargs["api_key"] = os.environ[api_key_env]
+    client = anthropic.Anthropic(**kwargs)
 
     def call(system, user):
         resp = client.messages.create(
@@ -113,6 +173,38 @@ def anthropic_client(model):
             messages=[{"role": "user", "content": user}],
         )
         return "".join(b.text for b in resp.content if b.type == "text")
+
+    return call
+
+
+def deepseek_client(model="flash", ds_path=None, retries=3):
+    import subprocess, os, time
+    if ds_path is None:
+        ds_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ds")
+
+    def call(system, user):
+        last_err = None
+        for attempt in range(retries):
+            if attempt:
+                time.sleep(2 ** attempt)
+            try:
+                result = subprocess.run(
+                    [ds_path, "--persist", "no", "-m", model,
+                     "--timeout", "120", "-q", "--system", system, user],
+                    capture_output=True, text=True, timeout=600,
+                )
+            except subprocess.TimeoutExpired as e:
+                last_err = f"ds hit the {e.timeout}s wall-clock cap"
+                print(f"  (retry {attempt + 1}/{retries}: {last_err})",
+                      file=sys.stderr)
+                continue
+            if result.returncode == 0:
+                return result.stdout.strip()
+            last_err = (f"ds failed (exit {result.returncode}): "
+                        f"{result.stderr.strip()}")
+            print(f"  (retry {attempt + 1}/{retries}: {last_err})",
+                  file=sys.stderr)
+        raise RuntimeError(f"{last_err} [after {retries} attempts]")
 
     return call
 
@@ -298,6 +390,8 @@ class Normalizer:
         return f"{ID_PREFIX[frame]}{self.serial[frame]}"
 
     def _map(self, ref, idmap):
+        if not isinstance(ref, str):
+            return ref
         return idmap.get(ref, ref)
 
     def _node_form(self, frame, nid, payload, ann_dict):
@@ -321,8 +415,27 @@ class Normalizer:
             if head == "add":
                 item = op[1]
                 if item[0] == "edge":
-                    et, a, b = item[1]
+                    # canonical: (edge (TYPE A B)); also accept the flat
+                    # surface form (edge TYPE A B)
+                    if len(item) >= 2 and isinstance(item[1], list):
+                        edge_args = item[1]
+                    else:
+                        edge_args = item[1:]
+                    if len(edge_args) > 3 and \
+                       isinstance(edge_args[3], str) and \
+                       edge_args[3].startswith(":"):
+                        edge_args = edge_args[:3]   # drop edge annotations
+                    if len(edge_args) != 3:
+                        rejects.append(f"malformed edge (expected 3 args, "
+                                       f"got {len(edge_args)}): "
+                                       f"{sx(edge_args) if isinstance(edge_args, list) else edge_args}")
+                        continue
+                    et, a, b = edge_args
                     a, b = self._map(a, idmap), self._map(b, idmap)
+                    if not isinstance(et, str) or not isinstance(a, str) \
+                       or not isinstance(b, str):
+                        rejects.append(f"malformed edge (non-string ref)")
+                        continue
                     if et not in ETYPES:
                         rejects.append(f"unknown edge type {et}")
                         continue
@@ -340,6 +453,12 @@ class Normalizer:
                 if frame not in FRAMES:
                     rejects.append(f"unknown frame {frame}")
                     continue
+                need = 4 if frame == "def" else 3
+                if len(item) < need or any(
+                        isinstance(x, str) and x.startswith(":")
+                        for x in item[2:need]):
+                    rejects.append(f"node missing payload ({frame} {xid})")
+                    continue
                 if frame == "def":
                     payload, tail = [item[2], item[3]], item[4:]
                 else:
@@ -349,10 +468,11 @@ class Normalizer:
                 if key in self.payload_index:      # R11
                     existing = self.payload_index[key]
                     idmap[xid] = existing
-                    old_status = self.g.nodes[existing]["status"]
-                    if "status" in a and a["status"] != old_status:
-                        out.append(["update", existing,
-                                    ":status", a["status"]])
+                    if existing in self.g.nodes:
+                        old_status = self.g.nodes[existing]["status"]
+                        if "status" in a and a["status"] != old_status:
+                            out.append(["update", existing,
+                                        ":status", a["status"]])
                     continue
                 nid = self._next_id(frame)
                 idmap[xid] = nid
@@ -503,6 +623,11 @@ def main():
     ap.add_argument("transcript")
     ap.add_argument("--out", required=True, help="output .wno log path")
     ap.add_argument("--model", default=DEFAULT_MODEL)
+    ap.add_argument("--backend",
+                    choices=["anthropic", "deepseek", "deepseek-anthropic"],
+                    default="anthropic",
+                    help="LLM backend: anthropic (native), deepseek (openai-compat), "
+                         "deepseek-anthropic (anthropic-compat via DeepSeek)")
     ap.add_argument("--replay", help="canned-response fixture (offline)")
     ap.add_argument("--per-turn", action="store_true",
                     help="one delta per turn instead of per exchange")
@@ -511,8 +636,19 @@ def main():
     ap.add_argument("--seed", help="prior .wno log to continue from")
     args = ap.parse_args()
 
-    llm = (replay_client(args.replay) if args.replay
-           else anthropic_client(args.model))
+    DS_MODELS = {"pro": "pro", "flash": "flash"}
+    if args.replay:
+        llm = replay_client(args.replay)
+    elif args.backend == "deepseek":
+        llm = deepseek_client(DS_MODELS.get(args.model, "flash"))
+    elif args.backend == "deepseek-anthropic":
+        ds_api_models = {"pro": "deepseek-v4-pro", "flash": "deepseek-v4-flash"}
+        llm = anthropic_client(
+            ds_api_models.get(args.model, args.model),
+            base_url="https://api.deepseek.com/v1",
+            api_key_env="DEEPSEEK_API_KEY")
+    else:
+        llm = anthropic_client(args.model)
     run(args.transcript, args.out, llm,
         llm_normalize=not args.no_llm_normalizer,
         per_turn=args.per_turn,

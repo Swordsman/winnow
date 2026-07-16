@@ -1,0 +1,102 @@
+; id: wno-20260716-live-run-3c7f
+; receives: sessions/v0.2-build-session-transfer.wno
+; receives: sessions/d9-d10-session-transfer.wno
+; receives: sessions/d10-design-session-transfer.wno
+; winnow self-extraction — corpus: live-orchestrator bring-up session (2026-07-16)
+; user=Joe, assistant=Claude (opus 4.6 -> fable 5 mid-session). Transfer payload for fresh thread.
+
+(delta :turn 2
+  ; a7 from v0.2 handoff unblocked: ds harness + key landed
+  (term ds :gloss "DeepSeek agent/write worker CLI, copied verbatim from ds-worker repo into winnow repo; Joe is its author")
+  (term ds-guide :gloss "ds-guide.md: operational doc for ds -- latency profiles, RE2, sessions, winnow combos; help text alone insufficient")
+  (add (action a1 (copy ds winnow-repo) :status done :by assistant :src t2))
+  (add (action a2 (wire deepseek-backend winnow.py) :status done :by assistant :src t2))
+  (add (claim c1 (shells-out deepseek-client ds-cli) :by assistant :src t2))
+  (add (constraint k1 (requires deepseek-api-key env-var-only) :strength hard :by user :src t2))
+  (add (claim c2 (has-anthropic-endpoint deepseek-api) :by user :src t2))
+  (add (action a3 (add deepseek-anthropic-backend) :status done :by assistant :src t2)))
+
+(delta :turn 6
+  ; first live runs: flash baseline + failure modes
+  (term gemini-proto-transcript :gloss "transcripts/gemini-winnow-proto.txt: 24-turn Gemini conversation, proto-winnow brainstorming; first live corpus")
+  (term flash-baseline :gloss "runs/gemini-proto-flash-baseline.wno: 37 nodes 15 edges 102 terms, validation OK, PRE prompt-fix")
+  (add (action a4 (run flash-baseline gemini-proto-transcript) :status done :by assistant :src t6))
+  (add (claim c3 (front-loaded flash-baseline-quality) :by assistant :src t6))
+  (add (claim c4 (has-zero-edges flash-baseline turns-12-24) :by assistant :src t6))
+  (add (claim c5 (extracted-vocabulary-not-propositions flash later-turns) :by assistant :src t6))
+  (add (question q1 (constructed-correctly first-test) :status open :by user :src t6)))
+
+(delta :turn 10
+  ; root cause: underspecified prompts, not model capability
+  (add (claim c6 (never-defined normalizer-prompt r1-r12) :by assistant :src t9))
+  (add (claim c7 (never-listed prompts frame-and-edge-vocabulary) :by assistant :src t9))
+  (add (claim c8 (demanded normalizer-prompt dedup-against-unseen-graph) :by assistant :src t9))
+  (add (claim c9 (is-distilled deepseek-pro opus-4.6) :conf 0.9 :by user :src t9))
+  (add (claim c10 (implies c9 failures-are-instruction-bugs) :by user :src t9))
+  (add (edge (supports c9 c10)))
+  (add (edge (motivates c10 d1)))
+  (add (decision d1 (rewrite prompts self-contained) :status done :by assistant :src t10))
+  (add (claim c11 (keeps stage-a loose-per-spec) :by assistant :src t10))
+  (add (edge (refines c11 d1)))
+  (add (claim c12 (gives stage-b full-rules-vocab-glosses-mapping-guidance) :by assistant :src t10))
+  (add (edge (refines c12 d1))))
+
+(delta :turn 14
+  ; procedural hardening from live-run failure modes
+  (add (action a5 (guard normalizer missing-payload-nodes) :status done :by assistant :src t12))
+  (add (action a6 (accept normalizer flat-and-annotated-edge-forms) :status done :by assistant :src t12))
+  (add (action a7 (retry deepseek-client transient-failures) :status done :by assistant :src t13))
+  (add (action a8 (raise subprocess-cap 600s) :status done :by assistant :src t13))
+  (add (claim c13 (emitted pro flat-edges) :by assistant :src t12))
+  (add (claim c14 (caused prompt-ambiguity c13) :by assistant :src t12))
+  (add (edge (motivates c14 a6)))
+  (add (claim c15 (dropped api-peer connections-mid-stream) :by assistant :src t13))
+  (add (edge (motivates c15 a7)))
+  (add (claim c16 (passed tests-85 every-change) :by assistant :src t14)))
+
+(delta :turn 18
+  ; measured findings + prompt-fix validation
+  (add (claim c17 (defaults deepseek-api thinking-mode) :by assistant :src t16))
+  (add (claim c18 (takes dense-prompt-thinking 1-4-minutes) :by assistant :src t16))
+  (add (claim c19 (is api-roundtrip 1.5s) :by assistant :src t16))
+  (add (edge (supports c19 c18)))
+  (add (claim c20 (fits re2 single-pass-extraction) :by user :src t16))
+  (add (claim c21 (implies-think-off re2) :by user :src t16))
+  (add (question q2 (speeds-up re2 winnow-calls) :status open :by assistant :src t16))
+  (add (edge (motivates c20 q2)))
+  (add (claim c22 (produced fixed-prompts zero-rejects-turns-2-6) :by assistant :src t17))
+  (add (claim c23 (produced fixed-prompts 19-nodes-12-edges-by-turn-4) :by assistant :src t17))
+  (add (edge (supports c22 d1)))
+  (add (edge (supports c23 d1)))
+  (add (action a9 (complete pro-post-fix-run) :status todo :by assistant :src t18))
+  (add (claim c24 (crawled final-pro-run turn-2-24min) :by assistant :src t18))
+  (add (claim c25 (invisible retry-failures pre-patch-process) :by assistant :src t18))
+  (add (edge (about c24 a9)))
+  (add (action a10 (log deepseek-client retry-attempts) :status done :by assistant :src t18)))
+
+(delta :turn 22
+  ; ancestor recovery + conventions
+  (add (action a11 (recover d9-d10-ancestor-file) :status done :by user :src t20))
+  (add (claim c26 (resolves ancestor-file gam-term-provenance) :by assistant :src t20))
+  (add (claim c27 (are-published-research gam-rampart-mandol-cuhk) :by user :src t20))
+  (add (edge (supports c27 c26)))
+  (add (decision d2 (adopt id-receives-header-convention) :status accepted :by user :src t20))
+  (add (action a12 (patch spec id-receives-convention) :status todo :by assistant :src t20))
+  (add (edge (depends a12 d2)))
+  (add (action a13 (write claude-md boot-protocol) :status done :by user :src t22))
+  (add (claim c28 (prevents claude-md-protocol stale-instruction-replay) :by assistant :src t22))
+  (add (constraint k2 (requires instructions verify-against-repo-before-acting) :strength hard :by user :src t22))
+  (add (edge (supports k2 c28))))
+
+(delta :turn 24
+  ; queued experiments
+  (term live-relay-experiment :gloss "haiku forwards Joe<->DeepSeek messages; wno extracted live; iterates toward JIT context window compilation; fresh session")
+  (add (decision d3 (run live-relay-experiment fresh-session) :status proposed :by user :src t23))
+  (add (claim c29 (shrinks haiku-role reference-recognition-only) :by assistant :src t24))
+  (add (claim c30 (is-procedural relevance-selection edge-traversal) :by assistant :src t24))
+  (add (edge (refines c29 d3)))
+  (add (edge (refines c30 d3)))
+  (add (claim c31 (is-metric missed-reach-rate) :by assistant :src t24))
+  (add (edge (about c31 d3)))
+  (add (claim c32 (feeds relay-telemetry profile-learning-loop) :by assistant :src t24))
+  (add (edge (supports c32 d3))))
