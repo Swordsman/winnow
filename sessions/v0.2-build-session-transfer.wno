@@ -1,0 +1,117 @@
+; winnow self-extraction — corpus: v0.2 build session (2026-07-16)
+; user=Joe, assistant=Claude (fable 5). Transfer payload for fresh thread.
+; Receives from: d10-design-session-transfer.wno (this repo, sessions/).
+; Session outcome: a5 from d10 DONE (v0.2 spec authored + merged, PR #1),
+;   plus v0.3 features shipped early: merge, resolution ladder + reach,
+;   P3 TTLs, split. Repo is the durable store; TODO.md is authoritative
+;   for open items. Checkpoint cadence: per work-batch (s9 discipline).
+
+(meta :winnow-version "0.2" :semantic-rep "registry-v0.1")
+
+(delta :turn 2
+  ; t1-2: handoff received (spec, d9 diff, d10 transfer + Lumo proposal);
+  ; initial read of Lumo corrected after Joe's scoping note
+  (term lumo-proposal :gloss "pluggable semantic representation layers doc; external input from Proton Lumo")
+  (term representation-seam :gloss "the term/relation identity layer; the only part of winnow that varies across representation modes")
+  (add (claim c1 (misreads first-assessment lumo-proposal) :status corrected :by assistant :src t1))
+  (add (claim c2 (targets lumo-proposal representation-seam) :by user :src t2))
+  (add (edge (contradicts c2 c1)))
+  (add (claim c3 (is transport-layer representation-agnostic) :by assistant :src t2))
+  (add (decision d1 (adopt meta-header-plus-declared-mode) :status frozen :by assistant :src t2))
+  (add (decision d2 (defer converters-ir-nsm-lojban until-second-mode-exists) :status frozen :by assistant :src t2))
+  (add (edge (motivates c2 d1)))
+  (add (edge (about c3 d1))))
+
+(delta :turn 4
+  ; t3-4: session protocol set; a5 executed; repo bootstrapped
+  (term batch-turn-protocol :gloss "maximize build per exchange; make trivial decisions unilaterally; gather user questions at end of each turn")
+  (add (decision d3 (adopt batch-turn-protocol) :status frozen :by user :src t3))
+  (add (action a1 (author v0.2-spec section-10-tiers plus-patch-set) :status done :by assistant :src t4))
+  (add (action a2 (extract fold-py from-appendix plus-digest) :status done :by assistant :src t4))
+  (add (claim c4 (matches fold-output spec-verbatim-blocks) :by assistant :src t4))
+  (add (edge (supports c4 a2)))
+  (add (artifact r1 "winnow-spec-v0.2.md — s10 tiers, meta header, s3/s7/s9 patches, renumbered" :by assistant :src t4)))
+
+(delta :turn 6
+  ; t5-6: build batch 2 (orchestrator, query, hash design, tests); PR #1
+  ; opened, then merged by Joe; workflow decisions
+  (add (action a3 (build winnow-py orchestrator s9-loop) :status done :by assistant :src t6))
+  (add (action a4 (design hash-ids plus-prototype) :status done :by assistant :src t6))
+  (add (claim c5 (excludes hash-identity annotations-and-edges) :by assistant :src t6))
+  (add (claim c6 (are hashes fold-time-join-keys-not-wire-ids) :by assistant :src t6))
+  (add (edge (about c5 a4)))
+  (add (edge (about c6 a4)))
+  (add (decision d4 (route work-through-prs) :status superseded :by assistant :src t5))
+  (add (decision d5 (commit directly-to-main) :status frozen :by user :src t7))
+  (supersede d5 d4 :conf 1.0))
+
+(delta :turn 8
+  ; t7-8: build batch 3 — the two headline v0.3 features shipped early
+  ; because both are offline-testable; live run deferred
+  (term deepseek-mini-harness :gloss "Joe's existing test harness; planned vehicle for live orchestrator evaluation; code needs retrieving")
+  (add (decision d6 (ship merge-and-ladder early) :status frozen :by assistant :src t8))
+  (add (claim c7 (are merge-and-ladder offline-testable) :by assistant :src t8))
+  (add (edge (motivates c7 d6)))
+  (add (action a5 (build merge-py cross-log-merge) :status done :by assistant :src t8))
+  (add (claim c8 (is self-merge fixed-point) :by assistant :src t8))
+  (add (edge (supports c8 a5)))
+  (add (action a6 (build resolver ladder-reach-p3-ttl) :status done :by assistant :src t8))
+  (add (decision d7 (defer live-run pending-harness-or-api-key) :status frozen :by user :src t7))
+  (add (claim c7b (is deepseek-mini-harness planned-live-run-vehicle) :by user :src t7))
+  (add (edge (about c7b d7)))
+  (add (action a7 (run winnow-py live) :status blocked :by user :src t7))
+  (add (edge (depends a7 d7))))
+
+(delta :turn 10
+  ; t9-10: split question posed and resolved procedurally; handoff called
+  (add (question q1 (exists procedural-split-use-case) :status answered :by user :src t9))
+  (add (claim c9 (needs split no-semantics) :by assistant :src t10))
+  (add (claim c10 (needed merge identity-judgment-via-hashes) :by assistant :src t10))
+  (add (edge (answers c9 q1)))
+  (add (edge (supports c10 c9)))
+  (add (action a8 (build split-py procedural-slicing) :status done :by assistant :src t10))
+  (add (claim c11 (are payload-node-refs adjacency-for-expansion) :by assistant :src t10))
+  (add (claim c12 (preserves split parent-ids) :by assistant :src t10))
+  (add (claim c13 (form slice-plus-rest cover-not-partition) :by assistant :src t10))
+  (add (edge (about c11 a8)))
+  (add (edge (about c12 a8)))
+  (add (edge (about c13 a8)))
+  (add (claim c14 (recovers split-merge-roundtrip original-counts) :by assistant :src t10))
+  (add (edge (supports c14 a8))))
+
+(delta :turn 12
+  ; t11-12: handoff; open threads carried forward explicitly
+  (add (question q2 (complete deepseek-doc-audit) :status open :by user :src t7))
+  (add (claim c15 (sends joe denoised-docs-first then-deep-dig) :by user :src t7))
+  (add (edge (about c15 q2)))
+  (add (question q3 (verify gam-and-seventh-block-shorthand) :status open :by assistant :src t5))
+  (add (question q4 (obtain aimpack-format-spec) :status open :by assistant :src t8))
+  (add (question q5 (design session-namespaced-src) :status open :by assistant :src t8))
+  (add (question q6 (design alias-aware-hash-reconciliation) :status open :by assistant :src t8))
+  (add (constraint k1 (requires q5-and-q6 real-multi-session-corpus) :strength soft :by assistant :src t8))
+  (add (edge (about k1 q5)))
+  (add (edge (about k1 q6)))
+  (add (action a9 (produce session-handoff) :status done :by assistant :src t12))
+  (add (artifact r2 "repo main @ HEAD — spec, fold.py, winnow.py, merge.py, split.py, 85 tests, TODO.md" :by assistant :src t12))
+  (add (artifact r3 "sessions/v0.2-build-session-transfer.wno — this file" :by assistant :src t12))
+  (add (edge (depends a7 r2))))
+
+; ============================================================
+; NEXT-SESSION BOOT
+; ============================================================
+; The repo IS the durable store — no uploads needed. Boot sequence:
+;   1. Clone Swordsman/winnow, read TODO.md (authoritative open items)
+;      and this file (fold it: python3 fold.py sessions/v0.2-build-...wno).
+;   2. Highest-value next step: live orchestrator run (a7) — unblocked by
+;      either Joe's DeepSeek mini-harness or ANTHROPIC_API_KEY in env.
+;      First corpus: the s11 demo conversation; compare live loop output
+;      against the hand-authored demo-deltas.wno (equivalence test, s6).
+;   3. When Joe's denoised DeepSeek docs arrive: audit vs merged spec (q2,
+;      salvage-only, spec is authoritative). Checkpoint per document —
+;      s9 bulk-ingestion discipline; that rule exists because its
+;      violation lost data in the d9->d10 transfer.
+;   4. Deferred pending real corpus: session-namespaced :src (q5),
+;      alias-aware hashing (q6). Deferred pending spec: aimpack (q4).
+; Working agreement: batch-turn-protocol (d3), direct commits to main
+;   (d5), executive decisions on trivia, questions batched at turn end.
+; ============================================================
