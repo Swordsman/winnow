@@ -122,35 +122,21 @@ def anthropic_client(model, base_url=None, api_key_env=None):
     return call
 
 
-def deepseek_client(model="deepseek-v4-pro", think="off"):
-    from openai import OpenAI
-    import httpx, os
-    client = OpenAI(
-        api_key=os.environ["DEEPSEEK_API_KEY"],
-        base_url="https://api.deepseek.com/v1",
-        http_client=httpx.Client(timeout=httpx.Timeout(
-            connect=10, read=300, write=30, pool=10)),
-    )
-    if think == "off":
-        extra = {"extra_body": {"thinking": {"type": "disabled"}}}
-    elif think == "max":
-        extra = {"extra_body": {"thinking": {"type": "enabled"}},
-                 "reasoning_effort": "max"}
-    else:
-        extra = {}
+def deepseek_client(model="flash", ds_path=None):
+    import subprocess, os
+    if ds_path is None:
+        ds_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ds")
 
     def call(system, user):
-        resp = client.chat.completions.create(
-            model=model,
-            stream=False,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            timeout=120,
-            **extra,
+        result = subprocess.run(
+            [ds_path, "--persist", "no", "-m", model,
+             "--timeout", "120", "-q", "--system", system, user],
+            capture_output=True, text=True, timeout=180,
         )
-        return resp.choices[0].message.content or ""
+        if result.returncode != 0:
+            raise RuntimeError(f"ds failed (exit {result.returncode}): "
+                               f"{result.stderr.strip()}")
+        return result.stdout.strip()
 
     return call
 
@@ -555,15 +541,15 @@ def main():
     ap.add_argument("--seed", help="prior .wno log to continue from")
     args = ap.parse_args()
 
-    DS_MODELS = {"pro": "deepseek-v4-pro", "flash": "deepseek-v4-flash"}
+    DS_MODELS = {"pro": "pro", "flash": "flash"}
     if args.replay:
         llm = replay_client(args.replay)
     elif args.backend == "deepseek":
-        llm = deepseek_client(DS_MODELS.get(args.model, args.model),
-                              think="off")
+        llm = deepseek_client(DS_MODELS.get(args.model, "flash"))
     elif args.backend == "deepseek-anthropic":
+        ds_api_models = {"pro": "deepseek-v4-pro", "flash": "deepseek-v4-flash"}
         llm = anthropic_client(
-            DS_MODELS.get(args.model, args.model),
+            ds_api_models.get(args.model, args.model),
             base_url="https://api.deepseek.com/v1",
             api_key_env="DEEPSEEK_API_KEY")
     else:
