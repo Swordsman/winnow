@@ -126,6 +126,13 @@ R11 identical canonical payloads within the delta collapse to one node \
 R12 numbers/units stay literal; prose quantities normalize ("seventy km" \
 -> "70km").
 
+Op syntax, exactly:
+(term ID :gloss "...")
+(add (FRAME ID PAYLOAD :anns...))
+(add (edge (TYPE FROM TO)))
+(update ID :key val)
+(supersede NEW OLD)
+
 Every node keeps :by (speaker) and :src (tN). An op you cannot \
 canonicalize becomes (reject "reason"). Output ops only."""
 
@@ -404,12 +411,20 @@ class Normalizer:
             if head == "add":
                 item = op[1]
                 if item[0] == "edge":
-                    edge_args = item[1]
-                    if len(edge_args) < 3:
-                        rejects.append(f"malformed edge (too few args): {edge_args}")
-                        continue
+                    # canonical: (edge (TYPE A B)); also accept the flat
+                    # surface form (edge TYPE A B)
+                    if len(item) >= 2 and isinstance(item[1], list):
+                        edge_args = item[1]
+                    else:
+                        edge_args = item[1:]
+                    if len(edge_args) > 3 and \
+                       isinstance(edge_args[3], str) and \
+                       edge_args[3].startswith(":"):
+                        edge_args = edge_args[:3]   # drop edge annotations
                     if len(edge_args) != 3:
-                        rejects.append(f"malformed edge (expected 3 args, got {len(edge_args)}): {edge_args}")
+                        rejects.append(f"malformed edge (expected 3 args, "
+                                       f"got {len(edge_args)}): "
+                                       f"{sx(edge_args) if isinstance(edge_args, list) else edge_args}")
                         continue
                     et, a, b = edge_args
                     a, b = self._map(a, idmap), self._map(b, idmap)
