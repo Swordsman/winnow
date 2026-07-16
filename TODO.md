@@ -15,6 +15,15 @@
   available.
 
 ## Next up
+- [ ] **Live relay experiment (Joe's proposal, fresh session).** Claude in
+  haiku mode forwards messages between Joe and DeepSeek (via ds);
+  DeepSeek and/or haiku generate .wno updates live during the
+  conversation. Measures extraction on a real live conversation instead
+  of a replayed transcript, and iterates toward JIT context window
+  compilation: the relay's context becomes folded digest + live tail
+  (fold.py tier rendering), and the test is whether references to
+  scrolled-out material resolve from the digest alone (resolution
+  ladder on live traffic).
 - [ ] **Merge UX hardening** (post-first-real-use): `:src` values collide
   across logs (t1 in log A ≠ t1 in log B); currently unioned verbatim.
   Needs session-namespaced provenance (e.g. `:src (sess-a t1)`) or a
