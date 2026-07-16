@@ -117,6 +117,30 @@ def anthropic_client(model):
     return call
 
 
+def deepseek_client(model="deepseek-v4-pro"):
+    from openai import OpenAI
+    import httpx, os
+    client = OpenAI(
+        api_key=os.environ["DEEPSEEK_API_KEY"],
+        base_url="https://api.deepseek.com/v1",
+        http_client=httpx.Client(timeout=httpx.Timeout(connect=10, read=300, write=30, pool=10)),
+    )
+
+    def call(system, user):
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            extra_body={"thinking": {"type": "enabled"}},
+            reasoning_effort="high",
+        )
+        return resp.choices[0].message.content or ""
+
+    return call
+
+
 def replay_client(path):
     """Canned responses split on lines containing only %%% -- consumed in
     call order. For tests and offline runs."""
@@ -503,6 +527,9 @@ def main():
     ap.add_argument("transcript")
     ap.add_argument("--out", required=True, help="output .wno log path")
     ap.add_argument("--model", default=DEFAULT_MODEL)
+    ap.add_argument("--backend", choices=["anthropic", "deepseek"],
+                    default="anthropic",
+                    help="LLM backend (default: anthropic)")
     ap.add_argument("--replay", help="canned-response fixture (offline)")
     ap.add_argument("--per-turn", action="store_true",
                     help="one delta per turn instead of per exchange")
@@ -511,8 +538,13 @@ def main():
     ap.add_argument("--seed", help="prior .wno log to continue from")
     args = ap.parse_args()
 
-    llm = (replay_client(args.replay) if args.replay
-           else anthropic_client(args.model))
+    if args.replay:
+        llm = replay_client(args.replay)
+    elif args.backend == "deepseek":
+        ds_model = {"pro": "deepseek-v4-pro", "flash": "deepseek-v4-flash"}
+        llm = deepseek_client(ds_model.get(args.model, args.model))
+    else:
+        llm = anthropic_client(args.model)
     run(args.transcript, args.out, llm,
         llm_normalize=not args.no_llm_normalizer,
         per_turn=args.per_turn,
