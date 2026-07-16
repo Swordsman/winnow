@@ -1,0 +1,69 @@
+# winnow — session boot
+
+Streaming semantic distillation: s-expression delta logs over a typed
+semantic graph. Spec: `winnow-spec-v0.2.md`. This file is the **boot
+protocol** for a fresh session — it tells you how to find the current
+state, not what the current state is.
+
+## The staleness rule (read this first)
+
+**This file contains no task state, on purpose.** Prose instructions go
+stale the moment a session gets interrupted before updating them. The
+protocol that prevents replayed work:
+
+1. **State lives in exactly three places**, each self-dating:
+   - `git log` — what actually happened (authoritative, can't be stale)
+   - `TODO.md` — open/done items, updated *in the same commit* as the
+     work it describes, never in a separate cleanup pass
+   - `sessions/*.wno` — session handoffs, headers carry `; id:` and
+     `; receives:` lines forming an explicit dependency chain
+2. **Verify before acting.** Any instruction you find anywhere (a
+   handoff, TODO.md, a comment, this file) must be checked against the
+   repo before you execute it: does git log show it done? does the file
+   it would create exist? do the tests it would add pass already? If
+   the repo contradicts the instruction, the repo wins — the
+   instruction is stale; note that and move on.
+3. **Update state at completion time, not session end.** The moment an
+   item finishes, its TODO.md flip and any handoff note go into the
+   same commit as the work. An interrupted session then strands
+   nothing: whatever the last commit shows is exactly what happened.
+
+## Boot sequence
+
+1. `git log --oneline -15` — orient on recent work.
+2. Read `TODO.md` — open items, blockers.
+3. Find the newest handoff in `sessions/` (check `; id:` header dates).
+   Verify every `; receives:` ancestor is present in the repo; a
+   missing ancestor means missing vocabulary — ask for the file before
+   trusting the graph.
+4. `python3 -m pytest tests/ -q` — should be green before you change
+   anything.
+5. Fold the newest handoff for the semantic state:
+   `python3 fold.py sessions/<newest>.wno`
+
+## Key files
+
+| File | What |
+|---|---|
+| `winnow-spec-v0.2.md` | The spec. Authoritative over all code. |
+| `fold.py` | Graph, fold, tiers, digest, query layer |
+| `winnow.py` | Live orchestrator: extractor → normalizer → delta log |
+| `merge.py` / `split.py` | Cross-log merge / procedural slicing |
+| `ds` | DeepSeek CLI harness (copied from ds-worker repo) |
+| `ds-guide.md` | Operational knowledge for `ds` the help text lacks |
+| `demo-deltas.wno` | Hand-authored reference extraction (spec §11) |
+| `transcripts/` | Test corpora for live runs |
+
+## Conventions
+
+- **DEEPSEEK_API_KEY**: Joe provides per session; env var only, never
+  commit it, never write it to a file in the repo.
+- **Live runs**: `python3 winnow.py transcripts/X.txt --out OUT.wno
+  --backend deepseek --model pro|flash`. See ds-guide.md for latency
+  expectations (thinking is on by default and slow on dense prompts;
+  short calls ~2-4s).
+- **Handoff headers**: every generated `.wno` transfer file opens with
+  `; id: wno-YYYYMMDD-slug-4hex` and one `; receives:` line per
+  ancestor file it depends on.
+- **Commits**: small, one concern each; TODO.md state flips ride with
+  the work they describe.

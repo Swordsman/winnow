@@ -5,11 +5,17 @@
   docs that fed the d9/d10 design sessions; audit them against the merged
   spec for dropped commitments when they arrive. Salvage-only — the spec
   is authoritative.
-- [ ] **Live orchestrator run.** `winnow.py` is tested in replay mode only.
-  Plan: Joe's DeepSeek mini-harness (deferred — code needs retrieving), or
-  an `ANTHROPIC_API_KEY` in this environment, whichever lands first.
-  First corpus: the §11 demo conversation, to compare the live loop's
-  output against the hand-authored demo log.
+- [ ] **Pro post-fix live run (a9).** Flash baseline is done
+  (`runs/gemini-proto-flash-baseline.wno`, pre-prompt-fix). The pro run
+  with fixed prompts showed zero rejects through turn 6 but crawled
+  (default thinking mode + degraded connection, retries invisible in
+  the pre-patch process). Rerun with retry logging now in place;
+  consider `--re2` (implies --think off) for speed. Then compare
+  flash-baseline vs pro vs hand-authored quality.
+- [x] **Live orchestrator run.** Done via Joe's ds harness +
+  DEEPSEEK_API_KEY. Backend flag: `--backend deepseek --model pro|flash`.
+  First corpus was the Gemini proto-winnow transcript (not §11 demo —
+  still worth doing for the hand-authored comparison).
 - [ ] **aimpack packaging.** Needs the aimpack format spec / an example
   pack — not in this repo. Ship spec + fold.py + registry as a part once
   available.

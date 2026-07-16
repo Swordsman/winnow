@@ -195,11 +195,15 @@ def deepseek_client(model="flash", ds_path=None, retries=3):
                 )
             except subprocess.TimeoutExpired as e:
                 last_err = f"ds hit the {e.timeout}s wall-clock cap"
+                print(f"  (retry {attempt + 1}/{retries}: {last_err})",
+                      file=sys.stderr)
                 continue
             if result.returncode == 0:
                 return result.stdout.strip()
             last_err = (f"ds failed (exit {result.returncode}): "
                         f"{result.stderr.strip()}")
+            print(f"  (retry {attempt + 1}/{retries}: {last_err})",
+                  file=sys.stderr)
         raise RuntimeError(f"{last_err} [after {retries} attempts]")
 
     return call
