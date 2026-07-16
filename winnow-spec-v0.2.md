@@ -675,7 +675,10 @@ Every dropped item is either reconstructible from surviving nodes or carried no 
 
 - `winnow-spec-v0.2.md` — this document
 - `demo-deltas.wno` — the demo extraction (§11), runnable
-- `fold.py` — reference implementation; `python3 fold.py LOG.wno [--snapshot | --frontier | --digest | --upto N]`
+- `fold.py` — reference fold; `python3 fold.py LOG.wno [--snapshot | --frontier | --digest | --query EXPR | --hashes | --upto N]`
+- `winnow.py` — reference orchestrator for the §9 loop (extractor → normalizer → delta → log)
+- `docs/hash-ids.md` — content-hash id design (v0.3 direction for §12's merge/KB items)
+- `tests/` — unit tests pinning fold semantics, tier computation, and normalizer enforcement
 - `sessions/` — design-session transfer logs (winnow self-extractions; provenance for v0.2 decisions)
 
 ## Appendix — reference implementation

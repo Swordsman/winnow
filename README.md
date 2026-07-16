@@ -34,7 +34,20 @@ python3 fold.py demo-deltas.wno --snapshot   # canonical folded graph
 python3 fold.py demo-deltas.wno --frontier   # v0.1 frontier digest
 python3 fold.py demo-deltas.wno --digest     # v0.2 tiered window
 python3 fold.py demo-deltas.wno --upto 4 --frontier   # any prefix is a valid state
+python3 fold.py demo-deltas.wno --query "frame=constraint strength=hard"
+python3 fold.py demo-deltas.wno --hashes     # content-hash id table (v0.3 prototype)
 ```
+
+Run the extraction loop itself over a turn-tagged transcript (`[t1 user]` /
+`[t2 assistant]` headers) with `winnow.py` — extractor and normalizer prompts
+from spec §9, procedural stage-B enforcement, one `.wno` log out:
+
+```sh
+python3 winnow.py transcript.txt --out log.wno          # live (needs anthropic + API key)
+python3 winnow.py transcript.txt --out log.wno --replay fixtures.txt   # offline/deterministic
+```
+
+Tests: `python3 -m unittest discover tests`
 
 `demo-deltas.wno` is a real extraction of an 8-turn filesystem-design conversation, walked through in spec §11: a design superseded mid-stream, hard requirements delivered inside doomsday jokes, a convention stated two contradictory ways, and a wrong user premise entering the graph faithfully and getting corrected structurally.
 
@@ -43,10 +56,14 @@ python3 fold.py demo-deltas.wno --upto 4 --frontier   # any prefix is a valid st
 | Path | What |
 |---|---|
 | `winnow-spec-v0.2.md` | the specification |
-| `fold.py` | reference implementation (parse, fold, validate, snapshot, frontier, digest) |
+| `fold.py` | reference implementation (parse, fold, validate, snapshot, frontier, digest, query, hashes) |
+| `winnow.py` | streaming extraction orchestrator (spec §9 loop; live via the Anthropic SDK, or deterministic `--replay` mode) |
 | `demo-deltas.wno` | runnable demo log (spec §11) |
+| `tests/` | unit tests for the fold and the orchestrator (`python3 -m unittest discover tests`) |
+| `docs/hash-ids.md` | content-hash id design note (v0.3) + rationale for the `--hashes` prototype |
 | `sessions/` | winnow self-extractions of winnow's own design sessions — the protocol taking notes on its own development, kept as provenance for v0.2 design decisions |
+| `TODO.md` | open items and deferred questions |
 
 ## Status
 
-v0.2 — spec and reference fold. The extraction loop itself (extractor + normalizer prompts, §9) runs on any capable LLM pair; orchestrator glue (reach handling, promotion TTLs, profile learning) is future work, as are hash-based node ids for cross-session merge and the global knowledge base (spec §12).
+v0.2 — spec, reference fold, and a working orchestrator loop (validated in replay mode; live-run evaluation pending). Reach handling, promotion TTLs, and profile learning are orchestrator future work; cross-session merge is designed (`docs/hash-ids.md`) with hash ids prototyped in `fold.py`; the global knowledge base stays deferred (spec §12).
