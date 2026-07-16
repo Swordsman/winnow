@@ -12,7 +12,10 @@ Usage:
     python3 fold.py LOG.wno --frontier # v0.1 frontier digest
     python3 fold.py LOG.wno --digest   # v0.2 tiered window
     python3 fold.py LOG.wno --upto N   # fold only the first N deltas
+    python3 fold.py LOG.wno --query "frame=claim status=live by=user"
+    python3 fold.py LOG.wno --hashes   # content-hash id table (docs/hash-ids.md)
 """
+import hashlib
 import sys
 import re
 from collections import Counter
@@ -104,6 +107,13 @@ def sx(v):
     if isinstance(v, Lit):
         return '"' + str(v) + '"'
     return str(v)
+
+
+def _symbols(v):
+    """Flatten a payload to its bare symbols (for term queries)."""
+    if isinstance(v, list):
+        return [s for x in v for s in _symbols(x)]
+    return [] if isinstance(v, Lit) else [str(v)]
 
 
 def anns(rest):
@@ -350,6 +360,58 @@ class Graph:
                      f"(reach QUERY) to promote ---")
         return "\n".join(lines)
 
+    def query(self, expr):
+        """Trivial query layer (spec 12): space-separated key=value pairs
+        over (frame, status, term, by, src). term matches any symbol
+        appearing in the payload."""
+        crit = dict(p.split("=", 1) for p in expr.split())
+        out = []
+        for nid in sorted(self.nodes, key=self._node_key):
+            n = self.nodes[nid]
+            ok = True
+            for k, v in crit.items():
+                if k == "term":
+                    ok = v in _symbols(n["payload"])
+                elif k == "src":
+                    val = n.get("src")
+                    ok = (v == val or
+                          (isinstance(val, list) and v in val))
+                else:
+                    ok = str(n.get(k)) == v
+                if not ok:
+                    break
+            if ok:
+                out.append(self._full_line(nid))
+        return "\n".join(out)
+
+    def hash_id(self, nid, _stack=frozenset()):
+        """Content-hash id prototype (docs/hash-ids.md): sha256 over
+        (frame, canonical payload) with node-id args resolved to their
+        own hashes recursively; cycles collapse to a marker."""
+        if nid in _stack:
+            return "cycle"
+        n = self.nodes[nid]
+
+        def rs(v):
+            if isinstance(v, list):
+                return "(" + " ".join(rs(x) for x in v) + ")"
+            if isinstance(v, Lit):
+                return '"' + str(v) + '"'
+            s = str(v)
+            if s in self.nodes and s != nid:
+                return "#" + self.hash_id(s, _stack | {nid})
+            return s
+
+        canon = n["frame"] + " " + rs(n["payload"])
+        return hashlib.sha256(canon.encode()).hexdigest()[:12]
+
+    def hashes(self):
+        lines = []
+        for nid in sorted(self.nodes, key=self._node_key):
+            lines.append(f"{nid:<4} {self.hash_id(nid)}  "
+                         f"{self._payload_line(nid)}")
+        return "\n".join(lines)
+
     def stats(self):
         out = [f"deltas applied : {self.deltas}",
                f"nodes          : {len(self.nodes)}",
@@ -397,6 +459,12 @@ def main():
         return
     if "--digest" in sys.argv:
         print(g.digest())
+        return
+    if "--query" in sys.argv:
+        print(g.query(sys.argv[sys.argv.index("--query") + 1]))
+        return
+    if "--hashes" in sys.argv:
+        print(g.hashes())
         return
     print(g.stats())
     print("validation     :",
