@@ -26,10 +26,20 @@
   alias-table intersection warning; real version: UEL).
 
 ## Minor / notes
-- [ ] Check whether "GAM" (latency objection, d10 session) and
+- [ ] **Transfer-file ids + receives: lines (spec patch).** Orphaned
+  ancestor references bit us live: the d10 handoff used terms (gam,
+  rampart, mandol, cuhk-critique) declared only in its ancestor file,
+  which the boot instructions never listed. Convention proposed by the
+  d10 session: `; id: wno-YYYYMMDD-slug-4hex` plus one `; receives:`
+  line per ancestor in the header comment, so a fresh session can detect
+  a missing ancestor immediately. Wants a small spec section alongside
+  the transfer conventions.
+- [x] Check whether "GAM" (latency objection, d10 session) and
   "seventh-block cliff" were load-bearing terms or session shorthand —
-  ask the session they came from if it still exists. Spec currently
-  paraphrases both generically (§10.1, §10.5); probably fine.
+  resolved: they're published research systems (GAM, RAMPART, Mandol,
+  CUHK critique), ingested from the DeepSeek survey material. Term
+  declarations + claims c42–c50 live in the 77-node ancestor file, now
+  in-repo as `sessions/d9-d10-session-transfer.wno`.
 - [ ] §10.4 profile learning loop: update rule deliberately unspecified;
   reach telemetry now exists in the orchestrator (rung numbers per reach)
   but isn't yet persisted to a sidecar — add when there's a live run to
