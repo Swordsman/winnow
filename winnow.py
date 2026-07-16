@@ -322,6 +322,8 @@ class Normalizer:
         return f"{ID_PREFIX[frame]}{self.serial[frame]}"
 
     def _map(self, ref, idmap):
+        if not isinstance(ref, str):
+            return ref
         return idmap.get(ref, ref)
 
     def _node_form(self, frame, nid, payload, ann_dict):
@@ -347,6 +349,10 @@ class Normalizer:
                 if item[0] == "edge":
                     et, a, b = item[1]
                     a, b = self._map(a, idmap), self._map(b, idmap)
+                    if not isinstance(et, str) or not isinstance(a, str) \
+                       or not isinstance(b, str):
+                        rejects.append(f"malformed edge (non-string ref)")
+                        continue
                     if et not in ETYPES:
                         rejects.append(f"unknown edge type {et}")
                         continue
