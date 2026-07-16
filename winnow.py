@@ -170,21 +170,30 @@ def anthropic_client(model, base_url=None, api_key_env=None):
     return call
 
 
-def deepseek_client(model="flash", ds_path=None):
-    import subprocess, os
+def deepseek_client(model="flash", ds_path=None, retries=3):
+    import subprocess, os, time
     if ds_path is None:
         ds_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ds")
 
     def call(system, user):
-        result = subprocess.run(
-            [ds_path, "--persist", "no", "-m", model,
-             "--timeout", "120", "-q", "--system", system, user],
-            capture_output=True, text=True, timeout=600,
-        )
-        if result.returncode != 0:
-            raise RuntimeError(f"ds failed (exit {result.returncode}): "
-                               f"{result.stderr.strip()}")
-        return result.stdout.strip()
+        last_err = None
+        for attempt in range(retries):
+            if attempt:
+                time.sleep(2 ** attempt)
+            try:
+                result = subprocess.run(
+                    [ds_path, "--persist", "no", "-m", model,
+                     "--timeout", "120", "-q", "--system", system, user],
+                    capture_output=True, text=True, timeout=600,
+                )
+            except subprocess.TimeoutExpired as e:
+                last_err = f"ds hit the {e.timeout}s wall-clock cap"
+                continue
+            if result.returncode == 0:
+                return result.stdout.strip()
+            last_err = (f"ds failed (exit {result.returncode}): "
+                        f"{result.stderr.strip()}")
+        raise RuntimeError(f"{last_err} [after {retries} attempts]")
 
     return call
 
