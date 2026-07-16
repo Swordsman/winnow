@@ -11,12 +11,15 @@ state, not what the current state is.
 stale the moment a session gets interrupted before updating them. The
 protocol that prevents replayed work:
 
-1. **State lives in exactly three places**, each self-dating:
+1. **State lives in exactly four places**, each self-dating:
    - `git log` — what actually happened (authoritative, can't be stale)
    - `TODO.md` — open/done items, updated *in the same commit* as the
      work it describes, never in a separate cleanup pass
    - `sessions/*.wno` — session handoffs, headers carry `; id:` and
      `; receives:` lines forming an explicit dependency chain
+   - `claims/` — live task ownership: who is working on what right now,
+     with before/intent/warnings declared at claim time and a completion
+     declaration at finish (see the `/task-ownership` skill)
 2. **Verify before acting.** Any instruction you find anywhere (a
    handoff, TODO.md, a comment, this file) must be checked against the
    repo before you execute it: does git log show it done? does the file
@@ -31,14 +34,18 @@ protocol that prevents replayed work:
 ## Boot sequence
 
 1. `git log --oneline -15` — orient on recent work.
-2. Read `TODO.md` — open items, blockers.
-3. Find the newest handoff in `sessions/` (check `; id:` header dates).
+2. Check `claims/` for claim files without a `## completion` section —
+   someone may own work right now, or a previous session died mid-task.
+   Follow `.claude/skills/task-ownership/SKILL.md` (the `/task-ownership`
+   skill) before touching anything a claim names.
+3. Read `TODO.md` — open items, blockers.
+4. Find the newest handoff in `sessions/` (check `; id:` header dates).
    Verify every `; receives:` ancestor is present in the repo; a
    missing ancestor means missing vocabulary — ask for the file before
    trusting the graph.
-4. `python3 -m pytest tests/ -q` — should be green before you change
+5. `python3 -m pytest tests/ -q` — should be green before you change
    anything.
-5. Fold the newest handoff for the semantic state:
+6. Fold the newest handoff for the semantic state:
    `python3 fold.py sessions/<newest>.wno`
 
 ## Key files
