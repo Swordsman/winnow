@@ -122,24 +122,33 @@ def anthropic_client(model, base_url=None, api_key_env=None):
     return call
 
 
-def deepseek_client(model="deepseek-v4-pro"):
+def deepseek_client(model="deepseek-v4-pro", think="off"):
     from openai import OpenAI
     import httpx, os
     client = OpenAI(
         api_key=os.environ["DEEPSEEK_API_KEY"],
         base_url="https://api.deepseek.com/v1",
-        http_client=httpx.Client(timeout=httpx.Timeout(connect=10, read=300, write=30, pool=10)),
+        http_client=httpx.Client(timeout=httpx.Timeout(
+            connect=10, read=300, write=30, pool=10)),
     )
+    if think == "off":
+        extra = {"extra_body": {"thinking": {"type": "disabled"}}}
+    elif think == "max":
+        extra = {"extra_body": {"thinking": {"type": "enabled"}},
+                 "reasoning_effort": "max"}
+    else:
+        extra = {}
 
     def call(system, user):
         resp = client.chat.completions.create(
             model=model,
+            stream=False,
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
-            extra_body={"thinking": {"type": "enabled"}},
-            reasoning_effort="high",
+            timeout=120,
+            **extra,
         )
         return resp.choices[0].message.content or ""
 
@@ -550,7 +559,8 @@ def main():
     if args.replay:
         llm = replay_client(args.replay)
     elif args.backend == "deepseek":
-        llm = deepseek_client(DS_MODELS.get(args.model, args.model))
+        llm = deepseek_client(DS_MODELS.get(args.model, args.model),
+                              think="off")
     elif args.backend == "deepseek-anthropic":
         llm = anthropic_client(
             DS_MODELS.get(args.model, args.model),
