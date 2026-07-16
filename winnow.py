@@ -100,9 +100,14 @@ def parse_transcript(text):
 
 # ------------------------------------------------------------ llm clients
 
-def anthropic_client(model):
-    import anthropic
-    client = anthropic.Anthropic()
+def anthropic_client(model, base_url=None, api_key_env=None):
+    import anthropic, os
+    kwargs = {}
+    if base_url:
+        kwargs["base_url"] = base_url
+    if api_key_env:
+        kwargs["api_key"] = os.environ[api_key_env]
+    client = anthropic.Anthropic(**kwargs)
 
     def call(system, user):
         resp = client.messages.create(
@@ -373,10 +378,11 @@ class Normalizer:
                 if key in self.payload_index:      # R11
                     existing = self.payload_index[key]
                     idmap[xid] = existing
-                    old_status = self.g.nodes[existing]["status"]
-                    if "status" in a and a["status"] != old_status:
-                        out.append(["update", existing,
-                                    ":status", a["status"]])
+                    if existing in self.g.nodes:
+                        old_status = self.g.nodes[existing]["status"]
+                        if "status" in a and a["status"] != old_status:
+                            out.append(["update", existing,
+                                        ":status", a["status"]])
                     continue
                 nid = self._next_id(frame)
                 idmap[xid] = nid
@@ -527,9 +533,11 @@ def main():
     ap.add_argument("transcript")
     ap.add_argument("--out", required=True, help="output .wno log path")
     ap.add_argument("--model", default=DEFAULT_MODEL)
-    ap.add_argument("--backend", choices=["anthropic", "deepseek"],
+    ap.add_argument("--backend",
+                    choices=["anthropic", "deepseek", "deepseek-anthropic"],
                     default="anthropic",
-                    help="LLM backend (default: anthropic)")
+                    help="LLM backend: anthropic (native), deepseek (openai-compat), "
+                         "deepseek-anthropic (anthropic-compat via DeepSeek)")
     ap.add_argument("--replay", help="canned-response fixture (offline)")
     ap.add_argument("--per-turn", action="store_true",
                     help="one delta per turn instead of per exchange")
@@ -538,11 +546,16 @@ def main():
     ap.add_argument("--seed", help="prior .wno log to continue from")
     args = ap.parse_args()
 
+    DS_MODELS = {"pro": "deepseek-v4-pro", "flash": "deepseek-v4-flash"}
     if args.replay:
         llm = replay_client(args.replay)
     elif args.backend == "deepseek":
-        ds_model = {"pro": "deepseek-v4-pro", "flash": "deepseek-v4-flash"}
-        llm = deepseek_client(ds_model.get(args.model, args.model))
+        llm = deepseek_client(DS_MODELS.get(args.model, args.model))
+    elif args.backend == "deepseek-anthropic":
+        llm = anthropic_client(
+            DS_MODELS.get(args.model, args.model),
+            base_url="https://api.deepseek.com/v1",
+            api_key_env="DEEPSEEK_API_KEY")
     else:
         llm = anthropic_client(args.model)
     run(args.transcript, args.out, llm,
