@@ -130,7 +130,7 @@ def deepseek_client(model="flash", ds_path=None):
     def call(system, user):
         result = subprocess.run(
             [ds_path, "--persist", "no", "-m", model,
-             "--timeout", "120", "-q", "--system", system, user],
+             "--timeout", "120", "--stream", "-q", "--system", system, user],
             capture_output=True, text=True, timeout=180,
         )
         if result.returncode != 0:
