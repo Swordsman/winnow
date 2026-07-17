@@ -11,16 +11,23 @@
   (default thinking mode + degraded connection, retries invisible in
   the pre-patch process). Rerun with retry logging now in place;
   consider `--re2` (implies --think off) for speed. Then compare
-  flash-baseline vs pro vs hand-authored quality.
-- [x] **Live orchestrator run.** Done via Joe's ds harness +
-  DEEPSEEK_API_KEY. Backend flag: `--backend deepseek --model pro|flash`.
-  First corpus was the Gemini proto-winnow transcript (not §11 demo —
-  still worth doing for the hand-authored comparison).
+  flash-baseline vs pro vs hand-authored quality. Sequenced after the
+  resolver batch so the run exercises ranked reach resolution.
 - [ ] **aimpack packaging.** Needs the aimpack format spec / an example
   pack — not in this repo. Ship spec + fold.py + registry as a part once
   available.
 
 ## Next up
+- [ ] **Resolver-layer batch (approved 2026-07-17, build next session;
+  see `sessions/kimi-salvage-session-transfer.wno`).** All derived
+  map-side views, nothing logged, offline-testable: (1) term-usage index
+  in fold.py (term → referencing nodes, status-gated mass) + `--concepts`
+  sorted view + `--stale` view (open/proposed/doing untouched N deltas);
+  (2) Resolver ranking by (status class, mass, recency) replacing the
+  arbitrary rung-2 truncation, plus constituent-aware term matching
+  ("auth" finds "auth-system"); (3) Kimi vocabulary folded into registry
+  aliases; (4) tests. Rulings not to relitigate: no logged importance
+  scalars; mass orders retrieval, never window residency.
 - [ ] **Live relay experiment (Joe's proposal, fresh session).** Claude in
   haiku mode forwards messages between Joe and DeepSeek (via ds);
   DeepSeek and/or haiku generate .wno updates live during the
@@ -29,16 +36,31 @@
   compilation: the relay's context becomes folded digest + live tail
   (fold.py tier rendering), and the test is whether references to
   scrolled-out material resolve from the digest alone (resolution
-  ladder on live traffic).
+  ladder on live traffic). Variant worth testing: side-payload — the
+  responding frontier model emits .wno ops alongside its reply (one
+  call); manager-side decomposition is the weak link per flash-baseline
+  evidence, so keep the lightweight model's role recognition-only (c29).
+- [ ] **Multi-session corpus (arc-split, Joe 2026-07-17).** Produce the
+  corpus ourselves instead of waiting: split an existing transcript at
+  conversational-arc boundaries (arcs ≈ split.py dense components;
+  session boundaries are arbitrary under managed context). Exercises
+  `:src` namespacing (q5). Note: a single-conversation split shares one
+  registry, so alias drift (q6) needs two independently-extracted
+  corpora instead.
 - [ ] **Merge UX hardening** (post-first-real-use): `:src` values collide
   across logs (t1 in log A ≠ t1 in log B); currently unioned verbatim.
   Needs session-namespaced provenance (e.g. `:src (sess-a t1)`) or a
-  log-id in the meta header — spec change, so wants a real multi-session
-  corpus first.
+  log-id in the meta header — spec change; test corpus now planned via
+  arc-split item above.
 - [ ] **Alias-aware hashing.** `hash_id` hashes canonical term ids; two
   logs whose registries alias the same surface form to different ids
-  won't join. Registry reconciliation pass before merge (cheap version:
-  alias-table intersection warning; real version: UEL).
+  won't join. Upgraded mechanism (2026-07-17): **canon anchors** —
+  optional `:canon` key on term entries attaching a Wikipedia-title
+  canonical form, attach-don't-replace; organic ids stay the wire
+  format, anchors are cross-lineage join keys (same pattern as hash
+  ids). fold.py already tolerates the key; needs §8 grammar note +
+  merge/Resolver consumption. Anchoring happens in idle time (pairs
+  with `--stale` maintenance pass).
 
 ## Minor / notes
 - [ ] **Transfer-file ids + receives: lines (spec patch).** Orphaned
@@ -49,21 +71,36 @@
   line per ancestor in the header comment, so a fresh session can detect
   a missing ancestor immediately. Wants a small spec section alongside
   the transfer conventions.
+- [ ] **Tier/graph visualizer for Joe.** Interactive model of tiers,
+  fold, push/pull for design intuition (Joe: needed before evaluating
+  ranking/profile-learning items). Options: Kimi swarm / AI Studio
+  (ground them with the spec file + real `--digest` output, not a
+  paraphrase) or a Claude-built artifact from real fold data.
+- [ ] §10.4 profile learning loop: update rule deliberately unspecified;
+  reach telemetry now exists in the orchestrator (rung numbers per reach)
+  but isn't yet persisted to a sidecar — add when there's a live run to
+  measure.
+- [ ] Global KB construction (§12) — deferred to hash-id era; rung 4
+  interface reserved in `Resolver`. Construction sketch now exists:
+  merge.py + term-usage index + mass ranking + canon anchors.
+- [ ] UEL / embedding-anchor representation mode (§12) — v2 identity engine.
+
+## Done
+- [x] Kimi doc assessment + salvage ledger (2026-07-17): usage-mass /
+      ranking / constituent matching / stale view / canon anchors /
+      side-payload variant adopted; logged importance scalars and scalar
+      salience fields rejected with receipts. Full rulings in
+      `sessions/kimi-salvage-session-transfer.wno`.
 - [x] Check whether "GAM" (latency objection, d10 session) and
   "seventh-block cliff" were load-bearing terms or session shorthand —
   resolved: they're published research systems (GAM, RAMPART, Mandol,
   CUHK critique), ingested from the DeepSeek survey material. Term
   declarations + claims c42–c50 live in the 77-node ancestor file, now
   in-repo as `sessions/d9-d10-session-transfer.wno`.
-- [ ] §10.4 profile learning loop: update rule deliberately unspecified;
-  reach telemetry now exists in the orchestrator (rung numbers per reach)
-  but isn't yet persisted to a sidecar — add when there's a live run to
-  measure.
-- [ ] Global KB construction (§12) — deferred to hash-id era; rung 4
-  interface reserved in `Resolver`.
-- [ ] UEL / embedding-anchor representation mode (§12) — v2 identity engine.
-
-## Done
+- [x] **Live orchestrator run.** Done via Joe's ds harness +
+  DEEPSEEK_API_KEY. Backend flag: `--backend deepseek --model pro|flash`.
+  First corpus was the Gemini proto-winnow transcript (not §11 demo —
+  still worth doing for the hand-authored comparison).
 - [x] v0.2 spec: §10 tiers, meta header, §3/§7/§9 patches, renumbering (PR #1)
 - [x] fold.py: digest/tiers, query layer, hash-id prototype, P3 promotion TTL
 - [x] winnow.py: §9 orchestrator loop; §10.5 resolution ladder (rungs 0–3,

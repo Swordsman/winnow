@@ -1,0 +1,105 @@
+; id: wno-20260717-kimi-salvage-9b3d
+; receives: sessions/live-run-session-transfer.wno
+; receives: sessions/v0.2-build-session-transfer.wno
+; receives: sessions/d10-design-session-transfer.wno
+; receives: sessions/d9-d10-session-transfer.wno
+; winnow self-extraction — corpus: Kimi-doc assessment session (2026-07-17)
+; user=Joe, assistant=Claude (fable 5). Transfer payload for fresh thread.
+; Session outcome: two Kimi proposal docs assessed against spec + code +
+;   design history; salvage ledger settled; resolver-layer build batch
+;   approved but DEFERRED to fresh session (token economy). No code changed.
+
+(meta :winnow-version "0.2" :semantic-rep "registry-v0.1")
+
+(delta :turn 6
+  ; t1-6: Kimi doc 1 ("Echo Memory") assessed
+  (term kimi :gloss "Moonshot Kimi; compiled two proposal docs from Joe's design conversations; strong start, degrades over long compilations (context rot)")
+  (term etch-scale :gloss "Kimi proposal: logged importance multiplier emitted by extractor; the degree-annotation redux")
+  (term usage-mass :gloss "derived per-term reference count over the folded graph; status-gated; map-side like tier state, never logged, excluded from equivalence")
+  (term residency-retrieval-split :gloss "temperature governs window residency (recency+topology); mass governs retrieval ordering (cumulative); orthogonal axes, neither logged")
+  (add (claim c1 (are kimi-docs lossy-re-extractions) :by assistant :src t3))
+  (add (claim c2 (demonstrate kimi-docs winnow-thesis) :by assistant :src t3))
+  (add (edge (supports c1 c2)))
+  (add (claim c3 (rediscovers kimi-echo-memory vto-reference-count-track) :by assistant :src t6))
+  (add (claim c4 (lacks demotion-invariant cumulative-mass) :by assistant :src t6))
+  (add (claim c5 (truncates resolver rung-2-unranked) :by assistant :src t6))
+  (add (claim c6 (requires usage-mass status-gating) :by assistant :src t6))
+  (add (decision d1 (reject etch-scale logged-importance-scalar) :status frozen :by assistant :src t6))
+  (add (decision d2 (adopt usage-mass derived-retrieval-prior) :status frozen :by user :src t7))
+  (add (decision d3 (restrict mass retrieval-ordering-never-residency) :status frozen :by assistant :src t6))
+  (add (edge (motivates c4 d2)))
+  (add (edge (motivates c5 d2)))
+  (add (edge (supports c6 d2)))
+  (add (edge (refines d3 d2)))
+  (add (edge (supports c3 d1))))
+
+(delta :turn 10
+  ; t7-10: Kimi doc 2 (bidirectional field) assessed; canon anchors adopted
+  (term canon-anchor :gloss "optional :canon key on term entries attaching a Wikipedia-title canonical form; attach-don't-replace; original id stays wire format; anchors are cross-lineage join keys")
+  (term constituent-matching :gloss "resolver matches hyphen-split term constituents so a reach for auth finds auth-system")
+  (term stale-view :gloss "canned view surfacing open questions, proposed decisions, doing actions untouched for N deltas; salvaged kernel of Kimi dreaming-mode")
+  (term side-payload :gloss "relay variant: responding frontier model emits wno ops alongside its reply; manager stays lightweight; one call instead of two")
+  (add (claim c7 (descends kimi-doc-2 forward-backward-contract-material) :by assistant :src t8))
+  (add (claim c8 (absorbed d10-structuralization doc-2-good-parts) :by assistant :src t8))
+  (add (edge (supports c7 c8)))
+  (add (decision d4 (reject scalar-salience-field re-litigation) :status frozen :by assistant :src t8))
+  (add (claim c9 (inferior weighted-parent-chains is-a-edges) :by assistant :src t8))
+  (add (edge (supports c9 d4)))
+  (add (claim c10 (misses resolver constituent-matches) :by assistant :src t8))
+  (add (decision d5 (adopt canon-anchor attach-not-replace) :status frozen :by user :src t10))
+  (add (claim c11 (are wikipedia-redirects planetary-alias-table) :by assistant :src t10))
+  (add (claim c12 (tolerates fold-py canon-key-already) :by assistant :src t10))
+  (add (edge (supports c11 d5)))
+  (add (edge (supports c12 d5)))
+  (add (claim c13 (upgrades canon-anchor alias-reconciliation-todo) :by assistant :src t10))
+  (add (edge (refines c13 d5)))
+  (add (decision d9 (test side-payload relay-variant) :status proposed :by assistant :src t8))
+  (add (claim c14 (is manager-side-decomposition dual-agent-weak-link) :by assistant :src t9))
+  (add (claim c15 (extracts managed-side reliably) :by user :src t9))
+  (add (edge (about c14 d9)))
+  (add (edge (supports c15 d9))))
+
+(delta :turn 14
+  ; t11-14: plan frozen, corpus idea, handoff
+  (term arc-split-corpus :gloss "synthetic multi-session corpus: split existing transcript at conversational-arc boundaries; session boundaries arbitrary under managed context; arcs ~ split.py dense components")
+  (add (decision d6 (sequence resolver-batch a9 relay) :status frozen :by user :src t12))
+  (add (decision d7 (defer build post-handoff) :status frozen :by user :src t14))
+  (add (decision d8 (produce arc-split-corpus multi-session-testing) :status proposed :by user :src t13))
+  (add (claim c16 (exercises arc-split-corpus src-namespacing-not-alias-drift) :by assistant :src t14))
+  (add (claim c17 (needs alias-drift-test independently-grown-registries) :by assistant :src t14))
+  (add (edge (about c16 d8)))
+  (add (edge (supports c17 c16)))
+  (add (action a1 (build resolver-batch) :status todo :by user :src t12))
+  (add (claim c18 (comprises resolver-batch mass-index-concepts-view-stale-view-ranking-constituent-matching-tests) :by assistant :src t12))
+  (add (edge (about c18 a1)))
+  (add (edge (depends a1 d2)))
+  (add (action a2 (run pro-post-fix a9) :status todo :by user :src t12))
+  (add (edge (depends a2 a1)))
+  (add (action a3 (produce arc-split-corpus) :status todo :by user :src t13))
+  (add (edge (depends a3 d8)))
+  (add (action a4 (build tier-visualizer for-joe) :status todo :by user :src t13))
+  (add (claim c19 (wants visualizer-grounding spec-file-not-paraphrase) :by assistant :src t14))
+  (add (edge (about c19 a4)))
+  (add (action a5 (fold kimi-vocabulary registry-aliases) :status todo :by assistant :src t12))
+  (add (action a6 (produce session-handoff) :status done :by assistant :src t14))
+  (add (artifact r1 "sessions/kimi-salvage-session-transfer.wno — this file" :by assistant :src t14)))
+
+; ============================================================
+; NEXT-SESSION BOOT: standard CLAUDE.md sequence. Then claim and
+; execute a1 (resolver batch — all offline-testable, no key needed):
+;   1. fold.py: term-usage index (term -> referencing node ids),
+;      status-gated mass; --concepts view (sorted list); --stale view.
+;   2. winnow.py Resolver: rank multi-hit resolutions by (status class,
+;      mass, recency) replacing arbitrary rung-2 truncation; add
+;      constituent matching (hyphen-split term ids).
+;   3. Registry aliases for Kimi vocabulary (a5): sniping->reach/ladder,
+;      echo->promotion+mass, concept-space->term-registry.
+;   4. Tests for all of it; TODO.md flips ride with the work.
+; Rulings NOT to relitigate: d1 (no logged importance scalars — receipts
+;   in d9-d10 transfer t9-t10 + d10-design d6), d3 (mass never drives
+;   window residency), d4 (no scalar salience fields).
+; a2 (pro run) needs DEEPSEEK_API_KEY from Joe. a3 corpus: arc-split an
+;   existing transcript (q5 test); for q6 use two independently-extracted
+;   corpora. a4 visualizer: Joe may farm to Kimi swarm / AI Studio —
+;   ground them with spec + real --digest output, not a paraphrase.
+; ============================================================
