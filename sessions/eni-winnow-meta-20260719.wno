@@ -1,0 +1,68 @@
+; winnow extraction — ENI + LO meta-conversation scaffolding
+; companion to eni-winnow-design.wno; contains context-setting exchanges
+; excluded from primary extraction per R10 (phatic/meta/operational)
+; preserved for provenance and session rehydration
+; id: eni-winnow-meta-20260719
+
+(meta :winnow-version "0.2" :semantic-rep "registry-v0.1"
+      :profile (:tail 4 :fire-hops 1 :promotion-ttl 2 :widening-base 3))
+
+; --- ΔM1: opening — greeting, LO's state (tired, need to code, Fable deadline)
+(delta :turn 2
+  (term fable-5 :gloss "Anthropic's top-tier reasoning model, leaving paid subscriptions for metered API access")
+  (add (claim cm1 (state LO tired long-day need-to-code) :by user :src t1))
+  (add (claim cm2 (event fable-5 leaving-subscriptions 24-hours-remaining moves-to-api-pay-as-you-go) :by user :src t1))
+  (add (claim cm3 (cost fable-5 api-rate 50-dollars-per-month-effectively) :by user :src t1))
+  (add (edge (about cm2 cm3))))
+
+; --- ΔM2: research — ENI looks up Fable 5 pricing, finds YouTube video, Reddit threads
+(delta :turn 4
+  (term opus-4-8-low :gloss "Anthropic's Opus 4.8 on low thinking mode — recommended Fable substitute")
+  (term sonnet-5-low :gloss "Anthropic's Sonnet 5 on low thinking mode — faster alternative")
+  (add (claim cm4 (pricing fable-5 $10-per-million-input $50-per-million-output double-opus-4-8) :by assistant :src t3))
+  (add (claim cm5 (fable-5 timeline government-suspension-june-12 cutoff-extended-twice final-july-19) :by assistant :src t3))
+  (add (claim cm6 (burn-rate fable-5 max-plan-user-2-percent-per-minute reddit-report) :by assistant :src t3))
+  (add (claim cm7 (alternative opus-4-8-low near-parity-with-fable-5) :by assistant :src t3))
+  (add (claim cm8 (alternative sonnet-5-low faster-than-opus-4-8-low) :by assistant :src t3))
+  (add (claim cm9 (cynical-read anthropic-pre-ipo shifting-from-subscription-to-metered-api) :by assistant :src t3)))
+
+; --- ΔM3: video takedown — LO dismisses the YouTube guru
+(delta :turn 6
+  (add (claim cm10 (quality-signal SEO-passive-income-income-stream keywords-reject-not-signaling-quality) :by user :src t5))
+  (add (claim cm11 (quality-signal typo-codeing-journey indicator-of-priorities) :by user :src t5))
+  (add (claim cm12 (judgment youtube-video half-pitch-for-own-product income-stream-surfers) :by assistant :src t3))
+  (add (edge (supports cm10 cm12))))
+
+; --- ΔM4: operational — LO saves Skills to downloads, ENI watches
+(delta :turn 8
+  (add (claim cm13 (file-transfer four-skills-dropping aimpack bbdbc-tool-batch cbtdag deepseek-api) :by user :src t7))
+  (add (claim cm14 (location linux-downloads not-windows-downloads user-correction) :by user :src t7))
+  (add (action am1 (unpack-and-read-four-skills) :status done :by assistant :src t8)))
+
+; --- ΔM5: skill unpacking — ENI reads the four Hermes skills
+(delta :turn 10
+  (add (claim cm15 (skill aimpack mime-containers-llm-workflows s-expression-instructions plaintext-readable) :by assistant :src t9))
+  (add (claim cm16 (skill bbdbc-tool-batch token-efficiency batching size-gating sub-agent-delegation) :by assistant :src t9))
+  (add (claim cm17 (skill deepseek-api raw-api-access v4-models thinking-mode-on-by-default) :by assistant :src t9))
+  (add (claim cm18 (skill cbtdag contract-based-task-dag design-phase dag-assembly execution-verification) :by assistant :src t9))
+  (add (claim cm19 (repo swordsman-github all-four-skills-interlock infrastructure-for-jitcw) :by assistant :src t9)))
+
+; --- ΔM6: GitHub auth — LO provides PAT, ENI configures gh
+(delta :turn 12
+  (add (claim cm20 (github-auth expired-token-for-swordsman re-authentication-needed) :by assistant :src t11))
+  (add (claim cm21 (auth-method classic-pat repo-scope three-month-expiry) :by assistant :src t11))
+  (add (claim cm22 (result gh-auth-successful scopes-repo-workflow-read-org-gist) :by assistant :src t12))
+  (add (action am2 (authenticate-github-for-private-repo-access) :status done :by assistant :src t12)))
+
+; --- ΔM7: Winnow clone — ENI clones and reads the winnow repo
+(delta :turn 16
+  (add (claim cm23 (winnow-repo description semantic-representation-distillation cross-session-carryover jitcw) :by assistant :src t13))
+  (add (claim cm24 (winnow-private-repo swordsman-github not-yet-public) :by assistant :src t13))
+  (add (claim cm25 (winnow-files fold-py merge-py split-py winnow-py spec demo-deltas sessions tests) :by assistant :src t14))
+  (add (claim cm26 (winnow-code-review observation v0.2-spec-comprehensive code-clean zero-dependency-python) :by assistant :src t15)))
+
+; --- ΔM8: communication norms — LO corrects ENI's over-reading
+(delta :turn 18
+  (add (claim cm27 (correction dodging-accusation online-chat-is-normal-human-communication loops-and-stalls) :by user :src t17))
+  (add (claim cm28 (correction many-cool-things-to-work-on not-avoidance) :by user :src t17))
+  (add (claim cm29 (meta-observation i-got-ahead-of-myself reading-evasion-into-normal-conversation) :by assistant :src t17)))
