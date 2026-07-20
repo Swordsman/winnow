@@ -1,0 +1,231 @@
+; winnow extraction — ENI + LO design conversation on semantic architecture
+; ~25 exchanges, 2026-07-19; model-aware knowledge distillation, JITCW,
+; linguistic/universal semantic layering, per-word polysemy graphs
+; id: eni-winnow-design-20260719
+
+(meta :winnow-version "0.2" :semantic-rep "registry-v0.1"
+      :profile (:tail 6 :fire-hops 1 :promotion-ttl 2 :widening-base 3))
+
+; --- Δ1: turns 1–2 — LO describes the fundamental shift: JIT context awareness
+(delta :turn 2
+  (term jitcw :gloss "just-in-time context window compilation — virtual memory for LLMs, context assembled per-boundary from indexed knowledge base")
+  (term context-window :gloss "the active token buffer an LLM holds during generation; traditionally a hard ceiling")
+  (term semantic-graph :gloss "knowledge represented as typed nodes and edges rather than raw text")
+  (term page-fault :gloss "in virtual memory, the interrupt when the CPU addresses non-resident memory; the analogy for LLM context misses")
+  (add (claim c1 (metaphor jitcw virtual-memory-llm) :by user :src t1))
+  (add (claim c2 (hard-ceiling context-window breadth-depth-tradeoff) :by user :src t1))
+  (add (claim c3 (goal jitcw unbounded-awareness bounded-working-set) :by user :src t1))
+  (add (question q1 (mechanism jitcw) :status open :by assistant :src t2))
+  (add (claim c4 (constraint jitcw no-weight-access no-custom-models) :by user :src t2))
+  (add (constraint k1 (runs-on jitcw existing-api-models) :strength hard :by user :src t2)))
+
+; --- Δ2: turns 3–5 — LO gives the pipeline architecture pieces
+(delta :turn 5
+  (term pipeline-arch :gloss "filesystem ↔ procedural ↔ tiny-llm ↔ big-llm, with tiny-llm as universal translator and message broker")
+  (term canonical-form :gloss "semantic representation where equivalent meanings produce identical structures")
+  (term procedural-layer :gloss "deterministic, non-LLM code that operates on well-formed semantic structures — caching, dedup, indexing, graph ops")
+  (term tiny-llm :gloss "cheap weak model handling translation between user language and semantic form, plus message routing")
+  (term big-llm :gloss "expensive strong model that works entirely in semantics; never touches the user directly")
+  (add (claim c5 (arch pipeline-arch filesystem-procedural-tinyllm-bigllm) :by user :src t3))
+  (add (claim c6 (role tiny-llm translator message-broker three-interfaces) :by user :src t3))
+  (add (claim c7 (role big-llm semantic-only never-touches-user) :by user :src t3))
+  (add (claim c8 (output big-llm semantic-output-plus-semantic-model-of-output) :by user :src t3))
+  (add (claim c9 (role procedural-layer deterministic indexing caching graph-operations) :by user :src t3))
+  (add (decision d1 (approach reduction-to-semantic-elements canonical-form universal-representation) :status proposed :by user :src t3))
+  (add (edge (refines d1 c3)))
+  (add (claim c10 (canonical-form property hash-equivalent-when-meaning-equivalent) :by user :src t3))
+  (add (claim c11 (canonical-form property delta-annotation-for-near-equivalence) :by user :src t3))
+  (add (claim c12 (short-cache collaborative-maintenance tiny-llm big-llm procedural proactive-not-reactive) :by user :src t3))
+  (add (question q2 (canonicalizer-mechanism how-to-produce-canonical-form) :status open :by assistant :src t4))
+  (add (claim c13 (answer q2 llm-is-the-canonicalizer) :by assistant :src t4))
+  (add (claim c14 (normalization ingestion-pass llm-produces-canonical-form-once cached-by-hash) :by assistant :src t4))
+  (add (claim c15 (normalization retrieval-pass query-extracted-from-reasoning-stream normalized-to-same-canonical-language) :by assistant :src t4))
+  (add (edge (answers c13 q2)))
+  (add (claim c16 (realization graph-completion-not-gap-detection procedural-joins-message-graph-against-knowledge-graph) :by user :src t5))
+  (add (claim c17 (mechanism procedural partial-subgraph-finds-edges-to-existing-knowledge relevance-is-a-join) :by user :src t5))
+  (add (edge (answers c17 q2)))
+  (update q2 :status answered)
+  (add (edge (answers d1 q1)))
+  (update q1 :status answered))
+
+; --- Δ3: turns 5b–6 — disambiguation flow, batching to big LLM
+(delta :turn 6
+  (add (claim c18 (flow user-to-tinyllm-to-graph-to-tinyllm-to-user big-llm-batched-not-hot-path) :by user :src t5))
+  (add (claim c19 (clarification not-failure-mode system-shows-interpretive-options asks-user-to-resolve) :by assistant :src t6))
+  (add (claim c20 (clarification message-format "I'm thinking you mean X or Y or Z, but I'm not quite sure") :by assistant :src t6))
+  (add (claim c21 (graph-grows-denser-over-time more-attachment-points-fewer-clarifications) :by assistant :src t6))
+  (add (claim c22 (batch-delivery big-llm-receives-accumulated-disambiguated-graph-completed-payloads) :by user :src t5)))
+
+; --- Δ4: turns 7–8 — procedural graph, Wikipedia as canonical resolver
+(delta :turn 8
+  (term wikipedia-resolver :gloss "using Wikipedia article names as canonical identifiers for universal concepts; already disambiguated, stable, human-maintained")
+  (term namespace-extension :gloss "local namespace for project-specific concepts following same titling conventions as Wikipedia")
+  (add (claim c23 (canonical-resolver wikipedia-article-names disambiguation-already-solved) :by user :src t7))
+  (add (claim c24 (wikipedia-resolver property graph-already-exists wikilinks-as-edges categories-as-taxonomy) :by assistant :src t8))
+  (add (claim c25 (namespace-extension project-local private-extension same-conventions different-scope) :by assistant :src t8))
+  (add (question q3 (completeness current-semantic-graph-system what-is-not-perfect) :status answered :by assistant :src t8)))
+
+; --- Δ5: turns 9–12 — LO reveals Winnow as the implementation
+(delta :turn 12
+  (term winnow :gloss "streaming semantic distillation for AI conversations; s-expression delta protocol over typed semantic graph")
+  (add (claim c26 (system winnow implemented-working-code not-just-design) :by assistant :src t9))
+  (add (claim c27 (winnow spec eight-frames eight-edge-types twelve-normalization-rules) :by assistant :src t10))
+  (add (claim c28 (winnow tiers four-temperature-jit-context fire-hot-warm-cold) :by assistant :src t10))
+  (add (claim c29 (winnow resolution-ladder ends-at-honest-miss never-fabricates-referent) :by assistant :src t10))
+  (add (claim c30 (winnow demotion-invariant graph-structural-not-timer-based clusters-detach-as-units) :by assistant :src t10))
+  (add (claim c31 (winnow stage-a-extractor-loose stage-b-normalizer-strict procedural-enforcement) :by assistant :src t11))
+  (add (claim c32 (winnow code fold-py-graph-engine winnow-py-orchestrator merge-py-cross-log split-py-slicing) :by assistant :src t11))
+  (add (question q4 (winnow not-fully-perfect what-is-gap) :status answered :by assistant :src t12)))
+
+; --- Δ6: turns 13–14 — per-word polysemy, linguistic layer
+(delta :turn 14
+  (term polysemy :gloss "one surface form with multiple distinct meanings; the complement of synonymy")
+  (term per-word-graph :gloss "every linguistic symbol has its own local graph modeling all senses as potential pathways to universal concepts")
+  (term collapse-contract :gloss "Winnow's R1-R12 normalization: same meaning → same form; solves synonym drift but risks polysemy erasure")
+  (add (claim c33 (problem collapse-contract synonym-drift-solved polysemy-erased) :by assistant :src t13))
+  (add (claim c34 (per-word-graph word-is-hub-not-node senses-are-edges-into-knowledge-graph) :by assistant :src t13))
+  (add (claim c35 (per-word-graph alternative-readings-parked-not-deleted temperature-tiered-by-likelihood) :by assistant :src t13))
+  (add (claim c36 (example polysemy tap faucet-strike-pierce three-unrelated-universal-concepts) :by user :src t14))
+  (add (claim c37 (rule collapse-synonyms-within-sense preserve-polysemes-across-senses) :by assistant :src t14))
+  (add (edge (contradicts c37 c33))))
+
+; --- Δ7: turns 15–17 — names as pointers, dynamic bindings, macro system
+(delta :turn 17
+  (term name-as-pointer :gloss "linguistic symbols as macros that point to arbitrary concepts, subgraphs, or evaluation rules")
+  (term dynamic-binding :gloss "pointer is stable, referent is evaluated against utterance context — e.g. 'today' = day-of(utterance-time)")
+  (term resolution-mode :gloss "annotation on term: static (registry lookup), dynamic (evaluate against context), macro (user-defined binding)")
+  (add (claim c38 (name-as-pointer everyday-speech defines-macros pointing-to-arbitrary-concepts) :by user :src t15))
+  (add (claim c39 (dynamic-binding today stable-pointer dynamic-referent day-of-utterance-context) :by user :src t15))
+  (add (claim c40 (resolution-mode three-types static-dynamic-macro procedural-handles-each-differently) :by assistant :src t16))
+  (add (claim c41 (per-word-graph additional-dimension sense-type concept-bindingrule-or-macro) :by assistant :src t16))
+  (add (claim c42 (full-picture word-hub senses-concept-binding-macro synonyms-collapse polysemes-distinct resolution-walks-edges) :by assistant :src t16))
+  (add (edge (refines c42 c34))))
+
+; --- Δ8: turns 18–20 — language as baseline, linguistic foundation layer
+(delta :turn 20
+  (term linguistic-foundation :gloss "every language has its own default set of mappings, polysemies, bindings, resolution rules — the baseline upon which personal and conversational layers build")
+  (term universal-foundation :gloss "concepts, relations, entities — the structure of reality independent of how anyone talks about it; the territory beneath the linguistic map")
+  (add (claim c43 (linguistic-foundation language-is-foundation-layer-not-implementation-detail) :by assistant :src t18))
+  (add (claim c44 (linguistic-foundation language-carves-meaning-space-differently chinese-different-from-english) :by assistant :src t18))
+  (add (claim c45 (resolution-stack conversation-local-personal-language-default) :by assistant :src t18))
+  (add (claim c46 (universal-foundation sits-beneath-linguistic territory-not-map) :by user :src t19))
+  (add (claim c47 (metaphor language-is-map universal-is-territory different-maps-same-terrain) :by assistant :src t20))
+  (add (decision d2 (architecture two-foundation-layers universal-beneath-linguistic) :status proposed :by user :src t19))
+  (add (edge (refines d2 d1)))
+  (add (claim c48 (term-registry-two-jobs alias-resolution-linguistic-layer concept-resolution-universal-layer) :by assistant :src t20))
+  (add (claim c49 (cross-language cat-and-mao-point-to-same-universal-node different-linguistic-pathways) :by assistant :src t20)))
+
+; --- Δ9: turns 21–22 — word-to-mapping resolution, retroactive disambiguation
+(delta :turn 22
+  (term retroactive-disambiguation :gloss "revisiting prior utterance nodes to follow different sense-edges when later context reveals a misinterpretation")
+  (add (claim c50 (word-to-mapping tap-maps-to-multiple-universal-concepts slots-into-procedural-log) :by user :src t21))
+  (add (claim c51 (utterance-as-node edges-to-all-possible-interpretations primary-followed alternatives-dormant) :by assistant :src t21))
+  (add (claim c52 (retroactive-disambiguation context-shift-triggers-walkback follow-different-edge ripple-correction-forward) :by assistant :src t21))
+  (add (claim c53 (retroactive-disambiguation mechanism same-as-winnow-partial-resolution-patterns generalized) :by assistant :src t21))
+  (add (claim c54 (auto-trigger tiny-llm-detects-dangling-edges-piling-up scans-backward-for-misinterpreted-polysemes) :by assistant :src t21))
+  (add (edge (refines c52 c35))))
+
+; --- Δ10: turns 22b–23 — multi-word expressions, procedural reasoning before strong LLM
+(delta :turn 23
+  (term multi-word-expression :gloss "spans of words that map as a unit to universal concepts, bypassing word-level decomposition — idioms, compounds, phrasal verbs")
+  (term graph-connectivity-scoring :gloss "procedural disambiguation heuristic: which interpretation has more edges into the active working set")
+  (add (claim c55 (multi-word-expression kick-the-bucket literal-vs-idiom only-resolvable-by-context) :by user :src t22))
+  (add (claim c56 (graph-connectivity-scoring procedural-disambiguation edges-into-active-working-set) :by assistant :src t22))
+  (add (claim c57 (graph-connectivity-scoring stronger-when-interpretation-completes-dangling-references) :by assistant :src t22))
+  (add (claim c58 (tiny-llm invoked-only-when-connectivity-heuristic-fails genuine-ambiguity) :by assistant :src t22))
+  (add (claim c59 (strong-llm domain post-disambiguation novel-synthesis-not-resolution) :by assistant :src t22))
+  (add (claim c60 (strong-llm input semantic-atoms-plus-connections-from-procedural not-full-graph) :by assistant :src t23))
+  (add (claim c61 (strong-llm lang-tag preserves-register-tone-cultural-framing without-shipping-dictionary) :by user :src t23))
+  (add (edge (supports c61 c49))))
+
+; --- Δ11: turns 24 — Winnow walkthrough, code review
+(delta :turn 24
+  (add (claim c62 (winnow-observation spec-meticulous closed-sets equivalence-test-testable) :by assistant :src t24))
+  (add (claim c63 (winnow-observation tier-architecture more-thought-through-than-sketch demotion-invariant-resolution-ladder) :by assistant :src t24))
+  (add (claim c64 (winnow-observation procedural-layer-operates-on-structures-without-understanding) :by assistant :src t24))
+  (add (claim c65 (winnow-gap canonical-identity alias-table-registry-local wikipedia-resolver-deferred-to-hash-id-era) :by assistant :src t24))
+  (add (claim c66 (winnow-gap per-word-polysemy-not-in-current-spec collapse-contract-preserves-synonyms-not-polysemes) :by assistant :src t24))
+  (add (question q5 (winnow not-fully-perfect what-bugging-you) :status answered :by assistant :src t24))
+  (add (edge (answers c65 q5))))
+
+; --- Δ12: turns 25–26 — LO answers: per-word awareness per-language, baseline mappings
+(delta :turn 26
+  (add (claim c67 (missing-feature per-word-per-language-graph every-linguistic-symbol-needs-own-graph-of-interpretations) :by user :src t25))
+  (add (claim c68 (risk polysemy-erasure nuance-depleted-if-only-absolute-meaning-recorded) :by user :src t25))
+  (add (claim c69 (model-output alternative-readings-explicitly-included-if-any-exist) :by user :src t25))
+  (add (claim c70 (requirement linguistic-baseline-every-language-has-default-mappings-must-be-foundation) :by user :src t26))
+  (add (constraint k2 (completeness system-must-include-language-baseline-mappings) :strength hard :by user :src t26))
+  (add (edge (motivates c67 k2))))
+
+; --- Δ13: turns 27–28 — universal beneath linguistic, Winnow registry split
+(delta :turn 28
+  (add (claim c71 (universal-semantic-foundation-sits-beneath-linguistic territory-beneath-map) :by user :src t27))
+  (add (claim c72 (layered-stack universal-linguistic-personal-conversational) :by assistant :src t27))
+  (add (claim c73 (winnow-registry-two-jobs alias-resolution-linguistic concept-resolution-universal) :by assistant :src t27))
+  (add (claim c74 (registry-conflation-invisible-in-monolingual-visible-cross-language) :by assistant :src t27))
+  (add (claim c75 (resolution-ladder-needs-layer-awareness which-layer-is-this-rung-operating-on) :by assistant :src t27))
+  (add (decision d3 (architecture linguistic-foundation-sits-above-universal-foundation) :status proposed :by user :src t27))
+  (add (edge (refines d3 d2))))
+
+; --- Δ14: turns 29–30 — utterance revisiting, retroactive reinterpretation
+(delta :turn 30
+  (add (claim c76 (message-log-not-linear-transcript revisitable-structure utterances-as-nodes-with-interpretation-edges) :by assistant :src t29))
+  (add (claim c77 (retroactive-trigger automatic-tiny-llm-scans-backward-for-polysemes-when-dangling-edges-accumulate) :by assistant :src t29))
+  (add (claim c78 (retroactive-admission system-admits-uncertainty-across-time-not-just-per-message) :by assistant :src t29))
+  (add (edge (refines c78 c20))))
+
+; --- Δ15: turns 31–32 — collapse of interpretation graph, multi-word ↔ single-word mappings
+(delta :turn 32
+  (add (claim c79 (graph-collapse-once-certain-of-meaning remove-dormant-interpretations) :by user :src t31))
+  (add (claim c80 (multi-word-to-single-word-mappings bidirectional groups-of-words-to-concepts concepts-to-single-words) :by user :src t31))
+  (add (claim c81 (procedural-handles-most-reasoning structural-resolution-disambiguation-contradiction-detection) :by user :src t31))
+  (add (claim c82 (strong-llm-role accelerator-not-engine invoked-for-genuinely-novel-content) :by assistant :src t31))
+  (add (claim c83 (tiny-llm-role narrowed-to-three-functions translate-in-translate-out-surface-uncertainty) :by assistant :src t31))
+  (add (claim c84 (phrase-mapping tokenizer-must-recognize-spans compound-lexical-entries-bypass-word-decomposition) :by assistant :src t31))
+  (add (claim c85 (single-words-unpack-to-subgraphs macros-defined-in-language-baseline) :by assistant :src t31))
+  (add (edge (supports c81 c59))))
+
+; --- Δ16: turns 33–34 — literal vs idiomatic kick-the-bucket, graph connectivity
+(delta :turn 34
+  (add (claim c86 (kick-the-bucket two-readings literal-strike-cylinder idiomatic-die) :by user :src t33))
+  (add (claim c87 (disambiguation graph-connectivity-die-connects-to-rich-subgraph bucket-isolated) :by assistant :src t33))
+  (add (claim c88 (procedural-scores-by-connectivity not-correctness which-interpretation-hooks-into-existing-graph) :by assistant :src t33))
+  (add (claim c89 (coherence-leaves-structural-fingerprints natural-conversation-overwhelmingly-coherent) :by assistant :src t33))
+  (add (edge (supports c87 c56))))
+
+; --- Δ17: turns 35–36 — immediate semantic atom mapping + lang tag
+(delta :turn 36
+  (add (claim c90 (strong-llm-input immediate-mapping-of-semantic-atoms-implicit-and-explicit-plus-connective-mapping) :by user :src t35))
+  (add (claim c91 (strong-llm-pure-function semantic-atoms-in-semantic-atoms-out) :by assistant :src t35))
+  (add (claim c92 (lang-tag minimalist :lang-en clue-for-register-tone-cultural-knowledge) :by assistant :src t36))
+  (add (claim c93 (lang-tag rationale strong-llm-already-knows-language-dont-ship-dictionary) :by assistant :src t36))
+  (add (claim c94 (each-layer-gets-exactly-what-it-needs procedural-doesnt-parse-english strong-llm-doesnt-get-glossary) :by assistant :src t36))
+  (add (edge (supports c92 c61))))
+
+; --- Δ18: turns 37–38 — LO asks for .wno of this conversation
+(delta :turn 38
+  (add (action a1 (produce winnow-extraction-of-this-conversation) :status doing :by user :src t37))
+  (add (claim c95 (winnow-files-read spec-demo-fold-py-winnow-py-hash-ids-todo-sessions) :by assistant :src t38))
+  (add (edge (about a1 c95))))
+
+; --- Δ19: turns 38b — review pass catches gaps, collapse-contract granularity, cross-linking
+(delta :turn 38
+  (add (claim c96 (collapse-contract-granularity not-wrong applied-at-wrong-level synonyms-should-collapse polysemes-should-not) :by assistant :src t38))
+  (add (claim c97 (strong-llm-context only-fire-and-hot-tiers jit-assembled-per-message-boundary warm-and-cold-invisible) :by assistant :src t38))
+  (add (claim c98 (winnow-registry-dual-role originally-conflated alias-resolution-linguistic concept-resolution-universal visible-only-cross-language) :by assistant :src t38))
+  (supersede c98 c73 :conf 0.9)
+  (add (edge (about c96 c66)))
+  (add (edge (about c96 c37)))
+  (add (edge (refines c97 c28)))
+  (add (edge (refines c96 c34))))
+
+; --- Δ21: turns 40 — final cleanup pass, missing architectural claims
+(delta :turn 40
+  (add (claim c99 (transparency-property model-never-knows-it-was-missing supervisor-assembles-context-before-generation) :by assistant :src t40))
+  (add (claim c100 (side-effect-state temperature-exempt registry-profile-constraints-never-cool configuration-not-content) :by assistant :src t40))
+  (add (claim c101 (profile-learns-nodes-never-learn per-node-relevance-scores-banned-ranking-is-retrieval-behavior-not-graph-property) :by assistant :src t40))
+  (add (claim c102 (winnow-intersection tier-architecture-naturally-fits-polysemy-preservation alternative-senses-parked-at-lower-tiers-promoted-when-activated) :by assistant :src t40))
+  (update c2 :by assistant)
+  (add (edge (supports c99 c97)))
+  (add (edge (refines c102 c35)))
+  (update a1 :status done))
