@@ -100,3 +100,14 @@ ds --persist no -m flash --system "PROMPT" "INPUT" --dry-run
 - **`--alias`**: Save/load argument presets. Could be useful for winnow-specific configs.
 - **MCP support**: `--mcp SERVER` connects to MCP servers for tool use. `--max-turns` caps the tool loop.
 - **`--usage-out FILE`**: Per-turn cost tracking. `--usage-summary` aggregates across files.
+
+## Fallback: raw API via curl
+
+The `ds` harness needs the `openai` Python module, which fresh
+containers may lack (`pip install openai` fixes it; this cost one retry
+cycle on 2026-07-20). If ds is unusable, the deepseek-api skill
+documents raw HTTPS access — a plain curl POST to the DeepSeek
+chat-completions endpoint with `Authorization: Bearer $DEEPSEEK_API_KEY`
+works from any container with network access. Same models, no local
+dependencies. Joe's suggestion: keep this in mind whenever ds
+misbehaves; the harness is a convenience, not a requirement.
