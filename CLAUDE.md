@@ -74,6 +74,9 @@ protocol that prevents replayed work:
   ancestor file it depends on.
 - **Commits**: small, one concern each; TODO.md state flips ride with
   the work they describe.
+- **Session handoffs**: every session produces a `.wno` handoff in
+  `sessions/`, committed before the session ends. No session's
+  experience gets left behind.
 
 ## Operating principles
 
