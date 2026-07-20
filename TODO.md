@@ -18,16 +18,6 @@
   available.
 
 ## Next up
-- [ ] **Resolver-layer batch (approved 2026-07-17, build next session;
-  see `sessions/kimi-salvage-session-transfer.wno`).** All derived
-  map-side views, nothing logged, offline-testable: (1) term-usage index
-  in fold.py (term → referencing nodes, status-gated mass) + `--concepts`
-  sorted view + `--stale` view (open/proposed/doing untouched N deltas);
-  (2) Resolver ranking by (status class, mass, recency) replacing the
-  arbitrary rung-2 truncation, plus constituent-aware term matching
-  ("auth" finds "auth-system"); (3) Kimi vocabulary folded into registry
-  aliases; (4) tests. Rulings not to relitigate: no logged importance
-  scalars; mass orders retrieval, never window residency.
 - [ ] **Live relay experiment (Joe's proposal, fresh session).** Claude in
   haiku mode forwards messages between Joe and DeepSeek (via ds);
   DeepSeek and/or haiku generate .wno updates live during the
@@ -86,6 +76,14 @@
 - [ ] UEL / embedding-anchor representation mode (§12) — v2 identity engine.
 
 ## Done
+- [x] **Resolver-layer batch (2026-07-20).** fold.py: `term_usage()` /
+      `term_mass()` (status-gated, superseded/rejected/retracted gated
+      out), `node_mass()`, `last_touch` tracking, `--concepts` sorted
+      view, `--stale N` view. winnow.py Resolver: `_rank()` by (status
+      class, mass, recency) applied to all multi-hit rungs, rung-2
+      ranked truncation, constituent matching (auth → auth-system),
+      KIMI_ALIASES (sniping/echo/concept-space). 12 new tests (97
+      total). Mass is map-side only — never logged, never residency.
 - [x] Kimi doc assessment + salvage ledger (2026-07-17): usage-mass /
       ranking / constituent matching / stale view / canon anchors /
       side-payload variant adopted; logged importance scalars and scalar

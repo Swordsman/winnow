@@ -32,3 +32,22 @@ files, TODO flipped, pushed.
   derived, map-side, excluded from equivalence.
 - Fable access window closes ~07:08Z; if this claim has no completion,
   assume hard cutoff mid-work — check git diff fcc2294..HEAD.
+
+## completion
+- completed: 2026-07-20T06:58Z
+- outcome: matched intent. fold.py gained term_usage/term_mass/node_mass,
+  last_touch tracking, --concepts and --stale views; Resolver gained
+  _rank (status class, mass, recency) on all multi-hit rungs, ranked
+  rung-2 truncation, constituent matching, KIMI_ALIASES. Kimi vocabulary
+  went in as a code-level alias table in the Resolver (not per-log :aka
+  entries) so it applies across all logs — the registry itself is
+  log-resident and no log owns those terms.
+- hiccups: first ranking test assumed cross-tier hits in one result; the
+  ladder stops at the first rung with hits, so ranking is within-rung
+  only — test rewritten to exercise a single rung. Node-level mass is
+  status-gated incident-edge count (node analog of per-term usage mass).
+- checklist:
+  - tests green: yes (tests/, 97 passed: 85 prior + 12 new)
+  - TODO.md flipped: yes (same commit)
+  - handoff updated: not-needed (session handoff to follow separately)
+  - pushed: yes

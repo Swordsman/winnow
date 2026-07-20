@@ -230,6 +230,25 @@ def kebab(s):
     return re.sub(r"[^a-z0-9]+", "-", str(s).lower()).strip("-")
 
 
+# Cross-lineage vocabulary aliases: surface forms from the Kimi proposal
+# docs mapped onto winnow's canonical vocabulary (kimi-salvage a5). A
+# token on the left matches any registry term on the right.
+KIMI_ALIASES = {
+    "sniping": ("reach", "resolution-ladder"),
+    "echo": ("promotion", "usage-mass"),
+    "concept-space": ("term-registry",),
+}
+
+# Status classes for ranking: actionable/live first, settled second,
+# dead last. Mass and recency break ties within a class.
+_STATUS_CLASS = {
+    "open": 0, "doing": 0, "blocked": 0, "live": 0, "proposed": 0,
+    "todo": 0,
+    "frozen": 1, "done": 1, "answered": 1, "accepted": 1, "resolved": 1,
+    "superseded": 2, "rejected": 2, "retracted": 2,
+}
+
+
 class Resolver:
     """Pull interface + handshake verifier (spec 10.5). Walks the
     resolution ladder procedurally: rung 0/1 resident hits, rung 2 warm
@@ -242,16 +261,31 @@ class Resolver:
         self.g = graph
         self.llm = llm
         self.surface = {}          # surface form -> canonical term id
+        self.constituents = {}     # hyphen-split part -> {term ids}
         for tid, tail in graph.terms.items():
             self.surface[kebab(tid)] = tid
             tail_anns = anns(list(tail))
             for aka in tail_anns.get("aka", []) or []:
                 self.surface[kebab(aka)] = tid
+            for part in kebab(tid).split("-"):
+                if part != kebab(tid):
+                    self.constituents.setdefault(part, set()).add(tid)
+
+    def _term_hits(self, toks):
+        """Registry terms reached by tokens: exact surface, cross-lineage
+        alias (KIMI_ALIASES), then constituent match (auth -> auth-system)."""
+        expanded = set(toks)
+        for t in toks:
+            expanded.update(kebab(a) for a in KIMI_ALIASES.get(t, ()))
+        terms = {self.surface[t] for t in expanded if t in self.surface}
+        for t in expanded:
+            terms |= self.constituents.get(t, set())
+        return terms
 
     def _matches(self, tokens, ids):
         """Nodes among ids whose id or payload symbols hit any token."""
         toks = {kebab(t) for t in tokens}
-        terms = {self.surface[t] for t in toks if t in self.surface}
+        terms = self._term_hits(toks)
         out = []
         for nid in ids:
             n = self.g.nodes[nid]
@@ -260,13 +294,23 @@ class Resolver:
                 out.append(nid)
         return out
 
+    def _rank(self, hits):
+        """Order multi-hit resolutions by (status class, usage mass,
+        recency). Mass orders retrieval only — never window residency."""
+        def key(nid):
+            n = self.g.nodes[nid]
+            return (_STATUS_CLASS.get(n["status"], 1),
+                    -self.g.node_mass(nid),
+                    -self.g.last_touch.get(nid, 0))
+        return sorted(hits, key=key)
+
     def resolve(self, tokens):
         """Return (rung, [node ids]) or (5, []) for an honest miss."""
         fire, hot, warm, cold = self.g.tiers()
         resident = list(fire) + list(hot)
         hit = self._matches(tokens, resident)
         if hit:
-            return (0 if set(hit) & fire else 1), hit
+            return (0 if set(hit) & fire else 1), self._rank(hit)
         hit = self._matches(tokens, warm)
         if hit:                                   # rung 2: widen around hits
             base = int(self.g.profile["widening-base"])
@@ -277,10 +321,13 @@ class Resolver:
             widened = list(hit)
             for nid in hit:
                 widened += [x for x in adj.get(nid, ()) if x in self.g.nodes]
-            return 2, list(dict.fromkeys(widened))[:base ** 2]
+            # ranked truncation: keep the best base^2 by (status class,
+            # mass, recency) instead of arbitrary insertion order
+            widened = self._rank(dict.fromkeys(widened))
+            return 2, widened[:base ** 2]
         hit = self._matches(tokens, cold)
         if hit:
-            return 3, hit
+            return 3, self._rank(hit)
         if self.llm:                              # lexical miss escalation
             guess = self.llm(
                 "Map the query to canonical term ids from the registry, "
@@ -292,7 +339,7 @@ class Resolver:
             if terms:
                 hit = self._matches(terms, list(self.g.nodes))
                 if hit:
-                    return 3, hit
+                    return 3, self._rank(hit)
         return 5, []                              # honest miss
 
 

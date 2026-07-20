@@ -14,6 +14,8 @@ Usage:
     python3 fold.py LOG.wno --upto N   # fold only the first N deltas
     python3 fold.py LOG.wno --query "frame=claim status=live by=user"
     python3 fold.py LOG.wno --hashes   # content-hash id table (docs/hash-ids.md)
+    python3 fold.py LOG.wno --concepts # terms by status-gated usage mass
+    python3 fold.py LOG.wno --stale N  # open/proposed/doing untouched N deltas
 """
 import hashlib
 import sys
@@ -48,6 +50,11 @@ PROFILE_DEFAULTS = {
     "promotion-ttl": 2,   # deltas a reach-promotion survives untouched
     "widening-base": 3,   # rung-2 widening: base, base^2, base^3
 }
+
+# Usage mass is derived and map-side (like tier state): never logged,
+# excluded from equivalence, orders retrieval only — never window
+# residency. References from these statuses don't count toward mass.
+MASS_GATE = {"superseded", "rejected", "retracted"}
 
 
 # ---------------------------------------------------------------- parsing
@@ -143,6 +150,7 @@ class Graph:
         self.profile = dict(PROFILE_DEFAULTS)
         self.touched = set()   # node ids touched by the most recent delta
         self.promotions = {}   # nid -> deltas remaining (P3 reach promotion)
+        self.last_touch = {}   # nid -> delta index of most recent touch
 
     # -- header ------------------------------------------------------
     def set_meta(self, form):
@@ -213,6 +221,8 @@ class Graph:
                     self.touched.discard(tgt)
             else:
                 self.errors.append(f"unknown op {head}")
+        for nid in self.touched:
+            self.last_touch[nid] = self.deltas
 
     def _add(self, item):
         if item[0] == "edge":
@@ -398,6 +408,63 @@ class Graph:
     def query(self, expr):
         return "\n".join(self._full_line(i) for i in self.query_ids(expr))
 
+    # -- usage mass (derived, map-side; spec: retrieval ordering only) --
+    def term_usage(self):
+        """termid -> [node ids whose payload references the term]."""
+        usage = {tid: [] for tid in self.terms}
+        for nid in sorted(self.nodes, key=self._node_key):
+            for s in set(_symbols(self.nodes[nid]["payload"])):
+                if s in usage:
+                    usage[s].append(nid)
+        return usage
+
+    def term_mass(self):
+        """termid -> status-gated reference count. Never logged, never
+        drives residency; orders retrieval (Resolver ranking, --concepts)."""
+        return {tid: sum(1 for nid in nids
+                         if self.nodes[nid]["status"] not in MASS_GATE)
+                for tid, nids in self.term_usage().items()}
+
+    def node_mass(self, nid):
+        """Node analog of usage mass: status-gated incident edge count."""
+        m = 0
+        for _, a, b in self.edges:
+            other = b if a == nid else a if b == nid else None
+            if other is not None and other in self.nodes and \
+                    self.nodes[other]["status"] not in MASS_GATE:
+                m += 1
+        return m
+
+    def concepts(self):
+        """--concepts: registry sorted by usage mass (desc), then id."""
+        usage, mass = self.term_usage(), self.term_mass()
+        lines = []
+        for tid in sorted(self.terms, key=lambda t: (-mass[t], t)):
+            refs = usage[tid]
+            gloss = anns(list(self.terms[tid])).get("gloss", "")
+            g = str(gloss)
+            lines.append(f"{tid:<24} mass={mass[tid]:<3} "
+                         f"refs={len(refs):<3} "
+                         f"{g[:60]}{'...' if len(g) > 60 else ''}")
+        return "\n".join(lines)
+
+    def stale(self, min_age=3):
+        """--stale: open questions, proposed decisions, doing actions
+        untouched for at least min_age deltas. Maintenance surface, not
+        residency input."""
+        want = {("question", "open"), ("decision", "proposed"),
+                ("action", "doing")}
+        lines = []
+        for nid in sorted(self.nodes, key=self._node_key):
+            n = self.nodes[nid]
+            if (n["frame"], n["status"]) not in want:
+                continue
+            age = self.deltas - self.last_touch.get(nid, 0)
+            if age >= min_age:
+                lines.append(f"; stale {age:>3} deltas: "
+                             f"{self._payload_line(nid)} :status {n['status']}")
+        return "\n".join(lines) if lines else "; no stale nodes"
+
     def hash_id(self, nid, _stack=frozenset()):
         """Content-hash id prototype (docs/hash-ids.md): sha256 over
         (frame, canonical payload) with node-id args resolved to their
@@ -479,6 +546,15 @@ def main():
         return
     if "--hashes" in sys.argv:
         print(g.hashes())
+        return
+    if "--concepts" in sys.argv:
+        print(g.concepts())
+        return
+    if "--stale" in sys.argv:
+        i = sys.argv.index("--stale")
+        n = (int(sys.argv[i + 1])
+             if i + 1 < len(sys.argv) and sys.argv[i + 1].isdigit() else 3)
+        print(g.stale(n))
         return
     print(g.stats())
     print("validation     :",
