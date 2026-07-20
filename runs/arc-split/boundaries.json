@@ -1,0 +1,45 @@
+{
+  "source_log": "runs/gemini-proto-pro-re2.wno",
+  "source_transcript": "transcripts/gemini-winnow-proto.txt",
+  "turn_count": 24,
+  "cuts": [
+    10,
+    16
+  ],
+  "parts": [
+    [
+      1,
+      10
+    ],
+    [
+      11,
+      16
+    ],
+    [
+      17,
+      24
+    ]
+  ],
+  "crossings_at_cuts": [
+    4,
+    2
+  ],
+  "all_candidates": {
+    "5": 7,
+    "6": 6,
+    "7": 9,
+    "8": 10,
+    "9": 10,
+    "10": 4,
+    "11": 5,
+    "12": 5,
+    "13": 5,
+    "14": 4,
+    "15": 4,
+    "16": 2,
+    "17": 2,
+    "18": 2,
+    "19": 5
+  },
+  "rationale": "exhaustive search over 55 valid 2-cut partitions (min-part 5); picked minimum total crossings (6), tie-broken by balance then lowest cut indices"
+}
