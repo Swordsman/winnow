@@ -9,12 +9,18 @@
   `runs/comparison-notes.md` (2026-07-20) — flash-baseline shows
   edge-type collapse + term explosion; pro-re2 uses the full edge
   palette with supersede chains; registry discipline is both runs' gap
-  to hand-authored. Remaining, per the notes' next-steps list: post-fix
-  flash rerun analysis (run launched 2026-07-20, out file
-  `runs/gemini-proto-flash-postfix-re2.wno` — may be a partial prefix if
-  the session was cut off; incremental writes make any prefix foldable),
-  the `about`-targets-a-term ruling (100% of pro rejects), gloss-quality
-  prompt nudge, optional per-delta yield curves.
+  to hand-authored. **Post-fix flash rerun analysis done 2026-07-20**
+  (notes findings 7–13): prompt version, not model, caused the
+  baseline's term explosion and edge collapse; flash's residual gaps
+  are node/edge yield, frame grammar (question+claim only survived),
+  and status discipline. New finding 12: off-spec status values
+  (`partially-answered`, `resolved`, claim `open`) pass normalizer and
+  fold unvalidated — fold checks ETYPES but not §2 status vocab, and
+  status drives Resolver rank class + mass gating; small code-level
+  fix candidate. Remaining, per the notes' next-steps list: the
+  `about`-targets-a-term ruling (100% of pro rejects), gloss-quality
+  prompt nudge, status-vocab validation, optional per-delta yield
+  curves.
 - [ ] **aimpack packaging.** Needs the aimpack format spec / an example
   pack — not in this repo. Ship spec + fold.py + registry as a part once
   available.

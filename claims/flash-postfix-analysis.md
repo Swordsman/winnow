@@ -32,3 +32,26 @@ Done = notes updated, TODO flipped, tests still green, pushed.
   mid-analysis, it becomes a separate claim/commit.
 - The `about`-targets-a-term ruling and gloss-quality prompt nudge stay
   open (need Joe / a next live run); do not fold them into this claim.
+
+## completion
+- completed: 2026-07-20T07:52Z
+- outcome: matched intent. Headline table gained the flash-postfix
+  column; findings 7–13 added (analysis replaces the "open item"
+  text); next-steps box checked; TODO.md updated same commit. Headline
+  result: baseline's term explosion and edge-type collapse were prompt
+  artifacts, not model capability — flash-postfix lands 26 terms / 7
+  of 8 edge types; residual model gaps are yield (37 vs 48 nodes,
+  0.57 vs 0.81 edges/node), frame grammar, status discipline.
+- hiccups: analysis surfaced a normalizer/fold validation gap rather
+  than a fold bug — off-spec status values (question
+  `partially-answered` in flash-postfix, `resolved` in pro-re2, claim
+  `open` in baseline) pass through; fold validates ETYPES but not §2
+  status vocab. Recorded as finding 12 + next-steps item + TODO note,
+  NOT fixed here per this claim's warnings. Also corrected mid-analysis:
+  flash's `(def d1)` reject is a malformed legal frame, not an invented
+  one — only `answer` was invented.
+- checklist:
+  - tests green: yes (tests/, 100 passed — analysis only, no code)
+  - TODO.md flipped: yes (same commit)
+  - handoff updated: yes — session handoff committed next in same push
+  - pushed: yes
