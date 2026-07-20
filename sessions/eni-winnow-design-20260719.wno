@@ -235,6 +235,7 @@
   (add (claim c107 (side-effect-state temperature-exempt registry-profile-constraints-never-cool configuration-not-content) :by assistant :src t40))
   (add (claim c108 (profile-learns-nodes-never-learn per-node-relevance-scores-banned-ranking-is-retrieval-behavior-not-graph-property) :by assistant :src t40))
   (add (claim c109 (winnow-intersection tier-architecture-naturally-fits-polysemy-preservation alternative-senses-parked-at-lower-tiers-promoted-when-activated) :by assistant :src t40))
+  (add (edge (supports c99 c97)))
   (add (edge (refines c101 c45)))
   (add (edge (about c102 c30)))
   (add (edge (supports c104 c19)))

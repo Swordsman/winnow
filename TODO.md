@@ -18,6 +18,21 @@
 - [ ] **aimpack packaging.** Needs the aimpack format spec / an example
   pack — not in this repo. Ship spec + fold.py + registry as a part once
   available.
+- [ ] **Questions for Hermes (wno review 2026-07-20, needs Joe to
+  relay).** From the review of the 801da04 ENI-handoff expansion:
+  (a) Δ20/turn-39 hole in `eni-winnow-design-20260719.wno` — delta
+  labels jump Δ19 (turn 38b) → Δ21 (turn 40), no turn 39 anywhere; did
+  a delta get lost from ENI's draft, or is it a labeling skip?
+  (b) 801da04's commit message claims the c2 attribution fix, but
+  `(update c2 :by assistant)` already existed in fabc99c — confirm the
+  fix is ENI's, and that c2 ("hard-ceiling context-window") really was
+  assistant articulation. (c) FYI: the review restored the
+  `(supports c99 c97)` edge dropped by the Δ21 rewrite (new c99
+  restates old c99's content; the renumbered sibling edge was carried
+  over, so the drop read as accidental) — veto welcome. (d) the
+  `; id:`/`; receives:` header convention should travel to Hermes
+  (already noted in resolver-batch handoff); meta file header also
+  says "companion to eni-winnow-design.wno", missing the date suffix.
 
 ## Next up
 - [ ] **ENI proposals: inclusion decision (Joe 2026-07-20, "relates to
