@@ -264,6 +264,7 @@ class Resolver:
         self.llm = llm
         self.surface = {}          # surface form -> canonical term id
         self.constituents = {}     # hyphen-split part -> {term ids}
+        self.senses = {}           # base word -> {sense-qualified tids}
         for tid, tail in graph.terms.items():
             self.surface[kebab(tid)] = tid
             tail_anns = anns(list(tail))
@@ -272,6 +273,9 @@ class Resolver:
             for part in kebab(tid).split("-"):
                 if part != kebab(tid):
                     self.constituents.setdefault(part, set()).add(tid)
+            if "/" in tid:         # sense-qualified: tap/faucet, tap/strike
+                base = kebab(tid.split("/", 1)[0])
+                self.senses.setdefault(base, set()).add(tid)
 
     def _term_hits(self, toks):
         """Registry terms reached by tokens: exact surface, cross-lineage
@@ -282,12 +286,17 @@ class Resolver:
         terms = {self.surface[t] for t in expanded if t in self.surface}
         for t in expanded:
             terms |= self.constituents.get(t, set())
+            # polysemy contract: a bare word reaches every parked sense;
+            # senses never collapse, ranking orders them
+            terms |= self.senses.get(t, set())
         return terms
 
     def _matches(self, tokens, ids):
         """Nodes among ids whose id or payload symbols hit any token."""
         toks = {kebab(t) for t in tokens}
-        terms = self._term_hits(toks)
+        # payload symbols are compared kebabed, so term ids must be too
+        # (sense-qualified ids like tap/faucet are not kebab-stable)
+        terms = {kebab(t) for t in self._term_hits(toks)}
         out = []
         for nid in ids:
             n = self.g.nodes[nid]

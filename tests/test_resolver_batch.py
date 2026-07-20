@@ -131,6 +131,33 @@ class TestRanking(unittest.TestCase):
         self.assertEqual(hits, ["a0", "d1"])
 
 
+POLY_SRC = """
+(delta :turn 1
+  (term tap/faucet :gloss "water fixture sense")
+  (term tap/strike :gloss "light blow sense")
+  (add (claim p1 (drips tap/faucet kitchen) :by user :src t1))
+  (add (claim p2 (heard tap/strike window) :by user :src t1)))
+"""
+
+
+class TestSenseQualifiedTerms(unittest.TestCase):
+    def setUp(self):
+        self.g = graph_from(POLY_SRC)
+
+    def test_bare_word_reaches_all_senses(self):
+        rung, hits = Resolver(self.g).resolve(["tap"])
+        self.assertEqual(set(hits), {"p1", "p2"})
+
+    def test_qualified_reference_hits_one_sense(self):
+        rung, hits = Resolver(self.g).resolve(["tap/faucet"])
+        self.assertEqual(hits, ["p1"])
+
+    def test_senses_map_built(self):
+        r = Resolver(self.g)
+        self.assertEqual(r.senses.get("tap"),
+                         {"tap/faucet", "tap/strike"})
+
+
 class TestKimiAliases(unittest.TestCase):
     def test_kimi_vocabulary_reaches_canonical_terms(self):
         g = graph_from(MASS_SRC)

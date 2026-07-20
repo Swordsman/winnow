@@ -31,7 +31,13 @@
   (cross-conversation vocabulary drift) and JITCW. Cheapest first step
   if adopted: sense-qualified term ids (tap/faucet vs tap/strike) +
   registry split into alias-layer and concept-layer jobs (c48), which
-  also positions canon anchors as the universal-layer join. Bigger
+  also positions canon anchors as the universal-layer join. **First
+  mechanical step landed 2026-07-20:** sense-qualified tids
+  (`tap/faucet`) supported in the Resolver — bare word reaches all
+  parked senses ranked, qualified reference hits one; plus a latent
+  kebab-comparison bug fixed in `_matches`. Executive decision (Joe
+  delegated): wire-format convention is `word/sense`, no spec change
+  yet — spec §-note rides with the registry-split design session. Bigger
   pieces (utterances-as-nodes, retroactive disambiguation, multi-word
   spans) are v2-scale — sequence after the registry split proves out. (Joe's proposal, fresh session).** Claude in
   haiku mode forwards messages between Joe and DeepSeek (via ds);
