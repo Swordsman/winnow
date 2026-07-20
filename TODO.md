@@ -5,13 +5,16 @@
   docs that fed the d9/d10 design sessions; audit them against the merged
   spec for dropped commitments when they arrive. Salvage-only — the spec
   is authoritative.
-- [ ] **Quality comparison (successor to a9).** Pro post-fix run is done
-  (`runs/gemini-proto-pro-re2.wno`, 2026-07-20, --re2 non-thinking mode,
-  ~7s/turn vs the old crawl; run log `runs/pro-re2-run.log`). Remaining:
-  compare flash-baseline vs pro-re2 vs hand-authored demo-deltas for
-  extraction quality — node/edge yield, reject patterns (pro-re2 rejects
-  were dangling `about` edges targeting registry terms instead of nodes;
-  possible normalizer-prompt or spec question), term registry quality.
+- [ ] **Quality comparison (successor to a9).** First pass done:
+  `runs/comparison-notes.md` (2026-07-20) — flash-baseline shows
+  edge-type collapse + term explosion; pro-re2 uses the full edge
+  palette with supersede chains; registry discipline is both runs' gap
+  to hand-authored. Remaining, per the notes' next-steps list: post-fix
+  flash rerun analysis (run launched 2026-07-20, out file
+  `runs/gemini-proto-flash-postfix-re2.wno` — may be a partial prefix if
+  the session was cut off; incremental writes make any prefix foldable),
+  the `about`-targets-a-term ruling (100% of pro rejects), gloss-quality
+  prompt nudge, optional per-delta yield curves.
 - [ ] **aimpack packaging.** Needs the aimpack format spec / an example
   pack — not in this repo. Ship spec + fold.py + registry as a part once
   available.
