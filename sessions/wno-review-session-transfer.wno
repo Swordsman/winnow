@@ -69,14 +69,26 @@
   (add (artifact r5 "sessions/wno-review-session-transfer.wno — this file" :by assistant :src t4)))
 
 ; ============================================================
+; SESSION EXTENSION (same session): status-vocab validation (finding
+; 12) EXECUTED, not just queued — first run of Joe's delegate-to-
+; subagents process instruction: design written into the claim's
+; intent (claims/status-vocab-validation.md), sonnet subagent
+; implemented, orchestrator verified independently (diff review, 109
+; tests, repo-wide sweep) and committed. fold warns / normalizer
+; rejects / one STATUSES table / prompt line. Sweep bonus finding:
+; live-run handoff carries two grandfathered off-spec decision
+; statuses (d1 done, d2 accepted) — left as recorded, warning-only.
+; cbtdag judged overhead for this single-serial-change scale; still
+; the plan for arc-split corpus and other multi-module work.
+; ============================================================
 ; NEXT-SESSION BOOT: standard CLAUDE.md sequence.
 ; Blocked on Joe: ENI registry-split design session (TODO top item);
 ;   relaying the Hermes questions (q1 delta-20 hole, c4 c2-provenance,
 ;   d1 edge-restore veto, header-convention travel); the
 ;   about-targets-a-term ruling (100% of pro rejects).
-; Autonomous candidates: status-vocab validation (small, code-level,
-;   comparison-notes finding 12); arc-split corpus; per-delta yield
-;   curves.
+; Autonomous candidates: arc-split corpus (cbtdag plan + subagent
+;   implementation); per-delta yield curves. (status-vocab validation:
+;   done, see extension above.)
 ; Standing instructions from Joe (2026-07-20, this session):
 ;   - use cbtdag to write solid plans/designs before implementing;
 ;     delegate implementation to subagents (opus/sonnet). Applies to

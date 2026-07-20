@@ -52,3 +52,26 @@
   deliberately out of scope here; don't "fix" it.
 - The `about`-targets-a-term ruling and gloss nudge stay open (Joe);
   not part of this claim.
+
+## completion
+- completed: 2026-07-20T08:22Z
+- outcome: matched intent. Implementation delegated to a sonnet
+  subagent against the intent contract above; verified independently
+  (diff review, full suite, repo-wide sweep) before commit. STATUSES
+  in fold.py next to ETYPES; Graph.warnings advisory path covering
+  add, update, and supersede-into-illegal-frame; CLI prints a
+  status-warnings block; normalizer rejects off-spec statuses on adds
+  and updates (same-batch update targets resolved via a new_frames
+  map); one prompt line; 9 new tests.
+- hiccups: sweep surfaced two additional grandfathered off-spec
+  statuses beyond the three known run files —
+  sessions/live-run-session-transfer.wno has decision d1 `done` and
+  d2 `accepted` (legal decision vocab: proposed/frozen/superseded/
+  abandoned). Left as recorded per the grandfathering design;
+  warning-only. Duplicate warning for flash-postfix q3 is correct
+  behavior (two separate update ops each set the off-spec value).
+- checklist:
+  - tests green: yes (tests/, 109 passed: 100 prior + 9 new)
+  - TODO.md flipped: yes (same commit)
+  - handoff updated: yes (extension note, same commit)
+  - pushed: yes

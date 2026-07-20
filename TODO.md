@@ -17,10 +17,12 @@
   (`partially-answered`, `resolved`, claim `open`) pass normalizer and
   fold unvalidated — fold checks ETYPES but not §2 status vocab, and
   status drives Resolver rank class + mass gating; small code-level
-  fix candidate. Remaining, per the notes' next-steps list: the
-  `about`-targets-a-term ruling (100% of pro rejects), gloss-quality
-  prompt nudge, status-vocab validation, optional per-delta yield
-  curves.
+  fix candidate — **fixed 2026-07-20** (STATUSES table, fold warns /
+  normalizer rejects, 9 tests; sweep also surfaced two grandfathered
+  off-spec decision statuses in the live-run handoff). Remaining, per
+  the notes' next-steps list: the `about`-targets-a-term ruling (100%
+  of pro rejects), gloss-quality prompt nudge, optional per-delta
+  yield curves.
 - [ ] **aimpack packaging.** Needs the aimpack format spec / an example
   pack — not in this repo. Ship spec + fold.py + registry as a part once
   available.

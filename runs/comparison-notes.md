@@ -114,7 +114,11 @@ model's role recognition-only).
 - [ ] Decide the `about`-targets-a-term question (spec ruling or prompt
       nudge) before the next live run; it's 100% of pro rejects.
 - [ ] Gloss-quality nudge in the normalizer prompt (finding 5).
-- [ ] Status-vocabulary validation (finding 12): per-frame status table
-      in fold.py + normalizer prompt line. Small, code-level.
+- [x] Status-vocabulary validation (finding 12) — done 2026-07-20:
+      STATUSES table in fold.py, fold warns (advisory, committed logs
+      stay green), normalizer rejects going forward, prompt line added,
+      9 tests. Sweep bonus: `sessions/live-run-session-transfer.wno`
+      carries two more off-spec statuses (decision d1 `done`, d2
+      `accepted`) — grandfathered, warning-only, left as recorded.
 - [ ] Per-delta yield curve (fold --upto N over both logs) if deeper
       granularity is wanted; not yet done.
