@@ -20,7 +20,20 @@
   available.
 
 ## Next up
-- [ ] **Live relay experiment (Joe's proposal, fresh session).** Claude in
+- [ ] **ENI proposals: inclusion decision (Joe 2026-07-20, "relates to
+  the ultimate goal").** Design session with Joe to rule on the three
+  proposed decisions in `sessions/eni-winnow-design-20260719.wno`
+  (surfaced by `--stale`): d1 canonical-form reduction, d2/d3
+  universal-foundation-beneath-linguistic-foundation. Plus the polysemy
+  finding (c33/c37/c96): the collapse contract preserves synonyms but
+  erases polysemes — collapse synonyms *within* a sense, preserve
+  polysemes *across* senses. Directly load-bearing for the Gau merge
+  (cross-conversation vocabulary drift) and JITCW. Cheapest first step
+  if adopted: sense-qualified term ids (tap/faucet vs tap/strike) +
+  registry split into alias-layer and concept-layer jobs (c48), which
+  also positions canon anchors as the universal-layer join. Bigger
+  pieces (utterances-as-nodes, retroactive disambiguation, multi-word
+  spans) are v2-scale — sequence after the registry split proves out. (Joe's proposal, fresh session).** Claude in
   haiku mode forwards messages between Joe and DeepSeek (via ds);
   DeepSeek and/or haiku generate .wno updates live during the
   conversation. Measures extraction on a real live conversation instead
