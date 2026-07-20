@@ -5,14 +5,13 @@
   docs that fed the d9/d10 design sessions; audit them against the merged
   spec for dropped commitments when they arrive. Salvage-only — the spec
   is authoritative.
-- [ ] **Pro post-fix live run (a9).** Flash baseline is done
-  (`runs/gemini-proto-flash-baseline.wno`, pre-prompt-fix). The pro run
-  with fixed prompts showed zero rejects through turn 6 but crawled
-  (default thinking mode + degraded connection, retries invisible in
-  the pre-patch process). Rerun with retry logging now in place;
-  consider `--re2` (implies --think off) for speed. Then compare
-  flash-baseline vs pro vs hand-authored quality. Sequenced after the
-  resolver batch so the run exercises ranked reach resolution.
+- [ ] **Quality comparison (successor to a9).** Pro post-fix run is done
+  (`runs/gemini-proto-pro-re2.wno`, 2026-07-20, --re2 non-thinking mode,
+  ~7s/turn vs the old crawl; run log `runs/pro-re2-run.log`). Remaining:
+  compare flash-baseline vs pro-re2 vs hand-authored demo-deltas for
+  extraction quality — node/edge yield, reject patterns (pro-re2 rejects
+  were dangling `about` edges targeting registry terms instead of nodes;
+  possible normalizer-prompt or spec question), term registry quality.
 - [ ] **aimpack packaging.** Needs the aimpack format spec / an example
   pack — not in this repo. Ship spec + fold.py + registry as a part once
   available.

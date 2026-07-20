@@ -68,12 +68,17 @@
   (add (artifact r5 "sessions/resolver-batch-session-transfer.wno — this file" :by assistant :src t14)))
 
 ; ============================================================
-; NEXT-SESSION BOOT: standard CLAUDE.md sequence. Open items in
-; sequence order (kimi-salvage d6): a2 pro post-fix live run is now
-; unblocked — resolver batch is in, so the run exercises ranked reach
-; resolution; needs DEEPSEEK_API_KEY from Joe (one was provided
-; 2026-07-20 in-chat but treat it as spent/rotated — ask for a fresh
-; one, never commit it). Then arc-split corpus, live relay experiment.
+; SESSION EXTENSION (same session, +16min): a2 pro run EXECUTED, not
+; just unblocked. --re2 wired through winnow.py (new flag), full
+; 24-turn pro run at ~7s/turn -> runs/gemini-proto-pro-re2.wno.
+; Incremental log writing added to run() (interrupted runs strand
+; nothing). Systematic reject pattern observed: extractor proposes
+; edges targeting registry terms, not nodes (about q5
+; archival-compression); normalizer rejects correctly; consider
+; prompt nudge or spec ruling. Key was provided in-chat — rotate it.
+; NEXT-SESSION BOOT: standard CLAUDE.md sequence. Next in sequence
+; (kimi-salvage d6): quality comparison flash-baseline vs pro-re2 vs
+; demo-deltas, then arc-split corpus, live relay experiment.
 ; Small open question q1: "qualifies" edge type used by
 ; operating-principles handoff is off-spec — legalize in section 7 or
 ; re-type as (refines ...). One-line decision for Joe.
