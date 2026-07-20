@@ -177,10 +177,11 @@ def anthropic_client(model, base_url=None, api_key_env=None):
     return call
 
 
-def deepseek_client(model="flash", ds_path=None, retries=3):
+def deepseek_client(model="flash", ds_path=None, retries=3, re2=False):
     import subprocess, os, time
     if ds_path is None:
         ds_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ds")
+    re2_args = ["--re2", "paper"] if re2 else []
 
     def call(system, user):
         last_err = None
@@ -190,7 +191,8 @@ def deepseek_client(model="flash", ds_path=None, retries=3):
             try:
                 result = subprocess.run(
                     [ds_path, "--persist", "no", "-m", model,
-                     "--timeout", "120", "-q", "--system", system, user],
+                     "--timeout", "120", "-q", *re2_args,
+                     "--system", system, user],
                     capture_output=True, text=True, timeout=600,
                 )
             except subprocess.TimeoutExpired as e:
@@ -681,13 +683,17 @@ def main():
     ap.add_argument("--no-llm-normalizer", action="store_true",
                     help="skip stage-B LLM; procedural enforcement only")
     ap.add_argument("--seed", help="prior .wno log to continue from")
+    ap.add_argument("--re2", action="store_true",
+                    help="deepseek backend: RE2 re-reading, implies "
+                         "thinking off (fast non-thinking mode)")
     args = ap.parse_args()
 
     DS_MODELS = {"pro": "pro", "flash": "flash"}
     if args.replay:
         llm = replay_client(args.replay)
     elif args.backend == "deepseek":
-        llm = deepseek_client(DS_MODELS.get(args.model, "flash"))
+        llm = deepseek_client(DS_MODELS.get(args.model, "flash"),
+                              re2=args.re2)
     elif args.backend == "deepseek-anthropic":
         ds_api_models = {"pro": "deepseek-v4-pro", "flash": "deepseek-v4-flash"}
         llm = anthropic_client(
