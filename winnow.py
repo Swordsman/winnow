@@ -177,10 +177,11 @@ def anthropic_client(model, base_url=None, api_key_env=None):
     return call
 
 
-def deepseek_client(model="flash", ds_path=None, retries=3):
+def deepseek_client(model="flash", ds_path=None, retries=3, re2=False):
     import subprocess, os, time
     if ds_path is None:
         ds_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ds")
+    re2_args = ["--re2", "paper"] if re2 else []
 
     def call(system, user):
         last_err = None
@@ -190,7 +191,8 @@ def deepseek_client(model="flash", ds_path=None, retries=3):
             try:
                 result = subprocess.run(
                     [ds_path, "--persist", "no", "-m", model,
-                     "--timeout", "120", "-q", "--system", system, user],
+                     "--timeout", "120", "-q", *re2_args,
+                     "--system", system, user],
                     capture_output=True, text=True, timeout=600,
                 )
             except subprocess.TimeoutExpired as e:
@@ -230,6 +232,25 @@ def kebab(s):
     return re.sub(r"[^a-z0-9]+", "-", str(s).lower()).strip("-")
 
 
+# Cross-lineage vocabulary aliases: surface forms from the Kimi proposal
+# docs mapped onto winnow's canonical vocabulary (kimi-salvage a5). A
+# token on the left matches any registry term on the right.
+KIMI_ALIASES = {
+    "sniping": ("reach", "resolution-ladder"),
+    "echo": ("promotion", "usage-mass"),
+    "concept-space": ("term-registry",),
+}
+
+# Status classes for ranking: actionable/live first, settled second,
+# dead last. Mass and recency break ties within a class.
+_STATUS_CLASS = {
+    "open": 0, "doing": 0, "blocked": 0, "live": 0, "proposed": 0,
+    "todo": 0,
+    "frozen": 1, "done": 1, "answered": 1, "accepted": 1, "resolved": 1,
+    "superseded": 2, "rejected": 2, "retracted": 2,
+}
+
+
 class Resolver:
     """Pull interface + handshake verifier (spec 10.5). Walks the
     resolution ladder procedurally: rung 0/1 resident hits, rung 2 warm
@@ -242,16 +263,40 @@ class Resolver:
         self.g = graph
         self.llm = llm
         self.surface = {}          # surface form -> canonical term id
+        self.constituents = {}     # hyphen-split part -> {term ids}
+        self.senses = {}           # base word -> {sense-qualified tids}
         for tid, tail in graph.terms.items():
             self.surface[kebab(tid)] = tid
             tail_anns = anns(list(tail))
             for aka in tail_anns.get("aka", []) or []:
                 self.surface[kebab(aka)] = tid
+            for part in kebab(tid).split("-"):
+                if part != kebab(tid):
+                    self.constituents.setdefault(part, set()).add(tid)
+            if "/" in tid:         # sense-qualified: tap/faucet, tap/strike
+                base = kebab(tid.split("/", 1)[0])
+                self.senses.setdefault(base, set()).add(tid)
+
+    def _term_hits(self, toks):
+        """Registry terms reached by tokens: exact surface, cross-lineage
+        alias (KIMI_ALIASES), then constituent match (auth -> auth-system)."""
+        expanded = set(toks)
+        for t in toks:
+            expanded.update(kebab(a) for a in KIMI_ALIASES.get(t, ()))
+        terms = {self.surface[t] for t in expanded if t in self.surface}
+        for t in expanded:
+            terms |= self.constituents.get(t, set())
+            # polysemy contract: a bare word reaches every parked sense;
+            # senses never collapse, ranking orders them
+            terms |= self.senses.get(t, set())
+        return terms
 
     def _matches(self, tokens, ids):
         """Nodes among ids whose id or payload symbols hit any token."""
         toks = {kebab(t) for t in tokens}
-        terms = {self.surface[t] for t in toks if t in self.surface}
+        # payload symbols are compared kebabed, so term ids must be too
+        # (sense-qualified ids like tap/faucet are not kebab-stable)
+        terms = {kebab(t) for t in self._term_hits(toks)}
         out = []
         for nid in ids:
             n = self.g.nodes[nid]
@@ -260,13 +305,23 @@ class Resolver:
                 out.append(nid)
         return out
 
+    def _rank(self, hits):
+        """Order multi-hit resolutions by (status class, usage mass,
+        recency). Mass orders retrieval only — never window residency."""
+        def key(nid):
+            n = self.g.nodes[nid]
+            return (_STATUS_CLASS.get(n["status"], 1),
+                    -self.g.node_mass(nid),
+                    -self.g.last_touch.get(nid, 0))
+        return sorted(hits, key=key)
+
     def resolve(self, tokens):
         """Return (rung, [node ids]) or (5, []) for an honest miss."""
         fire, hot, warm, cold = self.g.tiers()
         resident = list(fire) + list(hot)
         hit = self._matches(tokens, resident)
         if hit:
-            return (0 if set(hit) & fire else 1), hit
+            return (0 if set(hit) & fire else 1), self._rank(hit)
         hit = self._matches(tokens, warm)
         if hit:                                   # rung 2: widen around hits
             base = int(self.g.profile["widening-base"])
@@ -277,10 +332,13 @@ class Resolver:
             widened = list(hit)
             for nid in hit:
                 widened += [x for x in adj.get(nid, ()) if x in self.g.nodes]
-            return 2, list(dict.fromkeys(widened))[:base ** 2]
+            # ranked truncation: keep the best base^2 by (status class,
+            # mass, recency) instead of arbitrary insertion order
+            widened = self._rank(dict.fromkeys(widened))
+            return 2, widened[:base ** 2]
         hit = self._matches(tokens, cold)
         if hit:
-            return 3, hit
+            return 3, self._rank(hit)
         if self.llm:                              # lexical miss escalation
             guess = self.llm(
                 "Map the query to canonical term ids from the registry, "
@@ -292,7 +350,7 @@ class Resolver:
             if terms:
                 hit = self._matches(terms, list(self.g.nodes))
                 if hit:
-                    return 3, hit
+                    return 3, self._rank(hit)
         return 5, []                              # honest miss
 
 
@@ -603,6 +661,10 @@ def run(transcript_path, out_path, llm, llm_normalize=True,
         delta_text = render_delta(turn_no, ops)
         g.apply(parse(tokenize(delta_text))[0])
         log_parts.append(delta_text)
+        # write after every batch: an interrupted run strands nothing,
+        # the log on disk is always a valid foldable prefix
+        with open(out_path, "w") as f:
+            f.write("\n\n".join(log_parts) + "\n")
         if verbose:
             print(f"turn {turn_no}: {len(ops)} ops "
                   f"({len(g.nodes)} nodes, {len(g.edges)} edges)",
@@ -634,13 +696,17 @@ def main():
     ap.add_argument("--no-llm-normalizer", action="store_true",
                     help="skip stage-B LLM; procedural enforcement only")
     ap.add_argument("--seed", help="prior .wno log to continue from")
+    ap.add_argument("--re2", action="store_true",
+                    help="deepseek backend: RE2 re-reading, implies "
+                         "thinking off (fast non-thinking mode)")
     args = ap.parse_args()
 
     DS_MODELS = {"pro": "pro", "flash": "flash"}
     if args.replay:
         llm = replay_client(args.replay)
     elif args.backend == "deepseek":
-        llm = deepseek_client(DS_MODELS.get(args.model, "flash"))
+        llm = deepseek_client(DS_MODELS.get(args.model, "flash"),
+                              re2=args.re2)
     elif args.backend == "deepseek-anthropic":
         ds_api_models = {"pro": "deepseek-v4-pro", "flash": "deepseek-v4-flash"}
         llm = anthropic_client(

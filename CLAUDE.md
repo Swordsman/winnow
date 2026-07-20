@@ -74,6 +74,14 @@ protocol that prevents replayed work:
   ancestor file it depends on.
 - **Commits**: small, one concern each; TODO.md state flips ride with
   the work they describe.
+- **Write the remainder down while waiting.** Any time the session is
+  blocked on something (a live run, a long call, user input), use the
+  wait to make sure the *full remainder* of everything planned —
+  intended next steps, methodology in your head, half-formed
+  observations — is written into TODO.md / the claim / the handoff and
+  committed. Sessions can be cut off without warning; the test is: if
+  the container died right now, could a fresh session pick up every
+  planned thread from the repo alone?
 - **Session handoffs**: every session produces a `.wno` handoff in
   `sessions/`, committed before the session ends. No session's
   experience gets left behind. After drafting the handoff, review it

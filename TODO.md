@@ -5,30 +5,41 @@
   docs that fed the d9/d10 design sessions; audit them against the merged
   spec for dropped commitments when they arrive. Salvage-only — the spec
   is authoritative.
-- [ ] **Pro post-fix live run (a9).** Flash baseline is done
-  (`runs/gemini-proto-flash-baseline.wno`, pre-prompt-fix). The pro run
-  with fixed prompts showed zero rejects through turn 6 but crawled
-  (default thinking mode + degraded connection, retries invisible in
-  the pre-patch process). Rerun with retry logging now in place;
-  consider `--re2` (implies --think off) for speed. Then compare
-  flash-baseline vs pro vs hand-authored quality. Sequenced after the
-  resolver batch so the run exercises ranked reach resolution.
+- [ ] **Quality comparison (successor to a9).** First pass done:
+  `runs/comparison-notes.md` (2026-07-20) — flash-baseline shows
+  edge-type collapse + term explosion; pro-re2 uses the full edge
+  palette with supersede chains; registry discipline is both runs' gap
+  to hand-authored. Remaining, per the notes' next-steps list: post-fix
+  flash rerun analysis (run launched 2026-07-20, out file
+  `runs/gemini-proto-flash-postfix-re2.wno` — may be a partial prefix if
+  the session was cut off; incremental writes make any prefix foldable),
+  the `about`-targets-a-term ruling (100% of pro rejects), gloss-quality
+  prompt nudge, optional per-delta yield curves.
 - [ ] **aimpack packaging.** Needs the aimpack format spec / an example
   pack — not in this repo. Ship spec + fold.py + registry as a part once
   available.
 
 ## Next up
-- [ ] **Resolver-layer batch (approved 2026-07-17, build next session;
-  see `sessions/kimi-salvage-session-transfer.wno`).** All derived
-  map-side views, nothing logged, offline-testable: (1) term-usage index
-  in fold.py (term → referencing nodes, status-gated mass) + `--concepts`
-  sorted view + `--stale` view (open/proposed/doing untouched N deltas);
-  (2) Resolver ranking by (status class, mass, recency) replacing the
-  arbitrary rung-2 truncation, plus constituent-aware term matching
-  ("auth" finds "auth-system"); (3) Kimi vocabulary folded into registry
-  aliases; (4) tests. Rulings not to relitigate: no logged importance
-  scalars; mass orders retrieval, never window residency.
-- [ ] **Live relay experiment (Joe's proposal, fresh session).** Claude in
+- [ ] **ENI proposals: inclusion decision (Joe 2026-07-20, "relates to
+  the ultimate goal").** Design session with Joe to rule on the three
+  proposed decisions in `sessions/eni-winnow-design-20260719.wno`
+  (surfaced by `--stale`): d1 canonical-form reduction, d2/d3
+  universal-foundation-beneath-linguistic-foundation. Plus the polysemy
+  finding (c33/c37/c96): the collapse contract preserves synonyms but
+  erases polysemes — collapse synonyms *within* a sense, preserve
+  polysemes *across* senses. Directly load-bearing for the Gau merge
+  (cross-conversation vocabulary drift) and JITCW. Cheapest first step
+  if adopted: sense-qualified term ids (tap/faucet vs tap/strike) +
+  registry split into alias-layer and concept-layer jobs (c48), which
+  also positions canon anchors as the universal-layer join. **First
+  mechanical step landed 2026-07-20:** sense-qualified tids
+  (`tap/faucet`) supported in the Resolver — bare word reaches all
+  parked senses ranked, qualified reference hits one; plus a latent
+  kebab-comparison bug fixed in `_matches`. Executive decision (Joe
+  delegated): wire-format convention is `word/sense`, no spec change
+  yet — spec §-note rides with the registry-split design session. Bigger
+  pieces (utterances-as-nodes, retroactive disambiguation, multi-word
+  spans) are v2-scale — sequence after the registry split proves out. (Joe's proposal, fresh session).** Claude in
   haiku mode forwards messages between Joe and DeepSeek (via ds);
   DeepSeek and/or haiku generate .wno updates live during the
   conversation. Measures extraction on a real live conversation instead
@@ -86,6 +97,14 @@
 - [ ] UEL / embedding-anchor representation mode (§12) — v2 identity engine.
 
 ## Done
+- [x] **Resolver-layer batch (2026-07-20).** fold.py: `term_usage()` /
+      `term_mass()` (status-gated, superseded/rejected/retracted gated
+      out), `node_mass()`, `last_touch` tracking, `--concepts` sorted
+      view, `--stale N` view. winnow.py Resolver: `_rank()` by (status
+      class, mass, recency) applied to all multi-hit rungs, rung-2
+      ranked truncation, constituent matching (auth → auth-system),
+      KIMI_ALIASES (sniping/echo/concept-space). 12 new tests (97
+      total). Mass is map-side only — never logged, never residency.
 - [x] Kimi doc assessment + salvage ledger (2026-07-17): usage-mass /
       ranking / constituent matching / stale view / canon anchors /
       side-payload variant adopted; logged importance scalars and scalar
