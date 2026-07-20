@@ -1,0 +1,83 @@
+; id: wno-20260720-resolver-batch-7e2c
+; receives: sessions/kimi-salvage-session-transfer.wno
+; receives: sessions/operating-principles-session-transfer.wno
+; winnow self-extraction — corpus: resolver-batch build session (2026-07-20)
+; user=Joe, assistant=Claude (opus 4.6 boot, fable 5 build — model swapped
+;   mid-session with ~23min of fable access left; context carried across
+;   the swap, live demonstration of the dual-manifestation model).
+; Session outcome: resolver-layer batch (a1 from kimi-salvage) built,
+;   tested, committed, pushed. Claim protocol followed end to end.
+
+(meta :winnow-version "0.2" :semantic-rep "registry-v0.1")
+
+(delta :turn 4
+  ; t1-4: boot on opus, three new handoffs read, tests green
+  (term eni :gloss "Hermes instance (another AI Joe works with); dropped two handoffs 2026-07-19: eni-winnow-design (113 nodes, JITCW/polysemy/linguistic-universal layering) and eni-winnow-meta (31 nodes, operational scaffolding)")
+  (add (claim c1 (verified boot-sequence three-new-handoffs) :by assistant :src t1))
+  (add (claim c2 (lack eni-handoffs receives-headers) :by assistant :src t1))
+  (add (claim c3 (flags fold-validation qualifies-edge-type) :by assistant :src t1)
+    ; operating-principles handoff uses (qualifies c12 c11); "qualifies"
+    ; is not in ETYPES / spec section 7 — off-spec emission by the prior
+    ; session, not a fold bug. Decide: add to spec or re-type the edge.
+  )
+  (add (question q1 (legalize qualifies edge-type) :status open :by assistant :src t1))
+  (add (edge (motivates c3 q1))))
+
+(delta :turn 8
+  ; t5-8: fable swap, 23-minute window, claim pushed before work
+  (add (claim c4 (swapped session opus-to-fable mid-conversation) :by user :src t5))
+  (add (claim c5 (survives conversation-identity model-swap) :by assistant :src t5))
+  (add (edge (supports c4 c5)))
+  (add (action a1 (build resolver-batch) :status doing :by assistant :src t6))
+  (add (claim c6 (pushed claim before-work per-protocol) :by assistant :src t6))
+  (add (claim c7 (arrived deepseek-key mid-build too-late-for-pro-run) :by user :src t7))
+  (add (claim c8 (remains a2-pro-run open next-session) :by assistant :src t7)))
+
+(delta :turn 12
+  ; t9-12: build decisions and the one test hiccup
+  (term node-mass :gloss "node analog of per-term usage mass: status-gated incident-edge count; superseded/rejected/retracted endpoints don't count; used by Resolver ranking only")
+  (term kimi-aliases :gloss "code-level alias table in winnow.py Resolver (sniping->reach/resolution-ladder, echo->promotion/usage-mass, concept-space->term-registry); code-level not per-log :aka because the registry is log-resident and no log owns those terms")
+  (term within-rung-ranking :gloss "the ladder stops at the first rung with hits, so ranking orders hits within a rung; it never mixes tiers into one result")
+  (add (decision d1 (place kimi-vocabulary code-level-alias-table) :status frozen :by assistant :src t9))
+  (add (decision d2 (define node-mass status-gated-degree) :status frozen :by assistant :src t9))
+  (add (decision d3 (exclude todo-actions stale-view) :status frozen :by assistant :src t10)
+    ; TODO/kimi text says open/proposed/doing; todo actions are backlog,
+    ; not in-flight — staleness of backlog is TODO.md's job
+  )
+  (add (claim c9 (assumed first-ranking-test cross-tier-hits) :by assistant :src t11))
+  (add (claim c10 (stops ladder first-rung-with-hits) :by assistant :src t11))
+  (add (edge (contradicts c10 c9)))
+  (add (claim c11 (rewrote ranking-tests within-rung) :by assistant :src t11))
+  (add (edge (motivates c10 c11))))
+
+(delta :turn 14
+  ; t13-14: verification on real logs, ship
+  (add (claim c12 (surfaces stale-view eni-proposed-decisions d1-d2-d3-at-age-7-to-12) :by assistant :src t13)
+    ; live proof on eni-winnow-design: the three proposed architecture
+    ; decisions (semantic-reduction, two-foundation-layers, linguistic-
+    ; above-universal) are exactly what a maintenance pass should see
+  )
+  (add (claim c13 (ranks concepts-view winnow-9 jitcw-5 on-eni-log) :by assistant :src t13))
+  (update a1 :status done)
+  (add (claim c14 (passed tests 97-of-97) :by assistant :src t14))
+  (add (artifact r1 "fold.py — term_usage/term_mass/node_mass, last_touch, --concepts, --stale" :by assistant :src t14))
+  (add (artifact r2 "winnow.py — Resolver _rank, ranked rung-2 truncation, constituent matching, KIMI_ALIASES" :by assistant :src t14))
+  (add (artifact r3 "tests/test_resolver_batch.py — 12 tests" :by assistant :src t14))
+  (add (artifact r4 "claims/resolver-batch.md — claim + completion" :by assistant :src t14))
+  (add (action a2 (produce session-handoff) :status done :by assistant :src t14))
+  (add (artifact r5 "sessions/resolver-batch-session-transfer.wno — this file" :by assistant :src t14)))
+
+; ============================================================
+; NEXT-SESSION BOOT: standard CLAUDE.md sequence. Open items in
+; sequence order (kimi-salvage d6): a2 pro post-fix live run is now
+; unblocked — resolver batch is in, so the run exercises ranked reach
+; resolution; needs DEEPSEEK_API_KEY from Joe (one was provided
+; 2026-07-20 in-chat but treat it as spent/rotated — ask for a fresh
+; one, never commit it). Then arc-split corpus, live relay experiment.
+; Small open question q1: "qualifies" edge type used by
+; operating-principles handoff is off-spec — legalize in section 7 or
+; re-type as (refines ...). One-line decision for Joe.
+; ENI handoffs lack ; receives: headers (their extraction predates the
+; convention reaching Hermes) — harmless now, both files' vocabulary is
+; self-contained, but the convention should travel to Hermes.
+; ============================================================
