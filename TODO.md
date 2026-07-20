@@ -74,18 +74,18 @@
   responding frontier model emits .wno ops alongside its reply (one
   call); manager-side decomposition is the weak link per flash-baseline
   evidence, so keep the lightweight model's role recognition-only (c29).
-- [ ] **Multi-session corpus (arc-split, Joe 2026-07-17).** Produce the
-  corpus ourselves instead of waiting: split an existing transcript at
-  conversational-arc boundaries (arcs ≈ split.py dense components;
-  session boundaries are arbitrary under managed context). Exercises
-  `:src` namespacing (q5). Note: a single-conversation split shares one
-  registry, so alias drift (q6) needs two independently-extracted
-  corpora instead.
+- [ ] **`:src` namespacing + supersede/§2 rulings (Joe).** The
+  arc-split corpus made both concrete (`runs/arc-split/notes.md`):
+  (1) merge namespaces the id axis but unions `:src` verbatim — three
+  different original turns all answer to `t1` in the merged log;
+  options remain session-namespaced `:src` vs per-log meta id.
+  (2) `supersede` sets `:status superseded` on any frame but §2 only
+  legalizes it for claim/decision — grow §2 or frame-restrict the op.
 - [ ] **Merge UX hardening** (post-first-real-use): `:src` values collide
   across logs (t1 in log A ≠ t1 in log B); currently unioned verbatim.
   Needs session-namespaced provenance (e.g. `:src (sess-a t1)`) or a
-  log-id in the meta header — spec change; test corpus now planned via
-  arc-split item above.
+  log-id in the meta header — spec change; **evidence now concrete**
+  in `runs/arc-split/notes.md` (item 1); blocked on the ruling above.
 - [ ] **Alias-aware hashing.** `hash_id` hashes canonical term ids; two
   logs whose registries alias the same surface form to different ids
   won't join. Upgraded mechanism (2026-07-17): **canon anchors** —
@@ -120,6 +120,16 @@
 - [ ] UEL / embedding-anchor representation mode (§12) — v2 identity engine.
 
 ## Done
+- [x] **Multi-session corpus (arc-split, 2026-07-20).** First
+      cbtdag-structured task (`cbtdag/arc-split/`): graph-derived arc
+      boundaries (cuts after t10/t16, min-crossing audit committed),
+      3-part corpus renumbered from t1 with ground-truth mapping,
+      three independent pro-re2 extractions, pairwise + 3-way merges.
+      Findings in `runs/arc-split/notes.md`: id axis namespaced but
+      `:src` unions verbatim (q5 evidence); zero term-id overlap
+      across parts, 74 vs 59 terms (+25% drift, bounded q6 signal);
+      hash-join axis untested (no overlap, by design); supersede/§2
+      tension surfaced by the new status warnings.
 - [x] **Resolver-layer batch (2026-07-20).** fold.py: `term_usage()` /
       `term_mass()` (status-gated, superseded/rejected/retracted gated
       out), `node_mass()`, `last_touch` tracking, `--concepts` sorted

@@ -42,3 +42,28 @@ Done = acceptance list in design-spec.md; TODO flipped; pushed.
   volume as the committed a9 run). If that inference spend was NOT
   meant to be autonomous, veto applies to C/D only — A/B artifacts
   stand alone.
+
+## completion
+- completed: 2026-07-20T09:20Z
+- outcome: matched intent, all four chunks. A and B built by parallel
+  sonnet workers against the frozen boundaries contract, both fixture
+  gates reproduced by the executor before use; crossings at the chosen
+  cuts (10: 4, 16: 2) independently recomputed from the graph. C: three
+  pro --re2 runs, all validate OK. D: pairwise + 3-way merges +
+  runs/arc-split/notes.md (q5 provenance-death evidence with named
+  nodes, zero term-id overlap / +25% registry drift, hash-join axis
+  untested by design, supersede-vs-§2 bycatch).
+- hiccups: (1) worker A flagged the second cut (t16/t17) as a
+  within-arc pivot rather than a hard topic seam — still the
+  min-crossing legal option; realistic for arbitrary session
+  boundaries, noted rather than fixed. (2) fresh container again
+  lacked the openai module (ds dependency) — pip install before phase
+  C; recurring, consider a setup note. (3) the brand-new status
+  warnings fired on part1 + merged logs (action superseded) and became
+  notes item 4 — the validation layer earned its keep same-day.
+- checklist:
+  - tests green: yes (tests/, 109 passed; no code changes in this task)
+  - TODO.md flipped: yes (same commit; arc-split → Done, rulings item
+    added, merge-UX pointer updated)
+  - handoff updated: yes (extension, same commit)
+  - pushed: yes

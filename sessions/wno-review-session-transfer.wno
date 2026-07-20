@@ -81,6 +81,26 @@
 ; cbtdag judged overhead for this single-serial-change scale; still
 ; the plan for arc-split corpus and other multi-module work.
 ; ============================================================
+; SESSION EXTENSION 2 (same session): arc-split corpus EXECUTED —
+; first full cbtdag-structured task (cbtdag/arc-split/: design spec,
+; spec-only dag.json, frozen boundaries contract with fixtures, two
+; work orders). Workers A (detector) and B (cutter) ran as parallel
+; sonnet subagents; executor reproduced both fixture gates and
+; independently recomputed the cut crossings before consuming
+; anything. Corpus: parts [1-10],[11-16],[17-24] renumbered from t1;
+; three pro --re2 extractions; pairwise + 3-way merges. Findings
+; (runs/arc-split/notes.md): merge namespaces ids but unions :src
+; verbatim — t1 names three different original turns in the merged
+; log (q5 evidence, Joe's ruling needed); ZERO term-id overlap across
+; the three registries, 74 vs 59 terms (+25% drift, bounded q6);
+; hash-join axis untested by design (no content overlap); supersede
+; sets :status superseded on frames where §2 doesn't legalize it —
+; surfaced by the same-day status-warning layer (spec question).
+; Worker A's read: first cut is a clean topic seam, second is a
+; within-arc pivot — realistic for arbitrary session boundaries.
+; recurring setup note: fresh containers need `pip install openai`
+; before ds-backed runs.
+; ============================================================
 ; NEXT-SESSION BOOT: standard CLAUDE.md sequence.
 ; Blocked on Joe: ENI registry-split design session (TODO top item);
 ;   relaying the Hermes questions (q1 delta-20 hole, c4 c2-provenance,
