@@ -1,0 +1,6 @@
+  (reject "node missing payload (def d1)")
+turn 2: 5 ops (4 nodes, 0 edges)
+  (reject "unknown frame answer")
+  (reject "unknown frame answer")
+turn 4: 5 ops (9 nodes, 0 edges)
+turn 6: 3 ops (9 nodes, 0 edges)

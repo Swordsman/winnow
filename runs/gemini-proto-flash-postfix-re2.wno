@@ -1,0 +1,20 @@
+(meta :winnow-version "0.2" :semantic-rep "registry-v0.1")
+
+(delta :turn 2
+  (term compressed-format :gloss "strips conversational filler while preserving exact logical sequences and shifting goalposts; maximizes signal-to-noise ratio and argument fidelity; sacrifices collaborative human-like persona")
+  (add (claim c1 (compressed-format is effective for persistent memory payloads) :by assistant :src t2))
+  (add (claim c2 (compressed-format sacrifices collaborative human-like persona) :by assistant :src t2))
+  (add (question q1 (compressed-format serves-as persistent-memory-payload) :by assistant :src t2))
+  (add (question q2 (compressed-format establishes-baseline-for automated-summarization-script) :by assistant :src t2)))
+
+(delta :turn 4
+  (add (question q3 (formula-for-reducing-existing-full-conversations-to compressed-format) :by user :src t3))
+  (add (question q4 (instructions-for-LLM-to-generate-high-signal-output-from-start) :by user :src t3))
+  (add (question q5 (plan-to-use-structured-JSON-output-API-or-standard-text-generation-for-distillation) :by assistant :src t4))
+  (add (claim c3 (post-processing-formula-preserves-user-node-strips-persona-tracks-delta-maintains-chain-outputs-flat-log) :status live :by assistant :src t4))
+  (add (claim c4 (zero-cruft-generation-bans-validation-clauses-eliminates-transitional-fluff-defaults-to-lists-tables-factuals) :status live :by assistant :src t4)))
+
+(delta :turn 6
+  (term multi-channel-parsing :gloss "instruct LLM to untangle data stream into structured JSON with two extraction targets: thematic threads and context & state memory")
+  (term thematic-threads :gloss "independent compressed dialogue chains for specific arguments")
+  (term context-memory :gloss "isolated entity-attribute pairs for state updates, e.g. user's pet feeding signal"))
