@@ -92,3 +92,22 @@
   (add (edge (contradicts c22 c21)))
   (add (edge (supports c23 c22)))
   (add (edge (refines c22 c20))))
+
+(delta :turn 18
+  (term contract-questions :gloss "Contract questions")
+  (update q3 :status partially-answered))
+
+(delta :turn 20
+  (term dbc-semantic-continuity :gloss "Applying Design by Contract (DbC) to message compression: each message is a black box with a public interface (postconditions for assistant, preconditions for user), and alterations must preserve semantics exposed to adjacent messages"))
+
+(delta :turn 22
+  (term dbc-concept-introduced-via-compressed-form-update :gloss "")
+  (term look-ahead-dependency-check-failed-to-apply-to-turn-1 :gloss "")
+  (term provided-updated-artifact-incorporating-dbc :gloss "")
+  (add (claim c24 (dbc-concept-introduced-via-compressed-form-update) :by user :src t21))
+  (add (claim c25 (look-ahead-dependency-check-failed-to-apply-to-turn-1) :by assistant :src t22))
+  (add (claim c26 (provided-updated-artifact-incorporating-dbc) :by assistant :src t22))
+  (add (edge (contradicts c25 c26))))
+
+(delta :turn 24
+  (update c25 :status superseded))

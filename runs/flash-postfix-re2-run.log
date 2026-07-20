@@ -11,3 +11,8 @@ turn 10: 12 ops (30 nodes, 15 edges)
 turn 12: 10 ops (30 nodes, 15 edges)
 turn 14: 5 ops (32 nodes, 17 edges)
 turn 16: 7 ops (34 nodes, 20 edges)
+turn 18: 2 ops (34 nodes, 20 edges)
+turn 20: 1 ops (34 nodes, 20 edges)
+turn 22: 7 ops (37 nodes, 21 edges)
+turn 24: 1 ops (37 nodes, 21 edges)
+wrote runs/gemini-proto-flash-postfix-re2.wno: 37 nodes, 21 edges, 26 terms; validation OK
