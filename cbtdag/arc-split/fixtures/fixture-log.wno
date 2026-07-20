@@ -1,0 +1,20 @@
+; synthetic fixture for arc-split contract freeze — two obvious arcs
+; (db choice t1-3, deploy failure t4-6) with one weak cross-link
+(meta :winnow-version "0.2" :semantic-rep "registry-v0.1")
+
+(delta :turn 3
+  (add (question q1 (choose cache-database) :status answered :by user :src t1))
+  (add (claim c1 (fits sqlite zero-dependency single-file) :by assistant :src t2))
+  (add (edge (answers c1 q1)))
+  (add (decision d1 (use sqlite cache-layer) :status frozen :by user :src t3))
+  (add (edge (supports c1 d1)))
+  (add (edge (refines d1 q1))))
+
+(delta :turn 6
+  (add (claim c2 (failed deploy-script staging) :by user :src t4))
+  (add (claim c3 (cause missing-env-var prod-url-assumed) :by assistant :src t5))
+  (add (edge (supports c3 c2)))
+  (add (action a1 (guard prod-url default-and-rerun) :status todo :by user :src t6))
+  (add (edge (motivates c3 a1)))
+  (add (edge (about a1 c2)))
+  (add (edge (about c2 d1))))

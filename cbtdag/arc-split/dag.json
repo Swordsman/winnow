@@ -1,0 +1,36 @@
+{
+  "project": "arc-split-corpus",
+  "mode": "spec-only",
+  "design_spec": "cbtdag/arc-split/design-spec.md",
+  "metadata": {
+    "conventions": [
+      "turns 1-indexed everywhere; tN labels and JSON ints share the axis",
+      "part ranges inclusive on both ends",
+      "crossings count edges between :src-bearing nodes only",
+      "part files renumbered to start at t1; original mapping is ground truth in README"
+    ]
+  },
+  "contracts": {
+    "boundaries-json": {
+      "state": "frozen",
+      "producer": "A",
+      "consumer": "B",
+      "artifact": "runs/arc-split/boundaries.json",
+      "schema": "design-spec.md D3",
+      "fixtures": [
+        "fixtures/fixture-log.wno + fixtures/fixture-transcript.txt -> fixtures/expected-boundaries.json",
+        "fixtures/expected-boundaries.json -> fixtures/expected-part1.txt + expected-part2.txt"
+      ]
+    }
+  },
+  "tasks": {
+    "A": {"name": "arc detector", "worker": "subagent", "work_order": "work-order-A.md",
+          "readiness": "parallel_ready", "provides": ["boundaries-json"], "requires": []},
+    "B": {"name": "corpus cutter", "worker": "subagent", "work_order": "work-order-B.md",
+          "readiness": "parallel_ready", "provides": ["part-files"], "requires": ["boundaries-json"]},
+    "C": {"name": "extraction runs", "worker": "executor", "readiness": "sequential_ready",
+          "requires_done": ["A", "B"], "spec": "design-spec.md D5"},
+    "D": {"name": "merge + notes", "worker": "executor", "readiness": "sequential_ready",
+          "requires_done": ["C"], "spec": "design-spec.md D6"}
+  }
+}
