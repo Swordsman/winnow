@@ -76,7 +76,10 @@ protocol that prevents replayed work:
   the work they describe.
 - **Session handoffs**: every session produces a `.wno` handoff in
   `sessions/`, committed before the session ends. No session's
-  experience gets left behind.
+  experience gets left behind. After drafting the handoff, review it
+  against the session asking "is there anything that got left out?"
+  and add what's missing. Repeat until everything important is
+  captured.
 
 ## Operating principles
 
