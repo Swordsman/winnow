@@ -27,7 +27,7 @@ import argparse
 import re
 import sys
 
-from fold import Graph, parse, tokenize, sx, anns, ETYPES, FRAMES
+from fold import Graph, parse, tokenize, sx, anns, ETYPES, FRAMES, STATUSES
 
 ID_PREFIX = {"claim": "c", "decision": "d", "question": "q",
              "constraint": "k", "def": "f", "action": "a", "artifact": "r"}
@@ -89,6 +89,11 @@ payload proposition is mandatory: (RELATION ARG1 ARG2 ...), args being \
 term ids, node ids, "literals", or numbers. Default statuses (omit them): \
 claim/constraint/def/artifact live, question open, decision proposed, \
 action todo.
+
+Legal statuses per frame, nothing else: claim live/corrected/retracted/\
+superseded; def live/deprecated; question open/answered/dropped; \
+decision proposed/frozen/superseded/abandoned; constraint live/relaxed/\
+retired; action todo/doing/done/blocked/dropped; artifact live/deprecated.
 
 Edge types (only these eight), always exactly (TYPE FROM TO), no extra \
 args: supports (evidence first), contradicts (challenger first), \
@@ -464,6 +469,8 @@ class Normalizer:
         """Return (canonical_ops, rejects). canonical_ops are parsed
         forms ready to serialize into one delta."""
         out, rejects, idmap = [], [], {}
+        new_frames = {}   # nid assigned this batch -> frame (for update
+                           # ops that target a node added earlier in it)
         for op in forms:
             head = op[0]
             if head == "term":
@@ -522,6 +529,11 @@ class Normalizer:
                 else:
                     payload, tail = item[2], item[3:]
                 a = anns(tail)
+                if "status" in a and a["status"] not in \
+                   STATUSES.get(frame, set()):
+                    rejects.append(
+                        f"off-spec status {a['status']} for {frame}")
+                    continue
                 key = (frame, sx(payload))
                 if key in self.payload_index:      # R11
                     existing = self.payload_index[key]
@@ -535,6 +547,7 @@ class Normalizer:
                 nid = self._next_id(frame)
                 idmap[xid] = nid
                 self.payload_index[key] = nid
+                new_frames[nid] = frame
                 out.append(["add", self._node_form(frame, nid, payload, a)])
                 continue
             if head in ("update", "supersede", "merge", "del"):
@@ -553,6 +566,13 @@ class Normalizer:
                     continue
                 if head == "update":
                     a = anns(mapped[2:])
+                    if "status" in a:
+                        frame = self.g.nodes.get(mapped[1], {}).get("frame") \
+                            or new_frames.get(mapped[1])
+                        if a["status"] not in STATUSES.get(frame, set()):
+                            rejects.append(
+                                f"off-spec status {a['status']} for {frame}")
+                            continue
                     mapped = ["update", mapped[1]]
                     for k in ANN_ORDER:
                         if k in a:

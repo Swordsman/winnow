@@ -1,0 +1,17 @@
+[t1 user]
+We should pick a database for the cache layer.
+
+[t2 assistant]
+SQLite fits: zero-dependency, single file, good enough write rates.
+
+[t3 user]
+Agreed, SQLite it is.
+
+[t4 user]
+Separate topic: the deploy script failed on staging last night.
+
+[t5 assistant]
+The failure is a missing env var; the script assumes PROD_URL is set.
+
+[t6 user]
+Right — add a guard and a default, then rerun.

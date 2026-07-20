@@ -9,15 +9,38 @@
   `runs/comparison-notes.md` (2026-07-20) — flash-baseline shows
   edge-type collapse + term explosion; pro-re2 uses the full edge
   palette with supersede chains; registry discipline is both runs' gap
-  to hand-authored. Remaining, per the notes' next-steps list: post-fix
-  flash rerun analysis (run launched 2026-07-20, out file
-  `runs/gemini-proto-flash-postfix-re2.wno` — may be a partial prefix if
-  the session was cut off; incremental writes make any prefix foldable),
-  the `about`-targets-a-term ruling (100% of pro rejects), gloss-quality
-  prompt nudge, optional per-delta yield curves.
+  to hand-authored. **Post-fix flash rerun analysis done 2026-07-20**
+  (notes findings 7–13): prompt version, not model, caused the
+  baseline's term explosion and edge collapse; flash's residual gaps
+  are node/edge yield, frame grammar (question+claim only survived),
+  and status discipline. New finding 12: off-spec status values
+  (`partially-answered`, `resolved`, claim `open`) pass normalizer and
+  fold unvalidated — fold checks ETYPES but not §2 status vocab, and
+  status drives Resolver rank class + mass gating; small code-level
+  fix candidate — **fixed 2026-07-20** (STATUSES table, fold warns /
+  normalizer rejects, 9 tests; sweep also surfaced two grandfathered
+  off-spec decision statuses in the live-run handoff). Remaining, per
+  the notes' next-steps list: the `about`-targets-a-term ruling (100%
+  of pro rejects), gloss-quality prompt nudge, optional per-delta
+  yield curves.
 - [ ] **aimpack packaging.** Needs the aimpack format spec / an example
   pack — not in this repo. Ship spec + fold.py + registry as a part once
   available.
+- [ ] **Questions for Hermes (wno review 2026-07-20, needs Joe to
+  relay).** From the review of the 801da04 ENI-handoff expansion:
+  (a) Δ20/turn-39 hole in `eni-winnow-design-20260719.wno` — delta
+  labels jump Δ19 (turn 38b) → Δ21 (turn 40), no turn 39 anywhere; did
+  a delta get lost from ENI's draft, or is it a labeling skip?
+  (b) 801da04's commit message claims the c2 attribution fix, but
+  `(update c2 :by assistant)` already existed in fabc99c — confirm the
+  fix is ENI's, and that c2 ("hard-ceiling context-window") really was
+  assistant articulation. (c) FYI: the review restored the
+  `(supports c99 c97)` edge dropped by the Δ21 rewrite (new c99
+  restates old c99's content; the renumbered sibling edge was carried
+  over, so the drop read as accidental) — veto welcome. (d) the
+  `; id:`/`; receives:` header convention should travel to Hermes
+  (already noted in resolver-batch handoff); meta file header also
+  says "companion to eni-winnow-design.wno", missing the date suffix.
 
 ## Next up
 - [ ] **ENI proposals: inclusion decision (Joe 2026-07-20, "relates to
@@ -51,18 +74,18 @@
   responding frontier model emits .wno ops alongside its reply (one
   call); manager-side decomposition is the weak link per flash-baseline
   evidence, so keep the lightweight model's role recognition-only (c29).
-- [ ] **Multi-session corpus (arc-split, Joe 2026-07-17).** Produce the
-  corpus ourselves instead of waiting: split an existing transcript at
-  conversational-arc boundaries (arcs ≈ split.py dense components;
-  session boundaries are arbitrary under managed context). Exercises
-  `:src` namespacing (q5). Note: a single-conversation split shares one
-  registry, so alias drift (q6) needs two independently-extracted
-  corpora instead.
+- [ ] **`:src` namespacing + supersede/§2 rulings (Joe).** The
+  arc-split corpus made both concrete (`runs/arc-split/notes.md`):
+  (1) merge namespaces the id axis but unions `:src` verbatim — three
+  different original turns all answer to `t1` in the merged log;
+  options remain session-namespaced `:src` vs per-log meta id.
+  (2) `supersede` sets `:status superseded` on any frame but §2 only
+  legalizes it for claim/decision — grow §2 or frame-restrict the op.
 - [ ] **Merge UX hardening** (post-first-real-use): `:src` values collide
   across logs (t1 in log A ≠ t1 in log B); currently unioned verbatim.
   Needs session-namespaced provenance (e.g. `:src (sess-a t1)`) or a
-  log-id in the meta header — spec change; test corpus now planned via
-  arc-split item above.
+  log-id in the meta header — spec change; **evidence now concrete**
+  in `runs/arc-split/notes.md` (item 1); blocked on the ruling above.
 - [ ] **Alias-aware hashing.** `hash_id` hashes canonical term ids; two
   logs whose registries alias the same surface form to different ids
   won't join. Upgraded mechanism (2026-07-17): **canon anchors** —
@@ -97,6 +120,16 @@
 - [ ] UEL / embedding-anchor representation mode (§12) — v2 identity engine.
 
 ## Done
+- [x] **Multi-session corpus (arc-split, 2026-07-20).** First
+      cbtdag-structured task (`cbtdag/arc-split/`): graph-derived arc
+      boundaries (cuts after t10/t16, min-crossing audit committed),
+      3-part corpus renumbered from t1 with ground-truth mapping,
+      three independent pro-re2 extractions, pairwise + 3-way merges.
+      Findings in `runs/arc-split/notes.md`: id axis namespaced but
+      `:src` unions verbatim (q5 evidence); zero term-id overlap
+      across parts, 74 vs 59 terms (+25% drift, bounded q6 signal);
+      hash-join axis untested (no overlap, by design); supersede/§2
+      tension surfaced by the new status warnings.
 - [x] **Resolver-layer batch (2026-07-20).** fold.py: `term_usage()` /
       `term_mass()` (status-gated, superseded/rejected/retracted gated
       out), `node_mass()`, `last_touch` tracking, `--concepts` sorted

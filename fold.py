@@ -37,6 +37,19 @@ DEFAULT_STATUS = {
 FRAMES = set(DEFAULT_STATUS)
 ETYPES = {"supports", "contradicts", "supersedes", "refines",
           "answers", "motivates", "depends", "about"}
+
+# Closed status vocabulary per frame (spec section 2). Off-spec values
+# are grandfathered in existing logs: fold WARNS, never errors -- see
+# Graph.warnings / Graph._check_status.
+STATUSES = {
+    "claim": {"live", "corrected", "retracted", "superseded"},
+    "def": {"live", "deprecated"},
+    "question": {"open", "answered", "dropped"},
+    "decision": {"proposed", "frozen", "superseded", "abandoned"},
+    "constraint": {"live", "relaxed", "retired"},
+    "action": {"todo", "doing", "done", "blocked", "dropped"},
+    "artifact": {"live", "deprecated"},
+}
 ANN_ORDER = ["status", "conf", "status-conf", "strength", "by",
              "src", "time", "modal", "neg"]
 
@@ -144,6 +157,7 @@ class Graph:
         self.edges = []     # (etype, src, dst)
         self.terms = {}     # termid -> tail
         self.errors = []
+        self.warnings = []  # advisory: off-spec statuses (never fail fold)
         self.deltas = 0
         self.turn = 0
         self.meta = {}
@@ -184,8 +198,12 @@ class Graph:
                 if nid not in self.nodes:
                     self.errors.append(f"update of unknown id {nid}")
                     continue
-                self.nodes[nid].update(anns(op[2:]))
+                updates = anns(op[2:])
+                self.nodes[nid].update(updates)
                 self.touched.add(nid)
+                if "status" in updates:
+                    self._check_status(self.nodes[nid]["frame"], nid,
+                                       updates["status"])
             elif head == "supersede":            # (supersede NEW OLD ...)
                 new, old = op[1], op[2]
                 a = anns(op[3:])
@@ -193,6 +211,7 @@ class Graph:
                     self.errors.append(f"supersede of unknown id {old}")
                     continue
                 self.nodes[old]["status"] = "superseded"
+                self._check_status(self.nodes[old]["frame"], old, "superseded")
                 if "conf" in a:
                     self.nodes[old]["status-conf"] = a["conf"]
                 self._edge("supersedes", new, old)
@@ -245,6 +264,15 @@ class Graph:
         node.update(anns(tail))
         self.nodes[nid] = node
         self.touched.add(nid)
+        self._check_status(frame, nid, node["status"])
+
+    def _check_status(self, frame, nid, status):
+        """Off-spec status (spec §2) is advisory, not fatal: warn and
+        keep going. Grandfathers existing runs/sessions logs."""
+        legal = STATUSES.get(frame)
+        if legal and status not in legal:
+            self.warnings.append(
+                f"off-spec status '{status}' for {frame} {nid}")
 
     def _edge(self, et, a, b):
         if et not in ETYPES:
@@ -561,6 +589,10 @@ def main():
           "OK" if not errs else f"{len(errs)} problem(s)")
     for e in errs:
         print("  !", e)
+    if g.warnings:
+        print(f"status warnings : {len(g.warnings)}")
+        for w in g.warnings:
+            print("  !", w)
     if "--snapshot" in sys.argv:
         print("\n; --- canonical snapshot ---")
         print(g.snapshot())

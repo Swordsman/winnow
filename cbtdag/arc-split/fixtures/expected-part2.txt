@@ -1,0 +1,8 @@
+[t1 user]
+Separate topic: the deploy script failed on staging last night.
+
+[t2 assistant]
+The failure is a missing env var; the script assumes PROD_URL is set.
+
+[t3 user]
+Right — add a guard and a default, then rerun.

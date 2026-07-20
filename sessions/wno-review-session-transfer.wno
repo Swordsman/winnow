@@ -1,0 +1,122 @@
+; id: wno-20260720-wno-review-8f4a
+; receives: sessions/resolver-batch-session-transfer.wno
+; receives: sessions/eni-winnow-design-20260719.wno
+; winnow self-extraction — corpus: wno-files-review + flash-postfix-
+;   analysis session (2026-07-20, fable 5, remote container, branch
+;   claude/fable-wno-files-review-3y82sh, PR #7).
+; user=Joe (present at boot, afk mid-session; AskUserQuestion died with
+;   the interactivity — the recommended defaults were executed
+;   autonomously and are flagged for veto below).
+
+(meta :winnow-version "0.2" :semantic-rep "registry-v0.1")
+
+(delta :turn 2
+  ; t1-2: boot + review of Hermes's expansion of the ENI design handoff
+  (term hermes-expansion :gloss "commit 801da04: Hermes's rewrite of delta-21 in eni-winnow-design-20260719.wno — 11 claims c99-c109, 3 terms, 6 cross-link edges, renumbering old c100-c102 -> c107-c109")
+  (add (claim c1 (verified hermes-expansion folds-clean counts-match-commit-message edges-target-real-nodes) :by assistant :src t1))
+  (add (claim c2 (verified all-13-wno-files fold-validate-ok receives-chains-resolve tests-100-green) :by assistant :src t1))
+  (add (claim c3 (dropped hermes-expansion supports-c99-c97-edge) :by assistant :src t1)
+    ; ENI's original delta-21 had it; new c99 restates old c99's
+    ; content; the sibling edge survived renumbering as
+    ; (refines c109 c35) — so the drop read as accidental
+  )
+  (add (decision d1 (restore supports-c99-c97 in-delta-21) :status frozen :by assistant :src t2)
+    ; Joe unavailable to rule; recommended option executed; Hermes
+    ; veto invited via the TODO questions item; git keeps both states
+  )
+  (add (edge (motivates c3 d1)))
+  (add (question q1 (existed delta-20-turn-39 eni-draft) :status open :by assistant :src t1)
+    ; labels jump delta-19 (turn 38b) -> delta-21 (turn 40), no turn
+    ; 39 anywhere, 20 delta forms where labels imply 21 — for Hermes:
+    ; lost delta or labeling skip?
+  )
+  (add (claim c4 (predates update-c2-by-assistant hermes-commit) :by assistant :src t1)
+    ; 801da04's message claims the c2 attribution fix but the line is
+    ; a context line — present since fabc99c; provenance is ENI's
+  )
+  (add (claim c5 (resolved stale-q1-comment resolver-batch-extension) :by assistant :src t2)
+    ; extension comment still called the qualifies-edge ruling open;
+    ; d4 froze it and cd1d8cf applied it — comment now marked resolved
+  ))
+
+(delta :turn 4
+  ; t3-4: flash post-fix analysis (claim flash-postfix-analysis)
+  (term flash-postfix :gloss "runs/gemini-proto-flash-postfix-re2.wno — flash rerun on fixed prompts; isolates the model variable against pro-re2 on the same corpus")
+  (add (claim c6 (caused prompt-version baseline-term-explosion-and-edge-collapse) :by assistant :src t3)
+    ; model held constant: 102 -> 26 terms, 3 -> 7-of-8 edge types,
+    ; supports share 13/15 -> 3/21
+  )
+  (add (claim c7 (remains flash-gap node-edge-yield frame-grammar status-discipline) :by assistant :src t3)
+    ; 37 vs 48 nodes, 0.57 vs 0.81 edges/node; only question+claim
+    ; frames survived (constraint/def attempts malformed, rejected);
+    ; 5 answers edges yet 10/11 questions left open
+  )
+  (add (claim c8 (passes off-spec-status normalizer-and-fold) :by assistant :src t3)
+    ; partially-answered / resolved / claim-open all live in the three
+    ; run logs; fold validates ETYPES but not the per-frame status
+    ; vocab of spec section 2, and status drives Resolver rank class
+    ; + mass gating — finding 12 in comparison-notes, small fix
+    ; candidate
+  )
+  (add (edge (supports c6 c7)))
+  (add (claim c9 (supports flash-verdict recognition-only-posture-c29) :by assistant :src t3))
+  (add (action a1 (analyze flash-postfix-run) :status done :by assistant :src t4))
+  (add (action a2 (answer hermes-review-questions) :status blocked :by user :src t4))
+  (add (artifact r1 "runs/comparison-notes.md — postfix column, findings 7-13" :by assistant :src t4))
+  (add (artifact r2 "TODO.md — Hermes-questions item + quality-comparison update" :by assistant :src t4))
+  (add (artifact r3 "claims/flash-postfix-analysis.md — claim + completion" :by assistant :src t4))
+  (add (artifact r4 "PR #7 (claude/fable-wno-files-review-3y82sh)" :by assistant :src t4))
+  (add (artifact r5 "sessions/wno-review-session-transfer.wno — this file" :by assistant :src t4)))
+
+; ============================================================
+; SESSION EXTENSION (same session): status-vocab validation (finding
+; 12) EXECUTED, not just queued — first run of Joe's delegate-to-
+; subagents process instruction: design written into the claim's
+; intent (claims/status-vocab-validation.md), sonnet subagent
+; implemented, orchestrator verified independently (diff review, 109
+; tests, repo-wide sweep) and committed. fold warns / normalizer
+; rejects / one STATUSES table / prompt line. Sweep bonus finding:
+; live-run handoff carries two grandfathered off-spec decision
+; statuses (d1 done, d2 accepted) — left as recorded, warning-only.
+; cbtdag judged overhead for this single-serial-change scale; still
+; the plan for arc-split corpus and other multi-module work.
+; ============================================================
+; SESSION EXTENSION 2 (same session): arc-split corpus EXECUTED —
+; first full cbtdag-structured task (cbtdag/arc-split/: design spec,
+; spec-only dag.json, frozen boundaries contract with fixtures, two
+; work orders). Workers A (detector) and B (cutter) ran as parallel
+; sonnet subagents; executor reproduced both fixture gates and
+; independently recomputed the cut crossings before consuming
+; anything. Corpus: parts [1-10],[11-16],[17-24] renumbered from t1;
+; three pro --re2 extractions; pairwise + 3-way merges. Findings
+; (runs/arc-split/notes.md): merge namespaces ids but unions :src
+; verbatim — t1 names three different original turns in the merged
+; log (q5 evidence, Joe's ruling needed); ZERO term-id overlap across
+; the three registries, 74 vs 59 terms (+25% drift, bounded q6);
+; hash-join axis untested by design (no content overlap); supersede
+; sets :status superseded on frames where §2 doesn't legalize it —
+; surfaced by the same-day status-warning layer (spec question).
+; Worker A's read: first cut is a clean topic seam, second is a
+; within-arc pivot — realistic for arbitrary session boundaries.
+; recurring setup note: fresh containers need `pip install openai`
+; before ds-backed runs.
+; ============================================================
+; NEXT-SESSION BOOT: standard CLAUDE.md sequence.
+; Blocked on Joe: ENI registry-split design session (TODO top item);
+;   relaying the Hermes questions (q1 delta-20 hole, c4 c2-provenance,
+;   d1 edge-restore veto, header-convention travel); the
+;   about-targets-a-term ruling (100% of pro rejects).
+; Autonomous candidates: arc-split corpus (cbtdag plan + subagent
+;   implementation); per-delta yield curves. (status-vocab validation:
+;   done, see extension above.)
+; Standing instructions from Joe (2026-07-20, this session):
+;   - use cbtdag to write solid plans/designs before implementing;
+;     delegate implementation to subagents (opus/sonnet). Applies to
+;     arc-split corpus and anything implementation-scale.
+;   - DEEPSEEK_API_KEY is now a persistent env var in this remote
+;     environment — no per-session paste needed. Still env-only:
+;     never commit it, never write it to a repo file.
+; Fable note: ENI's meta file (cm5) recorded final cutoff 2026-07-19;
+;   fable was still serving this session on 07-20 — Joe: "looks like
+;   we're still going". Claim record stands, reality moved.
+; ============================================================

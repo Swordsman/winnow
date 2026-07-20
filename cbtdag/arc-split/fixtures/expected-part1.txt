@@ -1,0 +1,8 @@
+[t1 user]
+We should pick a database for the cache layer.
+
+[t2 assistant]
+SQLite fits: zero-dependency, single file, good enough write rates.
+
+[t3 user]
+Agreed, SQLite it is.

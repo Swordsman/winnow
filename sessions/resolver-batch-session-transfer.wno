@@ -93,9 +93,9 @@
 ; NEXT-SESSION BOOT: standard CLAUDE.md sequence. Next: ENI
 ; registry-split design session (TODO top item), then arc-split
 ; corpus, live relay experiment.
-; Small open question q1: "qualifies" edge type used by
-; operating-principles handoff is off-spec — legalize in section 7 or
-; re-type as (refines ...). One-line decision for Joe.
+; [RESOLVED 2026-07-20, commit cd1d8cf] q1 "qualifies" edge: re-typed
+; as (refines ...) in the operating-principles transfer; the 8-type
+; set stays closed (decision d4 above, frozen). Line kept for history.
 ; ENI handoffs lack ; receives: headers (their extraction predates the
 ; convention reaching Hermes) — harmless now, both files' vocabulary is
 ; self-contained, but the convention should travel to Hermes.

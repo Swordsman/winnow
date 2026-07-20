@@ -9,14 +9,14 @@ anchors style/density expectations only, not a head-to-head.
 
 ## Headline numbers
 
-|                | flash-baseline | pro-re2 | demo (hand, other corpus) |
-|----------------|---------------|---------|---------------------------|
-| nodes          | 37            | 48      | 37                        |
-| edges          | 15            | 39      | 25                        |
-| terms          | 102           | 59      | 7                         |
-| edge types used| 3 of 8        | 8 of 8  | 7 of 8                    |
-| edges/node     | 0.41          | 0.81    | 0.68                      |
-| terms/node     | 2.76          | 1.23    | 0.19                      |
+|                | flash-baseline | flash-postfix | pro-re2 | demo (hand, other corpus) |
+|----------------|---------------|---------------|---------|---------------------------|
+| nodes          | 37            | 37            | 48      | 37                        |
+| edges          | 15            | 21            | 39      | 25                        |
+| terms          | 102           | 26            | 59      | 7                         |
+| edge types used| 3 of 8        | 7 of 8        | 8 of 8  | 7 of 8                    |
+| edges/node     | 0.41          | 0.57          | 0.81    | 0.68                      |
+| terms/node     | 2.76          | 0.70          | 1.23    | 0.19                      |
 
 ## Findings
 
@@ -50,20 +50,75 @@ anchors style/density expectations only, not a head-to-head.
    should `about` legally target a term? (Terms as topics is arguably
    the natural reading of `about`.)
 
-## Post-fix flash rerun (launched 2026-07-20, same session)
+## Post-fix flash rerun: analysis (2026-07-20)
 
-`runs/gemini-proto-flash-postfix-re2.wno` + log. Early observation:
-flash's rejects differ in kind from pro's — flash invents frame types
-(`unknown frame answer`), pro mis-targets edges at registry terms. Same
-normalizer, different failure modes: flash breaks grammar, pro breaks
-reference discipline. Analysis of the finished run is the open item.
+`runs/gemini-proto-flash-postfix-re2.wno` + log. Same corpus, same
+prompts as pro-re2 — the model variable is isolated now. Headline:
+**most of the baseline's pathology was the prompt version, not the
+model.**
+
+7. **Term explosion was a prompt artifact.** 102 → 26 terms (now below
+   pro's 59); terms/node 2.76 → 0.70. Junk changed shape rather than
+   vanishing: the generic-word terms ("decision", "architecture") are
+   gone; clause-terms appeared instead
+   (`look-ahead-dependency-check-failed-to-apply-to-turn-1`,
+   `and-contract-questions`; several ids 50–68 chars), and 12/26
+   glosses are empty. `--concepts` top-of-mass is clean now
+   (compressed-format 5, background-ai 4, dual-payload-json 2) where
+   baseline's top was junk — mass ranking keeps working as registry QA.
+8. **Edge-type collapse was mostly a prompt artifact.** 3 → 7 of 8
+   types (missing: `depends`); supports share 13/15 → 3/21; refines=8
+   leads. The distribution is within sight of the hand-authored
+   profile. The remaining model gap vs pro is yield and density: 37 vs
+   48 nodes, 0.57 vs 0.81 edges/node.
+9. **Frame diversity is the new flash failure.** Only question+claim
+   frames survived. Flash *attempted* constraint and def frames but
+   emitted them malformed — all correctly rejected (`node missing
+   payload (def d1)` / `(constraint c7)` / `(constraint c8)`);
+   baseline at least landed singleton constraint/decision/action
+   frames. The normalizer is doing its job: grammar breakage now costs
+   flash whole frames instead of polluting the graph.
+10. **Reject shapes confirmed with prompts controlled.** Flash's 5
+    rejects are all grammar (2 invented frame `answer`, 3 malformed
+    payloads); pro's 4 were all reference discipline (term-targeted
+    edges). Different failure modes, same normalizer.
+11. **Revision tracking:** flash now attempts supersession (1
+    supersedes edge, 2 superseded claims; baseline had none) but pro
+    still leads (6 edges / 3 superseded claims).
+12. **New finding — off-spec status values pass through unvalidated.**
+    flash-postfix has a question at `partially-answered`, pro-re2 a
+    question at `resolved`, flash-baseline a claim at `open`; §2
+    vocabularies allow none of these. fold.py validates edge types
+    (ETYPES) but not statuses, and status drives Resolver rank class
+    and mass gating, so an off-spec value silently lands in the wrong
+    rank class. Candidate small fix: per-frame status table in fold.py
+    validation + one normalizer prompt line.
+13. **Status discipline generally:** flash-postfix emits 5 `answers`
+    edges yet leaves 10/11 questions open — answers edges land without
+    the question status flip. Pro shows the same gap more softly (9
+    answers edges, 4 questions non-open). Candidate ruling: should an
+    `answers` edge auto-flip its target question (mirroring the
+    `supersede` op's status side effect)? Spec question, not a bug.
+
+**Verdict:** with prompts fixed, flash is usable for
+recognition-shaped extraction (clean high-mass registry head, sane
+edge palette) but under-yields nodes/edges and can't hold frame
+grammar or status discipline; pro remains the extraction model. This
+supports the live-relay plan's posture (c29: keep the lightweight
+model's role recognition-only).
 
 ## Next steps (remainder, per waiting-convention)
 
-- [ ] Post-fix flash rerun (`--model flash`, same prompts) to isolate
-      model from prompt version. Offline analysis then repeats verbatim.
+- [x] Post-fix flash rerun (`--model flash`, same prompts) to isolate
+      model from prompt version — done, findings 7–13 above.
 - [ ] Decide the `about`-targets-a-term question (spec ruling or prompt
       nudge) before the next live run; it's 100% of pro rejects.
 - [ ] Gloss-quality nudge in the normalizer prompt (finding 5).
+- [x] Status-vocabulary validation (finding 12) — done 2026-07-20:
+      STATUSES table in fold.py, fold warns (advisory, committed logs
+      stay green), normalizer rejects going forward, prompt line added,
+      9 tests. Sweep bonus: `sessions/live-run-session-transfer.wno`
+      carries two more off-spec statuses (decision d1 `done`, d2
+      `accepted`) — grandfathered, warning-only, left as recorded.
 - [ ] Per-delta yield curve (fold --upto N over both logs) if deeper
       granularity is wanted; not yet done.
