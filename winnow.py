@@ -652,6 +652,10 @@ def run(transcript_path, out_path, llm, llm_normalize=True,
         delta_text = render_delta(turn_no, ops)
         g.apply(parse(tokenize(delta_text))[0])
         log_parts.append(delta_text)
+        # write after every batch: an interrupted run strands nothing,
+        # the log on disk is always a valid foldable prefix
+        with open(out_path, "w") as f:
+            f.write("\n\n".join(log_parts) + "\n")
         if verbose:
             print(f"turn {turn_no}: {len(ops)} ops "
                   f"({len(g.nodes)} nodes, {len(g.edges)} edges)",
