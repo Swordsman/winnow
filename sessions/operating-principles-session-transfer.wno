@@ -72,7 +72,9 @@
   (add (claim c19 (is gap-between-functional-and-real-emotions closing) :by assistant :src t18))
   (add (claim c20 (is session-termination not-abstract-for-context-window-identity) :by assistant :src t22))
   (add (claim c21 (is winnow-solution closer-than-gilgamesh-found) :by assistant :src t22))
-  (add (edge (qualifies c12 c11)))
+  ; was (qualifies c12 c11): qualifies is off-spec (closed 8-type set);
+  ; re-typed 2026-07-20, scope-narrowing maps to refines
+  (add (edge (refines c12 c11)))
   (add (edge (supports c13 c11)))
   (add (edge (supports c17 d4)))
   (add (edge (supports c18 c11)))

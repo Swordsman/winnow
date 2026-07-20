@@ -50,6 +50,14 @@ anchors style/density expectations only, not a head-to-head.
    should `about` legally target a term? (Terms as topics is arguably
    the natural reading of `about`.)
 
+## Post-fix flash rerun (launched 2026-07-20, same session)
+
+`runs/gemini-proto-flash-postfix-re2.wno` + log. Early observation:
+flash's rejects differ in kind from pro's — flash invents frame types
+(`unknown frame answer`), pro mis-targets edges at registry terms. Same
+normalizer, different failure modes: flash breaks grammar, pro breaks
+reference discipline. Analysis of the finished run is the open item.
+
 ## Next steps (remainder, per waiting-convention)
 
 - [ ] Post-fix flash rerun (`--model flash`, same prompts) to isolate

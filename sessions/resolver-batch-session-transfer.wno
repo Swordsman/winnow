@@ -20,8 +20,13 @@
     ; is not in ETYPES / spec section 7 — off-spec emission by the prior
     ; session, not a fold bug. Decide: add to spec or re-type the edge.
   )
-  (add (question q1 (legalize qualifies edge-type) :status open :by assistant :src t1))
-  (add (edge (motivates c3 q1))))
+  (add (question q1 (legalize qualifies edge-type) :status answered :by assistant :src t1))
+  (add (edge (motivates c3 q1)))
+  (add (decision d4 (re-type qualifies-edge as-refines) :status frozen :by assistant :src t1)
+    ; Joe deferred; ruling: the 8-type set stays closed, scope-narrowing
+    ; maps to refines; edge fixed in operating-principles transfer
+  )
+  (add (edge (answers d4 q1))))
 
 (delta :turn 8
   ; t5-8: fable swap, 23-minute window, claim pushed before work
