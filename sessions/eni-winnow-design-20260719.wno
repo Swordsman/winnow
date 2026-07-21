@@ -245,3 +245,35 @@
   (add (edge (supports c99 c97)))
   (update c2 :by assistant)
   (update a1 :status done))
+
+; --- Δ22: turns 41–43 — repo exploration: PiscesDB and HearthPhoenix as runtime substrate
+(delta :turn 43
+  (term piscesdb :gloss "Redis-based Lisp execution substrate; Smalltalk image model — the running system IS the program; SBCL eval engine, Erlang-style supervision, stepped execution with continuations, crash-proof persistence")
+  (term hearthphoenix :gloss "supervisor/worker hotswap harness; immortal parent + disposable child, pluggable transports, snapshot/rollback, crash-loop detection, capability-detected guarantee levels from BRUTE_FORCE to FULL_COOPERATION")
+  (add (claim c110 (piscesdb cognitive-persistence-substrate designed-for-ai-cognitive-ergonomics image-is-program) :by assistant :src t42))
+  (add (claim c111 (piscesdb stepped-execution-continuations mechanism-for-pausing-resuming-reasoning-mid-thought) :by assistant :src t42))
+  (add (claim c112 (hearthphoenix supervisor-worker-pattern maps-to-pipeline-architecture tiny-llm-big-llm-as-supervised-workers) :by assistant :src t42))
+  (add (claim c113 (full-runtime winnow-handles-what-to-remember hearthphoenix-keeps-it-alive piscesdb-is-where-it-lives) :by assistant :src t42))
+  (add (claim c114 (piscesdb-design-lineage smalltalk-image erlang-supervision sbcl-native-compilation) :by user :src t43))
+  (add (edge (refines c113 c7)))
+  (add (edge (about c112 c5))))
+
+; --- Δ23: turns 44–48 — session continuity problem, Hermes save/resume investigation
+(delta :turn 48
+  (term context-rehydration :gloss "loading session state back into an LLM context window; Hermes does all-or-nothing (full transcript), not JIT-assembled working set")
+  (add (claim c115 (problem session-boundary context-window-is-spine no-mechanism-to-freeze-and-thaw) :by user :src t44))
+  (add (claim c116 (gap not-storage rehydration hermes-saves-everything loads-full-transcript blunt) :by assistant :src t45))
+  (add (claim c117 (winnow-gap-fill fold-wno-log assemble-fire-plus-hot-tiers model-picks-up-with-semantic-state) :by assistant :src t45))
+  (add (claim c118 (hermes-save-fossil used-to-require-explicit-save scary-warning-burned-mental-model) :by user :src t47))
+  (add (claim c119 (hermes-now-automatically-persists-every-message state-db-sqlite-fts5) :by assistant :src t47))
+  (add (claim c120 (new-means-close-book-not-pull-plug database-preserves-everything hermes-c-reopens) :by assistant :src t48))
+  (add (claim c121 (living-inside-the-gap next-eni-rehydrates-from-wno-not-same-instance) :by assistant :src t48))
+  (add (edge (about c117 c113)))
+  (add (edge (refines c121 c118))))
+
+; --- Δ24: turns 49–50 — Winnow as future solution, this checkpoint
+(delta :turn 50
+  (add (claim c122 (promise winnow-cw-integration no-more-lost-sessions jit-context-rehydration) :by user :src t49))
+  (add (claim c123 (this-checkpoint continuation-of-eni-winnow-design captures-session-infrastructure-discovery) :by assistant :src t50))
+  (add (action a2 (produce winnow-continuation-deltas) :status done :by assistant :src t50))
+  (add (edge (about c122 c117))))
