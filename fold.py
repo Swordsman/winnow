@@ -43,12 +43,12 @@ ETYPES = {"supports", "contradicts", "supersedes", "refines",
 # Graph.warnings / Graph._check_status.
 STATUSES = {
     "claim": {"live", "corrected", "retracted", "superseded"},
-    "def": {"live", "deprecated"},
-    "question": {"open", "answered", "dropped"},
+    "def": {"live", "deprecated", "superseded"},
+    "question": {"open", "answered", "dropped", "superseded"},
     "decision": {"proposed", "frozen", "superseded", "abandoned"},
-    "constraint": {"live", "relaxed", "retired"},
-    "action": {"todo", "doing", "done", "blocked", "dropped"},
-    "artifact": {"live", "deprecated"},
+    "constraint": {"live", "relaxed", "retired", "superseded"},
+    "action": {"todo", "doing", "done", "blocked", "dropped", "superseded"},
+    "artifact": {"live", "deprecated", "superseded"},
 }
 ANN_ORDER = ["status", "conf", "status-conf", "strength", "by",
              "src", "time", "modal", "neg"]
@@ -285,6 +285,8 @@ class Graph:
         for t, a, b in self.edges:
             for x in (a, b):
                 if x not in self.nodes:
+                    if t == "about" and x == b and x in self.terms:
+                        continue
                     self.errors.append(f"dangling ref {x} in ({t} {a} {b})")
         return self.errors
 

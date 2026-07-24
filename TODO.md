@@ -19,10 +19,10 @@
   status drives Resolver rank class + mass gating; small code-level
   fix candidate — **fixed 2026-07-20** (STATUSES table, fold warns /
   normalizer rejects, 9 tests; sweep also surfaced two grandfathered
-  off-spec decision statuses in the live-run handoff). Remaining, per
-  the notes' next-steps list: the `about`-targets-a-term ruling (100%
-  of pro rejects), gloss-quality prompt nudge, optional per-delta
-  yield curves.
+  off-spec decision statuses in the live-run handoff). **`about`-targets
+  -a-term ruling resolved 2026-07-24:** `about` now legally targets term
+  ids (spec §5 note, fold + normalizer updated, 6 tests). Remaining:
+  gloss-quality prompt nudge, optional per-delta yield curves.
 - [ ] **aimpack packaging.** Needs the aimpack format spec / an example
   pack — not in this repo. Ship spec + fold.py + registry as a part once
   available.
@@ -74,18 +74,14 @@
   responding frontier model emits .wno ops alongside its reply (one
   call); manager-side decomposition is the weak link per flash-baseline
   evidence, so keep the lightweight model's role recognition-only (c29).
-- [ ] **`:src` namespacing + supersede/§2 rulings (Joe).** The
-  arc-split corpus made both concrete (`runs/arc-split/notes.md`):
-  (1) merge namespaces the id axis but unions `:src` verbatim — three
-  different original turns all answer to `t1` in the merged log;
-  options remain session-namespaced `:src` vs per-log meta id.
-  (2) `supersede` sets `:status superseded` on any frame but §2 only
-  legalizes it for claim/decision — grow §2 or frame-restrict the op.
-- [ ] **Merge UX hardening** (post-first-real-use): `:src` values collide
-  across logs (t1 in log A ≠ t1 in log B); currently unioned verbatim.
-  Needs session-namespaced provenance (e.g. `:src (sess-a t1)`) or a
-  log-id in the meta header — spec change; **evidence now concrete**
-  in `runs/arc-split/notes.md` (item 1); blocked on the ruling above.
+- [ ] **Merge `:src` qualification (implementation).** Ruling made
+  2026-07-24: merge qualifies `:src` using the source log's `; id:`
+  header — e.g. `:src (wno-20260720-resolver-batch-7e2c t4)`. Single-
+  session wire format unchanged. Spec §12 updated; merge.py code change
+  remains.
+  (Supersede/§2 ruling also made 2026-07-24: `superseded` added to all
+  frame types — spec §2 + fold.py STATUSES + normalizer prompt updated,
+  tests passing.)
 - [ ] **Alias-aware hashing.** `hash_id` hashes canonical term ids; two
   logs whose registries alias the same surface form to different ids
   won't join. Upgraded mechanism (2026-07-17): **canon anchors** —

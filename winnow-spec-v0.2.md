@@ -46,12 +46,12 @@ Every node is one of eight frames. Payload is a canonical proposition (§4) unle
 | Frame | Captures | Statuses |
 |---|---|---|
 | `claim` | Descriptive assertion — how things are | `live` `corrected` `retracted` `superseded` |
-| `def` | Term/concept introduction; payload = `termid "gloss"` | `live` `deprecated` |
-| `question` | Open thread | `open` `answered` `dropped` |
+| `def` | Term/concept introduction; payload = `termid "gloss"` | `live` `deprecated` `superseded` |
+| `question` | Open thread | `open` `answered` `dropped` `superseded` |
 | `decision` | Commitment to one option among alternatives | `proposed` `frozen` `superseded` `abandoned` |
-| `constraint` | Requirement or preference bounding solutions | `live` `relaxed` `retired` |
-| `action` | Work item — the implementation-status discriminator | `todo` `doing` `done` `blocked` `dropped` |
-| `artifact` | External referent (file, url, code, doc); payload = string ref | `live` `deprecated` |
+| `constraint` | Requirement or preference bounding solutions | `live` `relaxed` `retired` `superseded` |
+| `action` | Work item — the implementation-status discriminator | `todo` `doing` `done` `blocked` `dropped` `superseded` |
+| `artifact` | External referent (file, url, code, doc); payload = string ref | `live` `deprecated` `superseded` |
 | `edge` | Typed relation between nodes (§5); no id, no status | — |
 
 Notes:
@@ -122,9 +122,11 @@ Each registry entry for a relation records its **direction gloss**, e.g. `maps-t
 | `answers` | X resolves question Y | `(answers X Q)` |
 | `motivates` | X is the reason for Y | `(motivates REASON THING)` |
 | `depends` | X needs Y | `(depends X Y)` |
-| `about` | X concerns topic/decision Y | `(about X Y)` |
+| `about` | X concerns topic/decision/term Y | `(about X Y)` |
 
 Eight and no more. If a relation between nodes doesn't fit, it's probably a proposition-level relation (§4), not an edge.
+
+Note: `about` is the one edge whose target may be a **term id** instead of a node id — `(about q5 archival-compression)` reads "this question concerns this topic." All other edges require node ids at both endpoints.
 
 ## 6. Normalization rules — the collapse contract
 
@@ -664,6 +666,7 @@ Every dropped item is either reconstructible from surviving nodes or carried no 
 
 - **Registry drift is the real determinism risk.** Canonical-form invariance (§6) holds *given a shared registry*. Across sessions and models, the registry is shared state and must travel with the log (an aimpack part is the obvious vehicle).
 - **Hash ids for merge.** Serial ids are token-cheap but session-local. Multi-session merge wants content-addressed node ids — hash of `(frame, canonical-payload)` — making cross-log dedup automatic. Deferred; the `merge` op covers v0.2. Hash ids are also the prerequisite for the global KB (§10.5, rung 4) and for cross-representation equivalence below.
+- **`:src` provenance in merged output.** Within a single log, `:src tN` is unambiguous. Across logs, different turns answer to the same index. Merge qualifies `:src` values using the source log's `; id:` header — e.g. `:src (wno-20260720-resolver-batch-7e2c t4)` — so provenance stays traceable. Single-session wire format is unchanged; qualification is merge-output-only.
 - **Global KB construction.** §10.5 rung 4 specs only the query interface: a time-independent, cross-conversation store answering the same `(frame, status, term)` queries the frontier answers within one log. Building it — dedup across lineages, trust weighting, staleness — is deferred to the hash-id era.
 - **Representation modes beyond registry.** The §4/§7 mode declaration reserves the seam: transport never inspects proposition internals, so the term-identity engine is swappable. Anchor-relative embedding profiles (UEL) are the planned second mode — synonym collapse by geometry instead of lookup. Prime-decomposition schemes (NSM-style) and predicate-calculus schemes (Lojban-style) are conceivable third-party modes. Cross-mode equivalence requires converters through a shared canonical form plus hash ids, and every converter's fidelity limits must be documented; none of this is specified until a second mode actually exists. PRH scale-dependency implies a model-size floor for a geometric canonicalizer; below it, expect alias-table quality anyway.
 - **Profile learning loop.** §10.4 names reach telemetry as the tuning signal but does not spec the update rule. Deliberate: ship static profiles first, measure, then decide whether learning is per-deployment batch analysis or online adjustment.

@@ -35,3 +35,42 @@
   (add (edge (answers d1 q1)))
   (add (edge (supports c4 d1)))
   (add (edge (supports c3 d1))))
+
+(delta :turn 9
+  ; t8-12: three spec rulings — all the same move: the spec was more
+  ; restrictive than the semantics require, relax to match what the
+  ; system actually means.
+  (term about-targets-terms :gloss "ruling: about edges can target term ids, not just node ids")
+  (term supersede-all-frames :gloss "ruling: every frame type can be superseded")
+  (term src-merge-qualification :gloss "ruling: merge qualifies :src using the source log's ; id: header")
+  (add (decision d2 (permit about-edge term-id-target) :status frozen :by user :src t12))
+  (add (claim c5 (spec-grammar-already-allows term-ids-as-args) :by assistant :src t10)
+    ; §4 says ARG = term id | node id | "literal" | number; edges use args;
+    ; the restriction was in the normalizer, not in the semantics
+  )
+  (add (edge (supports c5 d2)))
+  (add (edge (about d2 about-targets-terms)))
+  (add (decision d3 (add superseded-status all-frame-types) :status frozen :by user :src t12))
+  (add (claim c6 (every-frame-type can-be-superseded in-practice) :by assistant :src t10)
+    ; a claim gets superseded by a better claim, a constraint by a relaxed
+    ; replacement, an action when the approach changes — restricting the op
+    ; forces a two-step workaround for what supersede does in one op
+  )
+  (add (edge (supports c6 d3)))
+  (add (edge (about d3 supersede-all-frames)))
+  (add (decision d4 (merge-qualifies-src via-log-id-header) :status frozen :by user :src t12))
+  (add (claim c7 (per-log-meta-id less-invasive-than session-namespaced-src) :by assistant :src t10)
+    ; session-namespaced :src changes the wire format everywhere;
+    ; log-id in the meta header keeps :src bare within a single log,
+    ; merge qualifies only when combining
+  )
+  (add (edge (supports c7 d4)))
+  (add (edge (about d4 src-merge-qualification)))
+  (add (claim c8 (three-rulings same-move removing-fences-wrong-place) :by user :src t12)
+    ; "basically we extend permissions about what can be defined and how
+    ; things can be defined" — no new concepts, no new machinery, just
+    ; removing restrictions that were more narrow than the semantics
+  )
+  (add (edge (supports c8 d2)))
+  (add (edge (supports c8 d3)))
+  (add (edge (supports c8 d4))))

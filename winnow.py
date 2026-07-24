@@ -91,15 +91,18 @@ claim/constraint/def/artifact live, question open, decision proposed, \
 action todo.
 
 Legal statuses per frame, nothing else: claim live/corrected/retracted/\
-superseded; def live/deprecated; question open/answered/dropped; \
-decision proposed/frozen/superseded/abandoned; constraint live/relaxed/\
-retired; action todo/doing/done/blocked/dropped; artifact live/deprecated.
+superseded; def live/deprecated/superseded; question open/answered/\
+dropped/superseded; decision proposed/frozen/superseded/abandoned; \
+constraint live/relaxed/retired/superseded; action todo/doing/done/\
+blocked/dropped/superseded; artifact live/deprecated/superseded.
 
 Edge types (only these eight), always exactly (TYPE FROM TO), no extra \
 args: supports (evidence first), contradicts (challenger first), \
 supersedes (new first), refines (detail first), answers (answer first, \
 question second), motivates (reason first), depends (dependent first), \
-about (node first, topic second). A candidate edge with any other type: \
+about (node first, topic/node/term second -- about is the one edge \
+whose target may be a term id instead of a node id). \
+A candidate edge with any other type: \
 map it to the nearest of the eight when meaning allows -- \
 references/addresses/relates-to are usually about; because/rationale/\
 mechanism are usually motivates; fulfills is usually answers or refines. \
@@ -471,11 +474,13 @@ class Normalizer:
         out, rejects, idmap = [], [], {}
         new_frames = {}   # nid assigned this batch -> frame (for update
                            # ops that target a node added earlier in it)
+        new_terms = set()  # term ids declared this batch
         for op in forms:
             head = op[0]
             if head == "term":
                 if op[1] not in self.g.terms:
                     out.append(op)
+                    new_terms.add(op[1])
                 continue
             if head == "add":
                 item = op[1]
@@ -505,8 +510,11 @@ class Normalizer:
                         rejects.append(f"unknown edge type {et}")
                         continue
                     assigned = set(idmap.values())
-                    if (a not in self.g.nodes and a not in assigned) or \
-                       (b not in self.g.nodes and b not in assigned):
+                    a_ok = a in self.g.nodes or a in assigned
+                    b_ok = b in self.g.nodes or b in assigned
+                    if et == "about" and not b_ok:
+                        b_ok = b in self.g.terms or b in new_terms
+                    if not a_ok or not b_ok:
                         rejects.append(f"dangling edge ({et} {a} {b})")
                         continue
                     if ("edge", et, a, b) in {("edge", t, s, d)

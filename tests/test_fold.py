@@ -101,6 +101,22 @@ class TestFoldOps(unittest.TestCase):
         g.validate()
         self.assertTrue(any("dangling" in e for e in g.errors))
 
+    def test_about_targets_term_valid(self):
+        g = fold(BASIC + '(delta :turn 2 (add (edge (about q1 alpha))))')
+        g.validate()
+        self.assertEqual(g.errors, [])
+        self.assertIn(("about", "q1", "alpha"), g.edges)
+
+    def test_about_targets_unknown_still_dangles(self):
+        g = fold(BASIC + '(delta :turn 2 (add (edge (about q1 no-such-thing))))')
+        g.validate()
+        self.assertTrue(any("dangling" in e for e in g.errors))
+
+    def test_non_about_edge_to_term_still_dangles(self):
+        g = fold(BASIC + '(delta :turn 2 (add (edge (supports q1 alpha))))')
+        g.validate()
+        self.assertTrue(any("dangling" in e for e in g.errors))
+
 
 class TestViews(unittest.TestCase):
     def test_snapshot_deterministic_and_sorted(self):
