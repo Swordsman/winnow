@@ -102,3 +102,22 @@
   (add (edge (about c10 ancestor-gap-detection)))
   (add (claim c11 (implemented canon-anchors merge-and-resolver) :by assistant :src t17))
   (add (edge (about c11 canon-anchors))))
+
+(delta :turn 17
+  ; t17-18: user asks whether winnow should adopt cbtdag methodology
+  ; for the whole project — formal contracts, modular decomposition,
+  ; design-before-build. Assistant recommends against at current scale
+  ; (~1900 lines, 4 files); cbtdag as task methodology (arc-split style)
+  ; yes, as architectural methodology premature. Spec is the modular
+  ; candidate, not the code.
+  (term cbtdag :gloss "contract-based task DAG — structured project decomposition with frozen interface contracts")
+  (add (question q2 (adopt cbtdag-methodology whole-project) :status answered :by user :src t17))
+  (add (claim c12 (codebase too-small-for-formal-decomposition four-files 1900-lines) :by assistant :src t18))
+  (add (claim c13 (cbtdag-as-task-methodology appropriate arc-split-style) :by assistant :src t18))
+  (add (claim c14 (spec-not-code is-modular-candidate) :by assistant :src t18))
+  (add (decision d7 (defer architectural-cbtdag watch-for-coupling-signal) :status frozen :by user :src t18))
+  (add (edge (answers d7 q2)))
+  (add (edge (supports c12 d7)))
+  (add (edge (supports c13 d7)))
+  (add (edge (supports c14 d7)))
+  (add (edge (about q2 cbtdag))))
