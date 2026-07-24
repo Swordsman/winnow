@@ -290,6 +290,21 @@ class Graph:
                     self.errors.append(f"dangling ref {x} in ({t} {a} {b})")
         return self.errors
 
+    def undeclared_terms(self):
+        """Terms referenced structurally but never declared.
+        Checks: about-edge targets that are term-like (not node ids),
+        and def-frame payloads whose term id isn't registered."""
+        undeclared = set()
+        for t, a, b in self.edges:
+            if t == "about" and b not in self.nodes and b not in self.terms:
+                undeclared.add(b)
+        for nid, n in self.nodes.items():
+            if n["frame"] == "def":
+                tid = n["payload"][0] if isinstance(n["payload"], list) else None
+                if tid and tid not in self.terms:
+                    undeclared.add(tid)
+        return sorted(undeclared)
+
     # -- shared rendering --------------------------------------------
     def _node_key(self, nid):
         f = self.nodes[nid]["frame"]
@@ -553,6 +568,18 @@ class Graph:
         snap = self.snapshot()
         out.append(f"snapshot size  : {len(snap)} chars "
                    f"(~{len(snap) // 4} tokens)")
+        undecl = self.undeclared_terms()
+        dangles = [e for e in self.errors if "dangling" in e]
+        if undecl or dangles:
+            out.append(f"gaps           : {len(undecl)} undeclared term(s), "
+                       f"{len(dangles)} dangling ref(s)")
+            if undecl:
+                out.append(f"  terms  : {', '.join(undecl)}")
+            if dangles:
+                for d in dangles:
+                    out.append(f"  ref    : {d}")
+            if receives:
+                out.append("  (likely inherited from declared ancestors)")
         return "\n".join(out)
 
 
