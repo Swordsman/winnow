@@ -74,14 +74,14 @@
   responding frontier model emits .wno ops alongside its reply (one
   call); manager-side decomposition is the weak link per flash-baseline
   evidence, so keep the lightweight model's role recognition-only (c29).
-- [ ] **Merge `:src` qualification (implementation).** Ruling made
-  2026-07-24: merge qualifies `:src` using the source log's `; id:`
-  header — e.g. `:src (wno-20260720-resolver-batch-7e2c t4)`. Single-
-  session wire format unchanged. Spec §12 updated; merge.py code change
-  remains.
-  (Supersede/§2 ruling also made 2026-07-24: `superseded` added to all
-  frame types — spec §2 + fold.py STATUSES + normalizer prompt updated,
-  tests passing.)
+- [x] **Merge `:src` qualification (2026-07-24).** merge.py reads
+  `:log-id` from the meta header (not `; id:` comments — comments
+  aren't part of the graph). Qualified `:src` values group turns by
+  log-id: `(wno-xxx t1 t3)`. Logs without `:log-id` produce bare
+  `:src` as before. Spec §7 (meta keys), §8 (grammar), §12 (limits)
+  updated; 5 new tests (120 total).
+  (Supersede/§2 ruling also 2026-07-24: `superseded` added to all
+  frame types — spec §2 + fold.py STATUSES + normalizer prompt updated.)
 - [ ] **Alias-aware hashing.** `hash_id` hashes canonical term ids; two
   logs whose registries alias the same surface form to different ids
   won't join. Upgraded mechanism (2026-07-17): **canon anchors** —

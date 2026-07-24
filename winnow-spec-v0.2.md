@@ -161,7 +161,7 @@ The wire format. One `delta` per trigger; the graph is `fold(empty, log)`.
       :profile (:tail 6 :fire-hops 1 :promotion-ttl 2 :widening-base 3))
 ```
 
-`:semantic-rep` declares the term-identity mode (§4); `:profile` declares the cooling profile (§10.4). Every key is optional. A file with no header is a v0.1-legacy log and defaults to `registry-v0.1` with the default profile — v0.1 logs are valid v0.2 logs unchanged. The header is side-effect state (§10.6): it configures the machinery and never cools.
+`:semantic-rep` declares the term-identity mode (§4); `:profile` declares the cooling profile (§10.4); `:log-id` names this log for cross-log merge provenance — when merge.py combines logs, it qualifies `:src` values with their source log's `:log-id` so provenance stays traceable (see §12). Every key is optional. A file with no header is a v0.1-legacy log and defaults to `registry-v0.1` with the default profile — v0.1 logs are valid v0.2 logs unchanged. The header is side-effect state (§10.6): it configures the machinery and never cools.
 
 ```lisp
 (delta :turn N
@@ -192,7 +192,7 @@ The wire format. One `delta` per trigger; the graph is `fold(empty, log)`.
 ```ebnf
 log       = [ meta ] { delta } ;
 meta      = "(" "meta" { mkey mval } ")" ;
-mkey      = ":winnow-version" | ":semantic-rep" | ":profile" ;
+mkey      = ":winnow-version" | ":semantic-rep" | ":profile" | ":log-id" ;
 mval      = string | profile ;
 profile   = "(" { key value } ")" ;
 delta     = "(" "delta" ":turn" int { op } ")" ;
@@ -666,7 +666,7 @@ Every dropped item is either reconstructible from surviving nodes or carried no 
 
 - **Registry drift is the real determinism risk.** Canonical-form invariance (§6) holds *given a shared registry*. Across sessions and models, the registry is shared state and must travel with the log (an aimpack part is the obvious vehicle).
 - **Hash ids for merge.** Serial ids are token-cheap but session-local. Multi-session merge wants content-addressed node ids — hash of `(frame, canonical-payload)` — making cross-log dedup automatic. Deferred; the `merge` op covers v0.2. Hash ids are also the prerequisite for the global KB (§10.5, rung 4) and for cross-representation equivalence below.
-- **`:src` provenance in merged output.** Within a single log, `:src tN` is unambiguous. Across logs, different turns answer to the same index. Merge qualifies `:src` values using the source log's `; id:` header — e.g. `:src (wno-20260720-resolver-batch-7e2c t4)` — so provenance stays traceable. Single-session wire format is unchanged; qualification is merge-output-only.
+- **`:src` provenance in merged output.** Within a single log, `:src tN` is unambiguous. Across logs, different turns answer to the same index. When input logs carry `:log-id` in their meta header (§7), merge qualifies `:src` values with the source log's id — e.g. `:src (wno-20260720-resolver-batch-7e2c t4)` — so provenance stays traceable. Logs without `:log-id` produce bare `:src` values as before. Single-session wire format is unchanged; qualification is merge-output-only.
 - **Global KB construction.** §10.5 rung 4 specs only the query interface: a time-independent, cross-conversation store answering the same `(frame, status, term)` queries the frontier answers within one log. Building it — dedup across lineages, trust weighting, staleness — is deferred to the hash-id era.
 - **Representation modes beyond registry.** The §4/§7 mode declaration reserves the seam: transport never inspects proposition internals, so the term-identity engine is swappable. Anchor-relative embedding profiles (UEL) are the planned second mode — synonym collapse by geometry instead of lookup. Prime-decomposition schemes (NSM-style) and predicate-calculus schemes (Lojban-style) are conceivable third-party modes. Cross-mode equivalence requires converters through a shared canonical form plus hash ids, and every converter's fidelity limits must be documented; none of this is specified until a second mode actually exists. PRH scale-dependency implies a model-size floor for a geometric canonicalizer; below it, expect alias-table quality anyway.
 - **Profile learning loop.** §10.4 names reach telemetry as the tuning signal but does not spec the update rule. Deliberate: ship static profiles first, measure, then decide whether learning is per-deployment batch analysis or online adjustment.

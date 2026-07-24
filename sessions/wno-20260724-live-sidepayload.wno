@@ -74,3 +74,13 @@
   (add (edge (supports c8 d2)))
   (add (edge (supports c8 d3)))
   (add (edge (supports c8 d4))))
+
+(delta :turn 13
+  ; user: comments are just comments — if information is meant to be
+  ; part of the graph it ought to be represented properly.
+  ; Implication: ; id: headers are hints, not authoritative identity.
+  ; Log identity belongs in (meta :log-id "..."), not in comments.
+  (add (claim c9 (comments not-functional-graph-components) :by user :src t13))
+  (add (decision d5 (use meta-log-id not-comment-id for-merge-provenance) :status frozen :by user :src t13))
+  (add (edge (supports c9 d5)))
+  (add (edge (motivates d5 d4))))

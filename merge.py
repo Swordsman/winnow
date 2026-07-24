@@ -38,27 +38,78 @@ def load(path):
     return g
 
 
+def _qualify_src(src, log_id):
+    """Qualify bare :src values with their source log id.
+    Returns a list of [log_id, turn] pairs."""
+    if src is None:
+        return []
+    if not log_id:
+        bare = src if isinstance(src, list) else [src]
+        return [[t] for t in bare]
+    bare = src if isinstance(src, list) else [src]
+    return [[log_id, t] for t in bare]
+
+
 def _src_union(a, b):
-    def as_list(v):
-        if v is None:
-            return []
-        return list(v) if isinstance(v, list) else [v]
-    seen = list(dict.fromkeys(as_list(a) + as_list(b)))
-    return seen[0] if len(seen) == 1 else seen
+    """Union two lists of qualified :src pairs."""
+    seen = []
+    keys = set()
+    for item in a + b:
+        key = tuple(item)
+        if key not in keys:
+            keys.add(key)
+            seen.append(item)
+    return seen
+
+
+def _render_src(qualified):
+    """Render qualified :src pairs back to a serializable value.
+    Groups turns by log-id for compactness."""
+    if not qualified:
+        return None
+    # all unqualified (single-element items) — stay bare
+    if all(len(q) == 1 for q in qualified):
+        bare = [q[0] for q in qualified]
+        return bare[0] if len(bare) == 1 else bare
+    # at least one qualified item — group by log-id
+    groups = {}
+    order = []
+    for q in qualified:
+        if len(q) == 1:
+            lid, turns = None, [q[0]]
+        else:
+            lid, turns = q[0], q[1:]
+        if lid not in groups:
+            groups[lid] = []
+            order.append(lid)
+        groups[lid].extend(turns)
+    parts = []
+    for lid in order:
+        if lid is None:
+            for t in groups[lid]:
+                parts.append([t])
+        else:
+            parts.append([lid] + groups[lid])
+    return parts[0] if len(parts) == 1 else parts
 
 
 def merge(graphs):
     """Return (terms, nodes, edges, conflicts) of the merged graph.
     nodes is an ordered dict new_id -> node dict; edges a sorted list of
     (etype, src, dst) over new ids; conflicts a list of
-    (new_id, kept_status, other_status)."""
-    by_hash = {}          # hash -> merged node dict
+    (new_id, kept_status, other_status).
+    When input graphs carry :log-id in their meta header, :src values in
+    the merged output are qualified with the source log's id."""
+    by_hash = {}          # hash -> merged node dict (src already qualified)
     hash_order = []       # first-seen order
     conflicts = []
     terms = {}
     per_graph_map = []    # per graph: old nid -> hash
 
     for g in graphs:
+        log_id = g.meta.get("log-id") if g.meta else None
+        if isinstance(log_id, Lit):
+            log_id = str(log_id)
         nid_to_hash = {}
         for tid, tail in g.terms.items():
             if tid not in terms:
@@ -67,17 +118,27 @@ def merge(graphs):
             h = g.hash_id(nid)
             nid_to_hash[nid] = h
             n = g.nodes[nid]
+            q_src = _qualify_src(n.get("src"), log_id)
             if h not in by_hash:
-                by_hash[h] = dict(n)
+                merged = dict(n)
+                merged["_qsrc"] = q_src
+                by_hash[h] = merged
                 hash_order.append(h)
                 continue
             m = by_hash[h]
-            m["src"] = _src_union(m.get("src"), n.get("src"))
+            m["_qsrc"] = _src_union(m["_qsrc"], q_src)
             if n["status"] != m["status"]:
                 conflicts.append((h, m["status"], n["status"]))
             for k, v in n.items():
                 m.setdefault(k, v)
         per_graph_map.append(nid_to_hash)
+
+    # render qualified :src back to serializable values
+    for h in hash_order:
+        m = by_hash[h]
+        rendered = _render_src(m.pop("_qsrc"))
+        if rendered is not None:
+            m["src"] = rendered
 
     # assign fresh serials, frame-grouped, in first-seen order
     serial = {f: 0 for f in ID_PREFIX}
