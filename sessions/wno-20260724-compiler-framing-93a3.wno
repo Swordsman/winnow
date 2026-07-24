@@ -93,6 +93,21 @@
   (add (artifact r1 "sessions/kimi-k3-frontend-design.md — Kimi K3 unified design doc (input to this session)" :by user :src t1))
   (add (artifact r2 "sessions/wno-20260724-compiler-framing-93a3.wno — this file" :by assistant :src t15)))
 
+(delta :turn 17
+  ; t16-17: homoiconicity + language-as-code
+  (term homoiconicity :gloss "code and data share the same representation; .wno logs are simultaneously conversation records (data) and build specifications (code); s-expressions embody this principle")
+  (term language-as-code :gloss "natural language statements are variable declarations, function definitions, and execution; language has always been code, winnow is the compiler")
+  (add (claim c28 (embodies wno-format homoiconicity) :by assistant :src t16))
+  (add (claim c29 (is wno-log simultaneously-data-and-code) :by assistant :src t16))
+  (add (claim c30 (are nl-statements declarations-and-bindings) :by user :src t17))
+  (add (claim c31 (has natural-language always-been-code) :by user :src t17))
+  (add (claim c32 (is winnow the-compiler-for-natural-language) :by assistant :src t17))
+  (add (edge (supports c28 c29)))
+  (add (edge (supports c29 c16)))
+  (add (edge (supports c30 c31)))
+  (add (edge (supports c31 c32)))
+  (add (edge (refines c32 d2))))
+
 ; ============================================================
 ; WO-0 PIPELINE (concrete steps):
 ;   1. Input: this conversation (the compiler-framing session)
