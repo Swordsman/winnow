@@ -62,11 +62,53 @@
   (add (edge (supports c18 d2)))
   (add (edge (refines d2 d1))))
 
+(delta :turn 14
+  ; t13-14: K3 doc assessment — what's sound, what's underspecified
+  (add (claim c19 (is k3-mapping-table well-defined-and-single-sourced) :by assistant :src t1))
+  (add (claim c20 (is k3-risk-calibration honest-with-provenance) :by assistant :src t1))
+  (add (claim c21 (is k3-roadmap additive-and-independently-shippable) :by assistant :src t1))
+  (add (claim c22 (adds k3-repo-topology submodule-overhead-premature) :by assistant :src t1))
+  (add (claim c23 (is reconciliation-format unspecified) :by assistant :src t1))
+  (add (claim c24 (is backend-adapter-interface underspecified) :by assistant :src t1))
+  (add (claim c25 (is handoff-rendering-format unspecified) :by assistant :src t1))
+  (add (question q1 (what-is reconciliation-report-format) :status open :by assistant :src t1))
+  (add (question q2 (what-is adapter-input-output-contract) :status open :by assistant :src t1))
+  (add (question q3 (what-is work-order-rendering-spec) :status open :by assistant :src t1))
+  (add (edge (about c22 front-end-topology)))
+  (add (edge (about c23 front-end-topology)))
+  (add (edge (about c24 front-end-topology)))
+  (add (edge (about c25 front-end-topology)))
+  (add (edge (about q1 c23)))
+  (add (edge (about q2 c24)))
+  (add (edge (about q3 c25))))
+
+(delta :turn 15
+  ; t15: WO-0 scoped; K3 doc added as artifact
+  (term wo-0 :gloss "zero-build validation run: real conversation → existing winnow extraction → hand-rendered work order → real backend → hand-scored constraint adherence; tests the thesis at near-zero cost")
+  (add (action a1 (execute wo-0 zero-build-validation) :status todo :by user :src t8))
+  (add (claim c26 (is this-conversation the-wo-0-test-corpus) :by assistant :src t8))
+  (add (claim c27 (tests wo-0 work-order-sufficiency-before-building-renderer) :by assistant :src t8))
+  (add (edge (about c26 a1)))
+  (add (edge (about c27 a1)))
+  (add (artifact r1 "sessions/kimi-k3-frontend-design.md — Kimi K3 unified design doc (input to this session)" :by user :src t1))
+  (add (artifact r2 "sessions/wno-20260724-compiler-framing-93a3.wno — this file" :by assistant :src t15)))
+
 ; ============================================================
-; WO-0 STATUS: scoped but not yet executed. This conversation is
-; the test corpus. Pipeline: extract .wno from this conversation
-; (done — this file), fold, hand-render work order from graph
-; slice, dispatch to backend, score constraint adherence.
+; WO-0 PIPELINE (concrete steps):
+;   1. Input: this conversation (the compiler-framing session)
+;   2. Extraction: done — this .wno file
+;   3. Fold + query: verify graph captured decisions/constraints
+;   4. Hand-render work order from the graph slice
+;   5. Dispatch work order to a real backend (Claude Code or equiv)
+;   6. Score: did constraints survive the trip? Where did drops
+;      happen — extraction, rendering, or backend interpretation?
+;
+; OPEN QUESTIONS (resolve before or during WO-2):
+;   q1: reconciliation report format (free-text? template? structured?)
+;   q2: backend adapter contract (input/output/responsibilities)
+;   q3: work-order rendering spec (sections, hop-count, context)
+;   These don't block WO-0 — the hand-rendering step surfaces
+;   what the format needs to be.
 ;
 ; KEY FRAMING (load-bearing for all downstream work):
 ;   - Winnow is a compiler from NL instructions to structured
@@ -79,7 +121,6 @@
 ;   - Decisions are provisional. The graph records junctions.
 ;     "Never" language replaced by scope boundaries with revisit
 ;     triggers.
-;   - The Kimi K3 document's six "decision items" are one thesis
-;     plus obvious defaults. The thesis: winnow is the interface
-;     layer. Everything else follows.
+;   - Dialogue is code when it encodes instructions. The boundary
+;     is representation and processing stage, not substance.
 ; ============================================================
