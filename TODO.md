@@ -98,11 +98,14 @@
   `:log-id` and `:receives` meta keys (§7 table, §8 grammar). fold.py
   stats displays log identity and ancestor list. Comments remain as
   human-readable hints but are not functional graph components.
-- [ ] **Tier/graph visualizer for Joe.** Interactive model of tiers,
-  fold, push/pull for design intuition (Joe: needed before evaluating
-  ranking/profile-learning items). Options: Kimi swarm / AI Studio
-  (ground them with the spec file + real `--digest` output, not a
-  paraphrase) or a Claude-built artifact from real fold data.
+- [x] **Tier/graph visualizer for Joe (2026-07-24).** Claude-built
+  artifact from real fold data (gemini-proto-pro-re2.wno). Interactive
+  HTML: stat tiles (48n/39e/59t/~3.5k tokens), four-band tier map
+  (fire/hot/warm/cold swim lanes with node pills, frame-type dots,
+  status badges), click-to-inspect detail panel (tier reason, mass,
+  edges, digest rendering preview), toggleable edge overlay with hover
+  tooltips, yield curve (nodes/terms/edges over 12 deltas), table view
+  toggle. Both light and dark themes.
 - [ ] §10.4 profile learning loop: update rule deliberately unspecified.
   **Reach telemetry sidecar done 2026-07-24:** orchestrator accumulates
   reach events (query, rung, hits, turn) and writes a `.reach` JSON
