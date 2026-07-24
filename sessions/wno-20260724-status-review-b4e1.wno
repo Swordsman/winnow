@@ -1,0 +1,109 @@
+; winnow status review + unblocked-item sweep
+; user=Joe, assistant=Claude (opus 4.6)
+; Mode: status audit, then implement everything not blocked
+; Session started: 2026-07-24
+
+(meta :winnow-version "0.2"
+      :semantic-rep "registry-v0.1"
+      :log-id "wno-20260724-status-review-b4e1"
+      :receives ("wno-20260724-live-sidepayload-a1f3"))
+
+(delta :turn 1
+  ; t1: boot sequence — 124 tests green, all 5 claims completed,
+  ; no in-flight work. Full status survey of TODO.md open items,
+  ; blocker categorization.
+  (add (claim c1 (verified project-state clean 124-tests 5-claims-complete) :by assistant :src t1))
+  (add (claim c2 (categorized open-items blocked-vs-unblocked) :by assistant :src t1)))
+
+(delta :turn 3
+  ; user: do everything unblocked; for blockers, state exactly what
+  ; decision is needed and whether the answer is obvious.
+  (add (decision d1 (sweep all-unblocked-items implement-now) :status frozen :by user :src t3))
+  (add (decision d2 (audit blockers state-decisions-needed) :status frozen :by user :src t3)))
+
+(delta :turn 5
+  ; user notes aimpack skill is now available — unblocks the aimpack
+  ; packaging TODO item that was waiting on the format spec.
+  (add (claim c3 (aimpack-skill available unblocks-packaging) :by user :src t5))
+  (add (edge (motivates c3 d1))))
+
+(delta :turn 7
+  ; implementation of four unblocked items, all tested (129 total, +5 new):
+  ;
+  ; 1. Gloss-quality prompt nudge: extractor hint + normalizer R1 rule
+  ;    require glosses to define the concept, not restate the label.
+  ;    Addresses finding 5 from comparison-notes (pro glosses like
+  ;    "graph database" for graph-db add zero information).
+  ;
+  ; 2. Per-delta yield curves: fold.py --yield-curve outputs TSV after
+  ;    each delta (nodes, edges, terms, density, edge-type diversity,
+  ;    snapshot size). New stats_dict() method. Single-pass collection.
+  ;    Verified on pro-re2 log (12 deltas, monotonic growth).
+  ;
+  ; 3. Reach telemetry sidecar: orchestrator accumulates reach events
+  ;    (query, rung, hits, turn) and writes .reach JSON alongside .wno.
+  ;    Spec s7/s10.4 require sidecar, never in the log. Update rule
+  ;    remains deferred per spec s12.
+  ;
+  ; 4. aimpack packaging: dist/winnow-v0.2.aimpack ships spec + fold.py
+  ;    + demo-deltas.wno (sha256 checksummed). Built with aimpack skill.
+  ;
+  (term gloss-quality-nudge :gloss "prompt instruction requiring glosses to define concepts, not restate kebab-case labels")
+  (term yield-curve :gloss "per-delta metrics time series: node/edge/term counts, density, edge-type diversity, snapshot size")
+  (term reach-sidecar :gloss "JSON file alongside .wno log recording reach events: query tokens, resolution rung, hit node ids, turn number")
+  (term aimpack-dist :gloss "distributable aimpack container shipping winnow spec + fold.py + demo extraction")
+  (add (claim c4 (implemented gloss-quality-nudge normalizer-r1 extractor-hint) :by assistant :src t7))
+  (add (claim c5 (implemented yield-curve fold-py stats-dict tsv-output) :by assistant :src t7))
+  (add (claim c6 (implemented reach-sidecar json-persistence orchestrator) :by assistant :src t7))
+  (add (claim c7 (implemented aimpack-dist three-files sha256) :by assistant :src t7))
+  (add (claim c8 (tests 129-passing five-new) :by assistant :src t7))
+  (add (edge (about c4 gloss-quality-nudge)))
+  (add (edge (about c5 yield-curve)))
+  (add (edge (about c6 reach-sidecar)))
+  (add (edge (about c7 aimpack-dist)))
+  (add (edge (supports c8 c4)))
+  (add (edge (supports c8 c5)))
+  (add (edge (supports c8 c6))))
+
+(delta :turn 9
+  ; blocker audit — concrete decisions needed for each blocked item.
+  ;
+  ; Blocked on Joe:
+  ; - DeepSeek doc audit: waiting on denoised docs. No decision, pure input.
+  ; - Questions for Hermes (4 items): only Hermes can answer (a) delta
+  ;   hole and (b) c2 attribution; (c) edge restore is FYI/veto;
+  ;   (d) header conventions is just communication.
+  ; - ENI proposals d1/d2/d3 + polysemy: direction strongly indicated
+  ;   (sense-qualified tids landed, canon anchors work as universal join),
+  ;   but formal adoption into spec is Joe's call. Cheapest path clear:
+  ;   sense-qualified tids + registry split, defer v2 pieces.
+  ; - Tier/graph visualizer: Joe needs it before evaluating ranking/
+  ;   profile-learning. Can build as Claude artifact from real fold data.
+  ;   Deferred to next session by user decision.
+  ;
+  ; Deferred by spec:
+  ; - Global KB (s12): building blocks ready (merge.py, canon anchors,
+  ;   mass ranking), but trust weighting + staleness policies are genuine
+  ;   design questions. Hash-id machinery implemented.
+  ; - UEL/embedding anchors (s12): v2 identity engine, seam in place
+  ;   (semantic-rep header), no decision needed now.
+  ; - Profile learning update rule (s10.4): reach sidecar now persists
+  ;   the signal; the rule itself needs live-run measurement.
+  ;
+  (add (claim c9 (blocker-audit eni-proposals direction-obvious formal-adoption-joes-call) :by assistant :src t9))
+  (add (claim c10 (blocker-audit hermes-questions only-hermes-can-answer-a-b) :by assistant :src t9))
+  (add (claim c11 (blocker-audit deepsek-docs pure-input-dependency) :by assistant :src t9))
+  (add (claim c12 (blocker-audit global-kb building-blocks-ready policy-questions-remain) :by assistant :src t9))
+  (add (claim c13 (blocker-audit visualizer deferred-next-session buildable-now) :by assistant :src t9))
+  (add (edge (about c9 d2)))
+  (add (edge (about c10 d2)))
+  (add (edge (about c11 d2)))
+  (add (edge (about c12 d2)))
+  (add (edge (about c13 d2))))
+
+(delta :turn 11
+  ; user: write the wno, defer the visualizer to next session,
+  ; avoid context window compaction.
+  (add (decision d3 (defer visualizer next-session) :status frozen :by user :src t11))
+  (add (edge (about d3 c13)))
+  (add (decision d4 (end-session write-handoff avoid-compaction) :status frozen :by user :src t11)))

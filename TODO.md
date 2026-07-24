@@ -21,11 +21,14 @@
   normalizer rejects, 9 tests; sweep also surfaced two grandfathered
   off-spec decision statuses in the live-run handoff). **`about`-targets
   -a-term ruling resolved 2026-07-24:** `about` now legally targets term
-  ids (spec §5 note, fold + normalizer updated, 6 tests). Remaining:
-  gloss-quality prompt nudge, optional per-delta yield curves.
-- [ ] **aimpack packaging.** Needs the aimpack format spec / an example
-  pack — not in this repo. Ship spec + fold.py + registry as a part once
-  available.
+  ids (spec §5 note, fold + normalizer updated, 6 tests). **Gloss-quality
+  prompt nudge done 2026-07-24:** extractor hint + normalizer R1 rule
+  require glosses to define the concept, not restate the label. **Per-delta
+  yield curves done 2026-07-24:** `--yield-curve` flag on fold.py,
+  `stats_dict()` method, TSV output per delta (3 tests).
+- [x] **aimpack packaging (2026-07-24).** `dist/winnow-v0.2.aimpack`
+  ships spec + fold.py + demo-deltas.wno (3 files, sha256 checksummed).
+  Built with the aimpack skill tool.
 - [ ] **Questions for Hermes (wno review 2026-07-20, needs Joe to
   relay).** From the review of the 801da04 ENI-handoff expansion:
   (a) Δ20/turn-39 hole in `eni-winnow-design-20260719.wno` — delta
@@ -100,10 +103,12 @@
   ranking/profile-learning items). Options: Kimi swarm / AI Studio
   (ground them with the spec file + real `--digest` output, not a
   paraphrase) or a Claude-built artifact from real fold data.
-- [ ] §10.4 profile learning loop: update rule deliberately unspecified;
-  reach telemetry now exists in the orchestrator (rung numbers per reach)
-  but isn't yet persisted to a sidecar — add when there's a live run to
-  measure.
+- [ ] §10.4 profile learning loop: update rule deliberately unspecified.
+  **Reach telemetry sidecar done 2026-07-24:** orchestrator accumulates
+  reach events (query, rung, hits, turn) and writes a `.reach` JSON
+  sidecar alongside the `.wno` log (2 tests). The update rule (how
+  telemetry tunes profile knobs) remains deferred per spec §12 — needs
+  a live run to measure.
 - [ ] Global KB construction (§12) — deferred to hash-id era; rung 4
   interface reserved in `Resolver`. Construction sketch now exists:
   merge.py + term-usage index + mass ranking + canon anchors.
@@ -152,4 +157,4 @@
       surface as open questions; self-merge is a fixed point
 - [x] split.py: procedural slicing (query/seed + hops/component expansion,
       validity closure, constraint carry, cut-edge comments, --rest cover)
-- [x] tests: 85 across fold/orchestrator/merge/reach/split
+- [x] tests: 129 across fold/orchestrator/merge/reach/split/resolver/status

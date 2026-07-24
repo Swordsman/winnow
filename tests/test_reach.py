@@ -171,5 +171,44 @@ class TestReachLoop(unittest.TestCase):
             self.assertEqual(g.validate(), [])
 
 
+class TestReachTelemetrySidecar(unittest.TestCase):
+    def test_sidecar_written_on_reach(self):
+        import json
+        with tempfile.TemporaryDirectory() as d:
+            tp = os.path.join(d, "t.txt")
+            fp = os.path.join(d, "f.txt")
+            op = os.path.join(d, "out.wno")
+            sp = os.path.join(d, "seed.txt")
+            open(tp, "w").write(TRANSCRIPT)
+            open(fp, "w").write(FIXTURE)
+            open(sp, "w").write(SEED)
+            run(tp, op, replay_client(fp), llm_normalize=True,
+                per_turn=True, verbose=False, seed=SEED)
+            reach_path = os.path.join(d, "out.reach")
+            self.assertTrue(os.path.exists(reach_path))
+            with open(reach_path) as f:
+                data = json.load(f)
+            self.assertEqual(len(data), 2)  # flat + phlogiston
+            self.assertTrue(all("rung" in r and "query" in r for r in data))
+            hit = [r for r in data if r["rung"] != 5]
+            miss = [r for r in data if r["rung"] == 5]
+            self.assertEqual(len(hit), 1)   # flat resolved
+            self.assertEqual(len(miss), 1)  # phlogiston missed
+
+    def test_no_sidecar_without_reaches(self):
+        with tempfile.TemporaryDirectory() as d:
+            tp = os.path.join(d, "t.txt")
+            fp = os.path.join(d, "f.txt")
+            op = os.path.join(d, "out.wno")
+            open(tp, "w").write("[t1 user]\nhello world\n")
+            open(fp, "w").write(
+                '(add (claim x1 (has a b) :by user :src t1))\n%%%\n'
+                '(add (claim x1 (has a b) :by user :src t1))\n')
+            run(tp, op, replay_client(fp), llm_normalize=True,
+                per_turn=True, verbose=False)
+            reach_path = os.path.join(d, "out.reach")
+            self.assertFalse(os.path.exists(reach_path))
+
+
 if __name__ == "__main__":
     unittest.main()
