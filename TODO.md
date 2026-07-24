@@ -46,6 +46,36 @@
   says "companion to eni-winnow-design.wno", missing the date suffix.
 
 ## Next up
+- [ ] **Rung 4 / global KB wiring (2026-07-24, from mega-fold session).**
+  `mega-fold.py --canon-map` now *is* the global-KB construction sketch
+  this file has been deferring (merge.py + mass ranking + canon anchors,
+  all realized). `winnow.py:270` confirms rung 4 is interface-reserved
+  and skipped, and `Resolver` takes a single graph. Next step: let the
+  Resolver consult `runs/mega-all.wno` at rung 4, then test with a query
+  that honest-misses against one session graph and should resolve against
+  the mega-graph. Load-bearing for the Gau merge and JITCW. Trust
+  weighting + staleness policy remain the genuine open design questions
+  (unchanged from the §12 deferral) — the mechanism can land first.
+- [ ] **Polysemy ruling on two canon-map entries (2026-07-24).** Our own
+  canon map may erase specializations rather than collapse synonyms,
+  against the polysemy finding (collapse within a sense, preserve across
+  senses): `vector-db-chromadb` → "Vector database" folds a technology
+  choice into the generic component, and
+  `background-ai-as-intent-gatekeeper` → "Intent gatekeeper" folds a
+  role-attribution into the role. Both are still in `canon-map.json` as
+  committed — revert was proposed, not executed, pending Joe's ruling.
+- [ ] **Mega-fold follow-ons (2026-07-24).** (a) MEDIUM-confidence term
+  clusters: 10 clusters / 23 terms needing judgment calls
+  (`dbc-conversation` vs `dbc-semantic-continuity`, `multi-tier-db` vs
+  the fully-enumerated variant). (b) Procedural normalization pre-pass —
+  the HIGH tier was *entirely* mechanical drift (plural, abbreviation,
+  case, rule-number prefix, one stray-conjunction parse artifact), so
+  cheap code may catch most of it before an LLM is involved. (c) Node-level
+  semantic dedup via the same subagent pattern; note there is no `:canon`
+  equivalent for nodes, so output would be an analytical view rather than
+  an automated merge. (d) No tests yet for `mega-fold.py` or
+  `term-table.py`; pytest is not installed in the container, so the 129
+  green baseline was inherited this session, never observed.
 - [ ] **Winnow front-end: WO-0 zero-build validation (2026-07-24).**
   Kimi K3 design reviewed; thesis adopted (winnow as compiler from NL
   instructions to structured work orders); compiler framing over
@@ -122,12 +152,32 @@
   sidecar alongside the `.wno` log (2 tests). The update rule (how
   telemetry tunes profile knobs) remains deferred per spec §12 — needs
   a live run to measure.
-- [ ] Global KB construction (§12) — deferred to hash-id era; rung 4
-  interface reserved in `Resolver`. Construction sketch now exists:
-  merge.py + term-usage index + mass ranking + canon anchors.
+- [ ] Global KB construction (§12) — **sketch now built (2026-07-24)**:
+  `mega-fold.py` realizes merge.py + mass ranking + canon anchors as a
+  working cross-log graph. Promoted to a Next-up item (rung 4 wiring);
+  see there. Rung 4 remains interface-reserved in `Resolver`.
 - [ ] UEL / embedding-anchor representation mode (§12) — v2 identity engine.
 
 ## Done
+- [x] **Mega-fold (2026-07-24).** `mega-fold.py` merges every source
+      `.wno` into one graph via content-hash dedup and folds it;
+      `--scope sessions|runs|all`, `--overlap`, `--canon-map`,
+      `--digest`, `--concepts`, `--out`. All 21 source files validate
+      clean — the predicted dangling-ref problem never materialized, no
+      validation softening needed. Outputs: `runs/mega-sessions.wno`
+      (579n/272e/130t, ~23k tokens), `runs/mega-all.wno`
+      (805n/405e/362t, ~35k tokens). Node dedup only 1.2% (exact-hash
+      join can't see paraphrase); term dedup 25 → 42 with the canon map.
+      `term-table.py` extracts the registry with provenance for subagent
+      consumption. `canon-map.json` holds 33 ids → 16 anchors from an
+      LLM clustering pass over all 379 terms (29 clusters found, 66
+      terms, 17.4%). Drift is concentrated in `runs/`, not `sessions/` —
+      repeated extraction of one transcript drifts far worse than
+      independent design sessions. Merge-hygiene note: the `super-root`
+      undeclared-term gap in mega-all is inherited from
+      `demo-deltas.wno`, not merge-caused; mega-fold doubles as a
+      repo-wide lint. PR #12. Handoff:
+      `sessions/wno-20260724-mega-fold-e1da.wno`.
 - [x] **Multi-session corpus (arc-split, 2026-07-20).** First
       cbtdag-structured task (`cbtdag/arc-split/`): graph-derived arc
       boundaries (cuts after t10/t16, min-crossing audit committed),

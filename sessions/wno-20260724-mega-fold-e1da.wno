@@ -1,0 +1,275 @@
+; winnow mega-fold: cross-file merge of all .wno into one graph
+; user=Joe, assistant=Claude (opus 4.6, flipped to opus 5 at wrap)
+; Mode: exploratory build — feasibility question turned into working tool
+; Session started: 2026-07-24
+
+(meta :winnow-version "0.2"
+      :semantic-rep "registry-v0.1"
+      :log-id "wno-20260724-mega-fold-e1da"
+      :receives ("wno-20260724-tier-visualizer-c8d2"))
+
+(delta :turn 1
+  ; t1: Joe asks whether all .wno files could be folded into one larger
+  ; graph — a "mega-fold" — and flags dedup of definitions as the likely
+  ; obstacle. Survey found merge.py already does N-way content-hash join,
+  ; so the mechanism existed; the open question was whether the result
+  ; would be useful or just noisy.
+  (term mega-fold :gloss "single graph built by merging every .wno log in the repo, then folding the union as one log")
+  (add (question q1 (feasible mega-fold all-logs) :status answered :by user :src t1))
+  (add (claim c1 (exists merge-py n-way-content-hash-join) :by assistant :src t1))
+  (add (claim c2 (obstacle term-drift not-merge-mechanism) :by assistant :src t1))
+  (add (edge (about c1 mega-fold)))
+  (add (edge (answers c1 q1))))
+
+(delta :turn 3
+  ; Joe: give it a try. Three obstacles predicted before running:
+  ; term registry drift (only 4 newer files carry :canon), dangling
+  ; references from missing :receives ancestors, heterogeneous domains
+  ; (sessions vs runs vs demo mixed into one graph).
+  (add (decision d1 (build mega-fold prototype) :status frozen :by user :src t3))
+  (add (claim c3 (predicted-obstacles term-drift dangling-refs mixed-domains) :by assistant :src t3))
+  (add (edge (motivates c3 d1))))
+
+(delta :turn 5
+  ; mega-fold.py built and run. All 21 source .wno files loaded and
+  ; validated clean — the dangling-reference fear did not materialize,
+  ; no validation softening was needed. Two scopes:
+  ;
+  ;   sessions (14 files): 579n 272e 131t, ~23k tokens
+  ;   all      (21 files): 805n 405e 379t, ~35k tokens
+  ;
+  ; Node dedup was only 1.2% (10 of 811). What did collapse was sensible
+  ; and mechanical: "produce session-handoff" identical across 5 sessions,
+  ; "build resolver-batch" across 2, "complete deepseek-doc-audit" across 2.
+  ; Confirms sessions are genuinely non-overlapping in canonical payload —
+  ; the content-hash join only catches exact matches, and design sessions
+  ; restate the same ideas in different words.
+  ;
+  ; Excluded from discovery: merged-p1p2, merged-3way, the cbtdag fixture,
+  ; and (after a self-ingestion bug) the mega outputs themselves.
+  ;
+  (term mega-fold-tool :gloss "mega-fold.py: discovers .wno logs, merges via content-hash dedup, folds the union, reports what collapsed")
+  (add (artifact r1 (mega-fold-py scope-flag overlap-flag canon-map-flag) :status live :by assistant :src t5))
+  (add (artifact r2 (mega-sessions-wno 579n-272e-131t) :status live :by assistant :src t5))
+  (add (artifact r3 (mega-all-wno 805n-405e-379t) :status live :by assistant :src t5))
+  (add (claim c4 (all-21-files validate-clean no-softening-needed) :by assistant :src t5))
+  (add (claim c5 (node-dedup 1.2-percent exact-hash-only) :by assistant :src t5))
+  (add (claim c6 (sessions-non-overlapping in-canonical-payload) :by assistant :src t5))
+  (add (claim c7 (bug self-ingestion mega-output-rediscovered fixed) :by assistant :src t5))
+  (add (edge (about r1 mega-fold-tool)))
+  (add (edge (contradicts c4 c3)))
+  (add (edge (supports c5 c6))))
+
+(delta :turn 7
+  ; Joe's key observation: term drift has no built-in prevention, so
+  ; mechanical dedup is expected to struggle — but with the whole term
+  ; list in a context window, finding duplicates is just a question you
+  ; can ask, and a subagent could do it. This is the session's methodology
+  ; insight: the content-hash join is the mechanical layer, and semantic
+  ; judgment is a separate layer that an LLM supplies.
+  (term semantic-dedup-layer :gloss "LLM-supplied judgment pass that clusters terms meaning the same thing, above the mechanical exact-hash join that cannot see paraphrase")
+  (add (claim c8 (mechanical-dedup cannot-reach paraphrase) :by assistant :src t7))
+  (add (claim c9 (term-list fits-context-window 379-terms) :by user :src t7))
+  (add (decision d2 (add semantic-dedup-layer via-subagent) :status frozen :by user :src t7))
+  (add (edge (about d2 semantic-dedup-layer)))
+  (add (edge (motivates c9 d2)))
+  (add (edge (supports c8 d2))))
+
+(delta :turn 9
+  ; Joe's second methodology point, stated after the first subagent run:
+  ; the term list should be extracted by a script the subagent calls
+  ; itself, not read into the orchestrating context and pasted into the
+  ; prompt. The orchestrator's context should not absorb data it is only
+  ; routing. This was a live correction — the 379-line table had already
+  ; been read into context unnecessarily.
+  ;
+  ; term-table.py written in response: loads a .wno, prints term id,
+  ; gloss, aka, canon, and source-file provenance, one line per term.
+  ;
+  (term context-routing-discipline :gloss "orchestrator delegates data extraction to a script the subagent runs, so routed data never enters the orchestrator's own context")
+  (add (artifact r4 (term-table-py registry-extraction-with-provenance) :status live :by assistant :src t9))
+  (add (claim c10 (orchestrator-context should-not-absorb routed-data) :by user :src t9))
+  (add (claim c11 (violated context-routing-discipline pasted-379-line-table) :by assistant :src t9))
+  (add (edge (about c10 context-routing-discipline)))
+  (add (edge (about r4 context-routing-discipline)))
+  (add (edge (supports c11 c10))))
+
+(delta :turn 11
+  ; Subagent clustering result over the 379-term registry: 29 clusters
+  ; covering 66 terms (17.4%). Split by confidence:
+  ;   HIGH   16 clusters / 35 terms
+  ;   MEDIUM 10 clusters / 23 terms
+  ;   LOW     3 clusters /  8 terms
+  ;
+  ; The HIGH tier is entirely mechanical drift, which is the diagnostic
+  ; finding: singular/plural (canon-anchor vs canon-anchors, thematic-thread
+  ; vs thematic-threads), abbreviation (graph-db vs graph-database, kv- vs
+  ; key-value-blob-ledger), case (RLHF-training vs rlhf-training), rule-number
+  ; prefixes (strip-persona vs R2-strip-persona), and one parsing artifact
+  ; (and-contract-questions — a stray conjunction captured into the term id).
+  ; None of these need semantic judgment to see; they need any normalization
+  ; at all. Suggests a cheap procedural pre-pass could catch most of the HIGH
+  ; tier before an LLM is involved — candidate for next session.
+  ;
+  (add (claim c12 (clusters 29-total 66-terms-17-percent) :by assistant :src t11))
+  (add (claim c13 (high-tier-drift purely-mechanical not-semantic) :by assistant :src t11))
+  (add (question q2 (could procedural-normalization catch-high-tier-cheaply) :status open :by assistant :src t11))
+  (add (edge (about c13 semantic-dedup-layer)))
+  (add (edge (motivates c13 q2))))
+
+(delta :turn 13
+  ; canon-map.json + mega-fold.py --canon-map: external reconciliation.
+  ; 33 term ids -> 16 canon anchors, injected into loaded graphs before
+  ; merge so source .wno files stay untouched. This is the reconciliation
+  ; sidecar pattern — the same shape as the .reach sidecar: derived
+  ; judgment lives beside the logs, never inside them.
+  ;
+  ; Result: term dedup 25 -> 42 on all-scope (68% improvement),
+  ; snapshot ~34868 -> ~34691 tokens. Sessions-scope gained only 1
+  ; (canon-anchor/canon-anchors) — the drift is concentrated in runs/,
+  ; where the same transcript was extracted repeatedly under different
+  ; models and prompt versions. That asymmetry is itself evidence:
+  ; extraction-run drift is far worse than cross-session design drift.
+  ;
+  (term canon-map :gloss "external term-id-to-canon-value table applied at merge time, keeping reconciliation judgment out of the source logs")
+  (add (artifact r5 (canon-map-json 33-ids-16-anchors) :status live :by assistant :src t13))
+  (add (decision d3 (apply canon-anchors externally not-in-source-logs) :status frozen :by assistant :src t13))
+  (add (claim c14 (term-dedup 25-to-42 sixty-eight-percent-gain) :by assistant :src t13))
+  (add (claim c15 (drift-concentrated runs-not-sessions) :by assistant :src t13))
+  (add (claim c16 (extraction-run-drift worse-than-cross-session-drift) :by assistant :src t13))
+  (add (edge (about r5 canon-map)))
+  (add (edge (about d3 canon-map)))
+  (add (edge (supports c15 c16))))
+
+(delta :turn 15
+  ; Joe asks for the most natural next decision. Recommendation:
+  ; wire the mega-fold output in as resolution-ladder rung 4.
+  ;
+  ; Reasoning: TODO.md's global-KB entry says construction is deferred but
+  ; "construction sketch now exists: merge.py + term-usage index + mass
+  ; ranking + canon anchors." mega-fold.py --canon-map IS that sketch,
+  ; built. winnow.py:270 confirms rung 4 is interface-reserved and skipped,
+  ; and Resolver takes a single graph. So the socket is reserved, the plug
+  ; now exists, and the test is cheap: find a query that honest-misses
+  ; against one session graph, check it resolves against the mega-graph.
+  ; That converts the mega-fold from analysis artifact into machinery and
+  ; is the load-bearing piece for the Gau merge and JITCW.
+  ;
+  ; Ranked against the alternatives: MEDIUM clusters and node-level
+  ; semantic dedup both improve KB quality, but neither answers whether
+  ; cross-conversation resolution works at all. Quality tuning belongs
+  ; after the mechanism proves out.
+  ;
+  (add (decision d4 (wire mega-fold-as-rung-4 global-kb) :status proposed :by assistant :src t15))
+  (add (claim c17 (mega-fold-is global-kb-construction-sketch-realized) :by assistant :src t15))
+  (add (claim c18 (rung-4 interface-reserved winnow-py-270) :by assistant :src t15))
+  (add (claim c19 (rung-4-test cheap honest-miss-single-vs-mega) :by assistant :src t15))
+  (add (edge (about c17 mega-fold)))
+  (add (edge (supports c17 d4)))
+  (add (edge (supports c18 d4)))
+  (add (edge (supports c19 d4))))
+
+(delta :turn 17
+  ; Adversarial self-check on this session's own canon map, per the
+  ; operating-principles requirement to test claims regardless of origin.
+  ;
+  ; TODO.md already logs the polysemy finding (c33/c37/c96 in the ENI
+  ; handoff): collapse synonyms *within* a sense, preserve polysemes
+  ; *across* senses. Our map may violate that in two places:
+  ;
+  ;   vector-db-chromadb -> "Vector database" collapses a specific
+  ;     technology choice into the generic component. That is
+  ;     specialization erasure, not synonym collapse. The subagent
+  ;     itself flagged it as possibly distinct.
+  ;   background-ai-as-intent-gatekeeper -> "Intent gatekeeper" merges
+  ;     a role-attribution into the role itself; same failure shape.
+  ;
+  ; Both are still IN canon-map.json as committed — the revert was
+  ; proposed but not executed, because Joe moved to session wrap and
+  ; the ruling is Joe's, not mine to assume. Next session should decide
+  ; and either remove the two entries or record why they are legitimate.
+  ;
+  (add (question q3 (rule vector-db-chromadb specialization-or-synonym) :status open :by assistant :src t17))
+  (add (question q4 (rule background-ai-as-intent-gatekeeper role-or-attribution) :status open :by assistant :src t17))
+  (add (claim c20 (canon-map may-erase-specializations two-entries) :by assistant :src t17))
+  (add (claim c21 (revert proposed-not-executed awaiting-joe) :by assistant :src t17))
+  (add (edge (about c20 canon-map)))
+  (add (edge (about q3 c20)))
+  (add (edge (about q4 c20)))
+  (add (edge (contradicts c20 d3))))
+
+(delta :turn 18
+  ; Merge-hygiene findings from the mega-fold output, recorded so a next
+  ; session does not chase them as merge bugs:
+  ;
+  ; 1. mega-all reports "gaps: 1 undeclared term(s) — super-root".
+  ;    Traced to demo-deltas.wno, which defines super-root as a def node
+  ;    (f2) without a matching (term ...) entry. demo-deltas.wno alone
+  ;    reports the identical gap, so this is inherited, NOT introduced by
+  ;    merging. The mega-fold is working as a magnifier here: it surfaces
+  ;    pre-existing hygiene issues in aggregate. That is arguably its
+  ;    second use case after global-KB construction — a repo-wide lint.
+  ;
+  ; 2. Five off-spec status warnings in mega-all, two in mega-sessions:
+  ;    claim 'open', question 'partially-answered'/'resolved', decision
+  ;    'done'/'accepted'. These are the grandfathered values TODO.md
+  ;    already notes from the status-vocab sweep; the merge aggregates
+  ;    them into one view rather than one-file-at-a-time.
+  ;
+  ; 3. Two status conflicts surfaced as reconcile-status question nodes,
+  ;    exactly as merge.py is designed to do — first-seen status stands,
+  ;    disagreement becomes an open question rather than a silent pick.
+  ;
+  ; 4. Edge count goes UP under merge (404 -> 405), which looks wrong at
+  ;    a glance. Cause: each conflict question adds an (about q target)
+  ;    edge. Edge dedup and conflict-edge addition are both real; the
+  ;    additions happened to exceed the collapses. Not a bug.
+  ;
+  (add (claim c25 (super-root-gap inherited-from-demo-deltas not-merge-caused) :by assistant :src t18))
+  (add (claim c26 (mega-fold second-use-case repo-wide-lint) :by assistant :src t18))
+  (add (claim c27 (off-spec-statuses aggregated-not-new) :by assistant :src t18))
+  (add (claim c28 (edge-count-rise from-conflict-about-edges not-a-bug) :by assistant :src t18))
+  (add (edge (about c26 mega-fold)))
+  (add (edge (supports c25 c26)))
+  (add (edge (supports c27 c26))))
+
+(delta :turn 19
+  ; Joe: usage credits hit — write the session wno and prepare to flip
+  ; to a fresh session. Model flipped opus 4.6 -> opus 5 at this point.
+  ;
+  ; Protocol debt cleared in this same commit: three commits had landed
+  ; (mega-fold, term-table, canon-map) without TODO.md flips or a handoff,
+  ; against the CLAUDE.md rule that state updates ride with the work.
+  ; Recording it rather than quietly fixing it, because the failure mode
+  ; is the thing the boot protocol exists to prevent.
+  ;
+  ; Deferred to next session, in priority order:
+  ;   1. d4 rung-4 wiring (the recommendation above)
+  ;   2. q3/q4 polysemy rulings on the two suspect canon entries
+  ;   3. MEDIUM clusters (10 / 23 terms) — judgment calls, e.g.
+  ;      dbc-conversation vs dbc-semantic-continuity, multi-tier-db vs
+  ;      multi-tier-graph-vector-keyvalue-blob-ledger
+  ;   4. q2 procedural normalization pre-pass
+  ;   5. Node-level semantic dedup — same subagent pattern over node
+  ;      payloads; no :canon equivalent exists for nodes, so the output
+  ;      would be an analytical view, not an automated merge
+  ;
+  ; Not done, worth noting: no tests were added for mega-fold.py or
+  ; term-table.py. Test count stands at 129 and pytest is not installed
+  ; in this container (python3 -m pytest fails), so the suite was never
+  ; run this session — the green baseline is unverified, inherited from
+  ; the tier-visualizer handoff rather than observed.
+  ;
+  (add (decision d5 (end-session write-handoff credits-exhausted) :status frozen :by user :src t19))
+  (add (action a1 (wire rung-4-global-kb) :status todo :by assistant :src t19))
+  (add (action a2 (rule polysemy-suspect-canon-entries) :status todo :by assistant :src t19))
+  (add (action a3 (review medium-confidence-clusters) :status todo :by assistant :src t19))
+  (add (action a4 (test mega-fold-and-term-table) :status todo :by assistant :src t19))
+  (add (claim c22 (protocol-debt three-commits-without-todo-or-handoff) :by assistant :src t19))
+  (add (claim c23 (pytest-not-installed suite-unrun-this-session) :by assistant :src t19))
+  (add (claim c24 (green-baseline inherited-not-observed) :by assistant :src t19))
+  (add (artifact r6 (pr-12 mega-fold-branch open-for-review) :status live :by assistant :src t19))
+  (add (edge (about a1 d4)))
+  (add (edge (about a2 q3)))
+  (add (edge (about a2 q4)))
+  (add (edge (supports c23 c24))))
