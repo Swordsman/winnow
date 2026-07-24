@@ -1,0 +1,52 @@
+{
+  "_comment": "External canon anchors for mega-fold term dedup. Maps term-id -> canon value. Terms sharing a canon value merge during mega-fold. Source .wno files are untouched.",
+
+  "canon-anchor":                "Canon anchor",
+  "canon-anchors":               "Canon anchor",
+
+  "RLHF-training":               "RLHF",
+  "rlhf-training":               "RLHF",
+
+  "graph-db":                     "Graph database",
+  "graph-database":               "Graph database",
+
+  "vector-db":                    "Vector database",
+  "vector-store":                 "Vector database",
+  "vector-db-chromadb":           "Vector database",
+
+  "thematic-thread":              "Thematic thread",
+  "thematic-threads":             "Thematic thread",
+
+  "persistent-memory-payload":    "Persistent memory payload",
+  "persistent-memory-payloads":   "Persistent memory payload",
+
+  "dual-payload-execution-loop":  "Dual-payload execution loop",
+  "dual-payload-loop":            "Dual-payload execution loop",
+
+  "dual-payload-json":            "Dual-payload JSON output",
+  "dual-payload-json-output":     "Dual-payload JSON output",
+
+  "key-value-blob-ledger":        "Key-value blob ledger",
+  "kv-blob-ledger":               "Key-value blob ledger",
+
+  "zero-cruft-instructions":      "Zero-cruft instructions",
+  "zero-cruft-generation-instructions": "Zero-cruft instructions",
+
+  "structured-JSON-API":          "Structured JSON API",
+  "structured-json-output-api":   "Structured JSON API",
+
+  "contract-questions":           "Contract questions",
+  "and-contract-questions":       "Contract questions",
+
+  "omitted-items":                "Omitted items",
+  "omitted-items-list":           "Omitted items",
+
+  "strip-persona":                "Strip persona",
+  "R2-strip-persona":             "Strip persona",
+
+  "intent-gatekeeper":            "Intent gatekeeper",
+  "background-ai-as-intent-gatekeeper": "Intent gatekeeper",
+
+  "apply-compression-method":     "Apply conversation compression",
+  "apply-conversation-compression": "Apply conversation compression"
+}

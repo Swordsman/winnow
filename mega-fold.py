@@ -12,13 +12,15 @@ Usage:
     python3 mega-fold.py --digest               # print digest after stats
     python3 mega-fold.py --concepts             # print concepts after stats
     python3 mega-fold.py --overlap              # show cross-file node/term overlap detail
+    python3 mega-fold.py --canon-map canon-map.json  # apply external canon anchors before merge
 """
 import argparse
 import glob
+import json
 import sys
 from collections import Counter
 
-from fold import Graph, parse, tokenize, anns
+from fold import Graph, Lit, parse, tokenize, anns
 from merge import load, merge, render
 
 EXCLUDE = {
@@ -49,6 +51,21 @@ def load_all(files):
         except SystemExit as e:
             print(f"  SKIP {f}: {e}", file=sys.stderr)
     return graphs
+
+
+def apply_canon_map(graphs, canon_map):
+    """Inject external :canon values into graphs' term registries."""
+    patched = 0
+    for g in graphs:
+        for tid, tail in g.terms.items():
+            if tid not in canon_map:
+                continue
+            ta = anns(list(tail))
+            if "canon" in ta:
+                continue
+            g.terms[tid] = list(tail) + [":canon", Lit(canon_map[tid])]
+            patched += 1
+    return patched
 
 
 def overlap_report(files, graphs):
@@ -95,6 +112,8 @@ def main():
     ap.add_argument("--concepts", action="store_true")
     ap.add_argument("--overlap", action="store_true",
                     help="show cross-file overlap detail")
+    ap.add_argument("--canon-map",
+                    help="JSON file mapping term-id -> canon value")
     ns = ap.parse_args()
 
     files = discover(ns.scope)
@@ -105,6 +124,13 @@ def main():
     pairs = load_all(files)
     loaded_files = [f for f, _ in pairs]
     graphs = [g for _, g in pairs]
+
+    if ns.canon_map:
+        with open(ns.canon_map) as f:
+            cmap = {k: v for k, v in json.load(f).items()
+                    if not k.startswith("_")}
+        patched = apply_canon_map(graphs, cmap)
+        print(f"canon map: {len(cmap)} entries, {patched} terms patched")
 
     sum_n = sum(len(g.nodes) for g in graphs)
     sum_e = sum(len(g.edges) for g in graphs)
