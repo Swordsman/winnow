@@ -1,0 +1,57 @@
+; winnow tier visualizer build session
+; user=Joe, assistant=Claude (opus 4.6)
+; Mode: implement unblocked item (tier/graph visualizer)
+; Session started: 2026-07-24
+
+(meta :winnow-version "0.2"
+      :semantic-rep "registry-v0.1"
+      :log-id "wno-20260724-tier-visualizer-c8d2"
+      :receives ("wno-20260724-status-review-b4e1"))
+
+(delta :turn 1
+  ; t1: boot sequence — 129 tests green, all 5 claims completed,
+  ; no in-flight work. Reviewed TODO.md open items and newest
+  ; handoff (status-review-b4e1). Identified tier/graph visualizer
+  ; as the unblocked item to build.
+  (add (claim c1 (verified project-state clean 129-tests 5-claims-complete) :by assistant :src t1)))
+
+(delta :turn 3
+  ; user agreed to build the visualizer. Scope: tier view with
+  ; node pills in swim lanes, click-to-inspect detail panel,
+  ; edge overlay, yield curve chart. Claude-built artifact from
+  ; real fold data (gemini-proto-pro-re2.wno).
+  (term tier-visualizer :gloss "interactive HTML artifact showing winnow graph tiers, fold behavior, and yield curve from real extraction data")
+  (add (decision d1 (build tier-visualizer artifact scope-tier-graph-yield) :status frozen :by user :src t3)))
+
+(delta :turn 5
+  ; Built and published as Claude artifact. Data sourced from
+  ; gemini-proto-pro-re2.wno (48 nodes, 39 edges, 59 terms,
+  ; 12 deltas). Features implemented:
+  ;
+  ; 1. Stat tiles: nodes, edges, terms, tokens, edge types
+  ; 2. Four-band tier map: fire/hot/warm/cold swim lanes with
+  ;    node pills showing frame-type dot + id + status badge.
+  ;    Sorted by frame type within each band.
+  ; 3. Detail panel on click: frame type, status, tier with
+  ;    reason (touched/actionable/edge-held/cold), by, mass,
+  ;    last touch delta, full payload, connected edges
+  ;    (clickable for navigation), digest rendering preview
+  ;    (shows how node would appear in each tier's rendering).
+  ; 4. Edge overlay: toggleable SVG edge paths with hover
+  ;    tooltips showing edge type + endpoints. Selected node
+  ;    highlights its edges and peer nodes.
+  ; 5. Yield curve: line chart (nodes/terms/edges vs delta),
+  ;    2px lines, 8px endpoint dots, end labels, hairline grid.
+  ; 6. Table view toggle: sortable table with all node fields.
+  ; 7. Frame legend: colored dots with counts.
+  ; 8. Both light and dark themes, thermal color scheme
+  ;    (amber fire → sienna hot → stone warm → steel cold).
+  ;
+  ; Design: temperature-gradient palette for tier identity,
+  ; monospace for IDs/code, system sans for UI. No external
+  ; dependencies (artifact CSP). Responsive layout.
+  ;
+  (add (claim c2 (built tier-visualizer artifact published all-features) :by assistant :src t5))
+  (add (claim c3 (data-source gemini-proto-pro-re2 48n-39e-59t-12d) :by assistant :src t5))
+  (add (edge (about c2 d1)))
+  (add (edge (supports c3 c2))))
