@@ -278,6 +278,9 @@ class Resolver:
             tail_anns = anns(list(tail))
             for aka in tail_anns.get("aka", []) or []:
                 self.surface[kebab(aka)] = tid
+            canon = tail_anns.get("canon")
+            if canon:
+                self.surface[kebab(str(canon))] = tid
             for part in kebab(tid).split("-"):
                 if part != kebab(tid):
                     self.constituents.setdefault(part, set()).add(tid)

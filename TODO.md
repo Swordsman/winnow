@@ -82,15 +82,12 @@
   updated; 5 new tests (120 total).
   (Supersede/§2 ruling also 2026-07-24: `superseded` added to all
   frame types — spec §2 + fold.py STATUSES + normalizer prompt updated.)
-- [ ] **Alias-aware hashing.** `hash_id` hashes canonical term ids; two
-  logs whose registries alias the same surface form to different ids
-  won't join. Upgraded mechanism (2026-07-17): **canon anchors** —
-  optional `:canon` key on term entries attaching a Wikipedia-title
-  canonical form, attach-don't-replace; organic ids stay the wire
-  format, anchors are cross-lineage join keys (same pattern as hash
-  ids). fold.py already tolerates the key; needs §8 grammar note +
-  merge/Resolver consumption. Anchoring happens in idle time (pairs
-  with `--stale` maintenance pass).
+- [x] **Canon anchors (2026-07-24).** `:canon` key on term entries
+  documented in spec §4 + §8 grammar. merge.py joins terms across logs
+  by canon anchor (different organic ids, same `:canon` value → one
+  merged term, payloads rewritten). Resolver indexes canon values as
+  surface forms for resolution. Anchoring happens in idle time (pairs
+  with `--stale` maintenance pass); no terms are anchored yet.
 
 ## Minor / notes
 - [x] **Transfer-file ids + receives (2026-07-24).** Moved from comment

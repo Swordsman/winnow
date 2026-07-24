@@ -150,6 +150,62 @@ class TestMerge(unittest.TestCase):
             os.unlink(path)
 
 
+class TestCanonAnchors(unittest.TestCase):
+    """Canon anchors join terms across logs with different organic ids."""
+
+    def test_same_canon_merges_terms(self):
+        a = graph_from("""
+(delta :turn 1
+  (term auth-system :gloss "authentication" :canon "Authentication")
+  (add (claim c1 (uses app auth-system) :by user :src t1)))
+""")
+        b = graph_from("""
+(delta :turn 1
+  (term authn :gloss "auth module" :canon "Authentication")
+  (add (claim c1 (uses app authn) :by user :src t1)))
+""")
+        terms, nodes, edges, _ = merge([a, b])
+        # only one term survives (first-seen wins)
+        auth_terms = [t for t in terms if "auth" in t]
+        self.assertEqual(len(auth_terms), 1)
+        self.assertEqual(auth_terms[0], "auth-system")
+        # both claims should reference the surviving term id
+        for n in nodes.values():
+            if n["frame"] == "claim":
+                self.assertIn("auth-system", str(n["payload"]))
+                self.assertNotIn("authn", str(n["payload"]))
+
+    def test_no_canon_no_join(self):
+        a = graph_from("""
+(delta :turn 1
+  (term auth-system :gloss "authentication")
+  (add (claim c1 (uses app auth-system) :by user :src t1)))
+""")
+        b = graph_from("""
+(delta :turn 1
+  (term authn :gloss "auth module")
+  (add (claim c1 (uses app authn) :by user :src t1)))
+""")
+        terms, nodes, _, _ = merge([a, b])
+        self.assertIn("auth-system", terms)
+        self.assertIn("authn", terms)
+
+    def test_canon_join_output_folds_clean(self):
+        a = graph_from("""
+(delta :turn 1
+  (term fuse-layer :gloss "FUSE vfs" :canon "FUSE")
+  (add (claim c1 (has fuse-layer mount-point) :by user :src t1)))
+""")
+        b = graph_from("""
+(delta :turn 1
+  (term userspace-fs :gloss "userspace filesystem" :canon "FUSE")
+  (add (claim c1 (has userspace-fs mount-point) :by user :src t1)))
+""")
+        text = render(*merge([a, b]))
+        g = refold(text)
+        self.assertEqual(g.errors, [])
+
+
 class TestSrcQualification(unittest.TestCase):
     """Merge qualifies :src with :log-id from the meta header."""
 

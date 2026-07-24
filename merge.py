@@ -19,7 +19,8 @@ foldable by fold.py. Without --out it prints to stdout.
 """
 import sys
 
-from fold import (Graph, Lit, parse, tokenize, sx, ANN_ORDER, FRAME_ORDER)
+from fold import (Graph, Lit, parse, tokenize, sx, anns, ANN_ORDER,
+                  FRAME_ORDER)
 
 ID_PREFIX = {"claim": "c", "decision": "d", "question": "q",
              "constraint": "k", "def": "f", "action": "a", "artifact": "r"}
@@ -106,14 +107,24 @@ def merge(graphs):
     terms = {}
     per_graph_map = []    # per graph: old nid -> hash
 
+    canon_to_tid = {}     # canon anchor -> chosen term id
+    term_remap = {}       # old tid -> merged tid (when canon anchors join)
+
     for g in graphs:
         log_id = g.meta.get("log-id") if g.meta else None
         if isinstance(log_id, Lit):
             log_id = str(log_id)
         nid_to_hash = {}
         for tid, tail in g.terms.items():
-            if tid not in terms:
+            ta = anns(list(tail))
+            canon = str(ta["canon"]) if "canon" in ta else None
+            if canon and canon in canon_to_tid:
+                term_remap[tid] = canon_to_tid[canon]
+            elif tid not in terms:
                 terms[tid] = tail
+                if canon:
+                    canon_to_tid[canon] = tid
+            # tid already present and no canon conflict — skip
         for nid in sorted(g.nodes, key=g._node_key):
             h = g.hash_id(nid)
             nid_to_hash[nid] = h
@@ -150,11 +161,15 @@ def merge(graphs):
                 hash_to_id[h] = f"{ID_PREFIX[f]}{serial[f]}"
 
     def rewrite(payload, nid_to_hash):
-        """Node-id args in payloads point at merged ids."""
+        """Node-id and term-id args in payloads point at merged ids."""
         if isinstance(payload, list):
             return [rewrite(x, nid_to_hash) for x in payload]
-        if not isinstance(payload, Lit) and payload in nid_to_hash:
+        if isinstance(payload, Lit):
+            return payload
+        if payload in nid_to_hash:
             return hash_to_id[nid_to_hash[payload]]
+        if payload in term_remap:
+            return term_remap[payload]
         return payload
 
     nodes = {}
@@ -171,9 +186,15 @@ def merge(graphs):
     edges = set()
     for g, nid_to_hash in zip(graphs, per_graph_map):
         for t, a, b in g.edges:
-            if a in nid_to_hash and b in nid_to_hash:
-                edges.add((t, hash_to_id[nid_to_hash[a]],
-                           hash_to_id[nid_to_hash[b]]))
+            new_a = hash_to_id[nid_to_hash[a]] if a in nid_to_hash else None
+            if b in nid_to_hash:
+                new_b = hash_to_id[nid_to_hash[b]]
+            elif t == "about" and (b in terms or b in term_remap):
+                new_b = term_remap.get(b, b)
+            else:
+                new_b = None
+            if new_a and new_b:
+                edges.add((t, new_a, new_b))
 
     # status conflicts become open questions about the disputed node;
     # the first-seen status stands until a human or later delta resolves it

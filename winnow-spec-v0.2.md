@@ -84,10 +84,12 @@ Fixed key order when serializing: `:status :conf :strength :by :src :time :modal
 **Term registry.** Open set, canonical `kebab-case` ids, declared on first use:
 
 ```lisp
-(term fuse-vfs :gloss "userspace virtual filesystem via FUSE" :aka ("FUSE layer" "jsonfs daemon"))
+(term fuse-vfs :gloss "userspace virtual filesystem via FUSE"
+               :aka ("FUSE layer" "jsonfs daemon")
+               :canon "Filesystem_in_Userspace")
 ```
 
-Aliases map surface forms → canonical id. The normalizer consults the registry before minting anything new; a minted term carries `:new` for later human/agent review.
+Aliases map surface forms → canonical id. `:canon` attaches a cross-lineage anchor — a stable canonical form (convention: Wikipedia article title) that serves as a join key when merging logs whose registries use different organic ids for the same concept. Organic ids stay the wire format; anchors are join keys only. The normalizer consults the registry before minting anything new; a minted term carries `:new` for later human/agent review.
 
 **Relations** are terms too — open set, seeded for technical conversations:
 
@@ -228,7 +230,8 @@ update    = "(" "update" id { ann } ")" ;
 supersede = "(" "supersede" id id { ann } ")" ;   (* NEW OLD *)
 merge     = "(" "merge" id id ")" ;               (* LOSER WINNER *)
 del       = "(" "del" ( id | edge ) ")" ;
-termdecl  = "(" "term" termid { ":gloss" string | ":aka" "(" {string} ")" | ann } ")" ;
+termdecl  = "(" "term" termid { ":gloss" string | ":aka" "(" {string} ")"
+          | ":canon" string | ann } ")" ;
 comment   = ";" text-to-eol ;                     (* outside strings *)
 ```
 

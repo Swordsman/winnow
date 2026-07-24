@@ -169,5 +169,17 @@ class TestKimiAliases(unittest.TestCase):
         self.assertEqual((rung, hits), (5, []))
 
 
+class TestCanonAnchorResolution(unittest.TestCase):
+    def test_canon_value_reaches_term(self):
+        g = graph_from("""
+(delta :turn 1
+  (term auth-system :gloss "authentication" :canon "Authentication")
+  (add (claim c1 (uses app auth-system) :by user :src t1)))
+""")
+        rung, hits = Resolver(g).resolve(["authentication"])
+        self.assertLessEqual(rung, 3)
+        self.assertIn("c1", hits)
+
+
 if __name__ == "__main__":
     unittest.main()
