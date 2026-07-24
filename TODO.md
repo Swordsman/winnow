@@ -46,6 +46,16 @@
   says "companion to eni-winnow-design.wno", missing the date suffix.
 
 ## Next up
+- [ ] **Winnow front-end: WO-0 zero-build validation (2026-07-24).**
+  Kimi K3 design reviewed; thesis adopted (winnow as compiler from NL
+  instructions to structured work orders); compiler framing over
+  translation metaphor. WO-0 pipeline: this conversation as corpus →
+  extract .wno (done: `sessions/wno-20260724-compiler-framing-93a3.wno`)
+  → fold → hand-render work order from graph slice → dispatch to real
+  backend → score constraint adherence. Open questions for WO-2:
+  reconciliation report format, adapter I/O contract, work-order
+  rendering spec. K3 design doc:
+  `sessions/kimi-k3-frontend-design.md`.
 - [ ] **ENI proposals: inclusion decision (Joe 2026-07-20, "relates to
   the ultimate goal").** Design session with Joe to rule on the three
   proposed decisions in `sessions/eni-winnow-design-20260719.wno`

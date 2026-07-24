@@ -108,6 +108,15 @@
   (add (edge (supports c31 c32)))
   (add (edge (refines c32 d2))))
 
+(delta :turn 18
+  ; t18: fluid boundary — conversations evolve between dialogue and code
+  (add (claim c33 (evolve conversations fluidly-between-dialogue-and-code) :by user :src t8))
+  (add (claim c34 (is boundary-location unknown-at-conversation-start) :by assistant :src t18))
+  (add (claim c35 (must compiler handle-transition-gracefully) :by assistant :src t18))
+  (add (edge (supports c33 c11)))
+  (add (edge (supports c34 c33)))
+  (add (edge (motivates c34 c35))))
+
 ; ============================================================
 ; WO-0 PIPELINE (concrete steps):
 ;   1. Input: this conversation (the compiler-framing session)
