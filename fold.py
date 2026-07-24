@@ -16,6 +16,7 @@ Usage:
     python3 fold.py LOG.wno --hashes   # content-hash id table (docs/hash-ids.md)
     python3 fold.py LOG.wno --concepts # terms by status-gated usage mass
     python3 fold.py LOG.wno --stale N  # open/proposed/doing untouched N deltas
+    python3 fold.py LOG.wno --yield-curve  # per-delta metrics (TSV)
 """
 import hashlib
 import sys
@@ -538,6 +539,25 @@ class Graph:
                          f"{self._payload_line(nid)}")
         return "\n".join(lines)
 
+    def stats_dict(self):
+        """Structured metrics for yield-curve collection."""
+        by_frame = Counter(n["frame"] for n in self.nodes.values())
+        by_et = Counter(t for t, _, _ in self.edges)
+        snap_len = len(self.snapshot())
+        return {
+            "deltas": self.deltas,
+            "nodes": len(self.nodes),
+            "edges": len(self.edges),
+            "terms": len(self.terms),
+            "edges_per_node": (len(self.edges) / len(self.nodes)
+                               if self.nodes else 0),
+            "frames": dict(by_frame),
+            "edge_types": dict(by_et),
+            "edge_types_used": len(by_et),
+            "snapshot_chars": snap_len,
+            "snapshot_tokens_approx": snap_len // 4,
+        }
+
     def stats(self):
         out = []
         log_id = self.meta.get("log-id")
@@ -624,6 +644,19 @@ def main():
         n = (int(sys.argv[i + 1])
              if i + 1 < len(sys.argv) and sys.argv[i + 1].isdigit() else 3)
         print(g.stale(n))
+        return
+    if "--yield-curve" in sys.argv:
+        print("delta\tnodes\tedges\tterms\tedges/node\tet_used\tsnap_chars")
+        gc = Graph()
+        for form in forms:
+            if form and form[0] == "meta":
+                gc.set_meta(form)
+                continue
+            gc.apply(form)
+            d = gc.stats_dict()
+            print(f"{d['deltas']}\t{d['nodes']}\t{d['edges']}\t"
+                  f"{d['terms']}\t{d['edges_per_node']:.2f}\t"
+                  f"{d['edge_types_used']}\t{d['snapshot_chars']}")
         return
     print(g.stats())
     print("validation     :",

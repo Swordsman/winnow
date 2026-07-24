@@ -24,6 +24,7 @@ mode (canned responses separated by lines containing only %%%) needs
 neither and exists for tests and offline development.
 """
 import argparse
+import json
 import re
 import sys
 
@@ -67,7 +68,7 @@ not a link -- put it inside a node's proposition instead, e.g. \
 (add (claim x3 (maps-to subthread original-messages) :by user :src t7)).
 
 Emit ops as s-expressions, one per line, e.g.:
-(term some-term :gloss "...")
+(term some-term :gloss "what it means, not just the name expanded")
 (add (claim x1 (relation subj obj) :by user :src t3))
 (add (edge (supports x1 x2)))
 (update q2 :status answered)
@@ -112,7 +113,10 @@ edge annotations (:conf etc.) are dropped.
 
 The rules:
 R1 terms -> canonical registry ids: kebab-case; nearest registry match \
-beats minting; minted terms get a (term ID :gloss "...") entry.
+beats minting; minted terms get a (term ID :gloss "...") entry. \
+The gloss must define the concept, not restate the label — \
+"graph-db" glossed "graph database" adds nothing; write what a reader \
+needs to understand the term without the transcript.
 R2 one proposition per node -- split conjunctions into multiple nodes.
 R3 slot order fixed: agent/subject/source first, patient/object/target \
 second.
@@ -620,6 +624,8 @@ def run(transcript_path, out_path, llm, llm_normalize=True,
                 g.apply(form)
                 log_parts.append(sx(form))
 
+    reach_telemetry = []
+
     # group turns into triggers
     batches, cur = [], []
     for t in turns:
@@ -653,6 +659,12 @@ def run(transcript_path, out_path, llm, llm_normalize=True,
             pulls = []
             for q in reaches:
                 rung, hits = resolver.resolve(q)
+                reach_telemetry.append({
+                    "turn": turn_no,
+                    "query": [str(t) for t in q],
+                    "rung": rung,
+                    "hits": list(hits),
+                })
                 if hits:
                     for nid in hits:
                         g.promote(nid)             # P3, with TTL
@@ -703,6 +715,15 @@ def run(transcript_path, out_path, llm, llm_normalize=True,
 
     with open(out_path, "w") as f:
         f.write("\n\n".join(log_parts) + "\n")
+    if reach_telemetry:
+        reach_path = re.sub(r"\.wno$", "", out_path) + ".reach"
+        with open(reach_path, "w") as f:
+            json.dump(reach_telemetry, f, indent=2)
+            f.write("\n")
+        if verbose:
+            past_r1 = sum(1 for r in reach_telemetry if r["rung"] > 1)
+            print(f"wrote {reach_path}: {len(reach_telemetry)} reach events "
+                  f"({past_r1} past rung 1)", file=sys.stderr)
     errs = g.validate()
     if verbose:
         print(f"wrote {out_path}: {len(g.nodes)} nodes, "

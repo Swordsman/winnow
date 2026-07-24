@@ -266,6 +266,45 @@ class TestHashIds(unittest.TestCase):
         self.assertTrue(g.hash_id("c1"))  # no infinite recursion
 
 
+class TestStatsDict(unittest.TestCase):
+    def test_returns_structured_metrics(self):
+        g = fold(BASIC)
+        d = g.stats_dict()
+        self.assertEqual(d["nodes"], 2)
+        self.assertEqual(d["edges"], 1)
+        self.assertEqual(d["terms"], 1)
+        self.assertEqual(d["deltas"], 1)
+        self.assertAlmostEqual(d["edges_per_node"], 0.5)
+        self.assertEqual(d["edge_types_used"], 1)
+        self.assertIn("claim", d["frames"])
+        self.assertIn("answers", d["edge_types"])
+        self.assertGreater(d["snapshot_chars"], 0)
+
+    def test_empty_graph(self):
+        g = Graph()
+        d = g.stats_dict()
+        self.assertEqual(d["nodes"], 0)
+        self.assertEqual(d["edges_per_node"], 0)
+
+    def test_yield_curve_monotonic(self):
+        src = BASIC + """
+        (delta :turn 2
+          (add (claim c2 (needs beta gamma) :by assistant :src t2))
+          (add (edge (supports c2 c1))))
+        """
+        g = Graph()
+        prev_nodes = 0
+        for form in parse(tokenize(src)):
+            if form[0] == "meta":
+                g.set_meta(form)
+                continue
+            g.apply(form)
+            d = g.stats_dict()
+            self.assertGreaterEqual(d["nodes"], prev_nodes)
+            prev_nodes = d["nodes"]
+        self.assertEqual(prev_nodes, 3)
+
+
 class TestDemoLog(unittest.TestCase):
     """Pin the spec section 11 verbatim numbers."""
 
