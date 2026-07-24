@@ -150,5 +150,126 @@ class TestMerge(unittest.TestCase):
             os.unlink(path)
 
 
+class TestCanonAnchors(unittest.TestCase):
+    """Canon anchors join terms across logs with different organic ids."""
+
+    def test_same_canon_merges_terms(self):
+        a = graph_from("""
+(delta :turn 1
+  (term auth-system :gloss "authentication" :canon "Authentication")
+  (add (claim c1 (uses app auth-system) :by user :src t1)))
+""")
+        b = graph_from("""
+(delta :turn 1
+  (term authn :gloss "auth module" :canon "Authentication")
+  (add (claim c1 (uses app authn) :by user :src t1)))
+""")
+        terms, nodes, edges, _ = merge([a, b])
+        # only one term survives (first-seen wins)
+        auth_terms = [t for t in terms if "auth" in t]
+        self.assertEqual(len(auth_terms), 1)
+        self.assertEqual(auth_terms[0], "auth-system")
+        # both claims should reference the surviving term id
+        for n in nodes.values():
+            if n["frame"] == "claim":
+                self.assertIn("auth-system", str(n["payload"]))
+                self.assertNotIn("authn", str(n["payload"]))
+
+    def test_no_canon_no_join(self):
+        a = graph_from("""
+(delta :turn 1
+  (term auth-system :gloss "authentication")
+  (add (claim c1 (uses app auth-system) :by user :src t1)))
+""")
+        b = graph_from("""
+(delta :turn 1
+  (term authn :gloss "auth module")
+  (add (claim c1 (uses app authn) :by user :src t1)))
+""")
+        terms, nodes, _, _ = merge([a, b])
+        self.assertIn("auth-system", terms)
+        self.assertIn("authn", terms)
+
+    def test_canon_join_output_folds_clean(self):
+        a = graph_from("""
+(delta :turn 1
+  (term fuse-layer :gloss "FUSE vfs" :canon "FUSE")
+  (add (claim c1 (has fuse-layer mount-point) :by user :src t1)))
+""")
+        b = graph_from("""
+(delta :turn 1
+  (term userspace-fs :gloss "userspace filesystem" :canon "FUSE")
+  (add (claim c1 (has userspace-fs mount-point) :by user :src t1)))
+""")
+        text = render(*merge([a, b]))
+        g = refold(text)
+        self.assertEqual(g.errors, [])
+
+
+class TestSrcQualification(unittest.TestCase):
+    """Merge qualifies :src with :log-id from the meta header."""
+
+    LOG_WITH_ID_A = """
+(meta :winnow-version "0.2" :log-id "wno-aaa")
+(delta :turn 1
+  (add (claim c1 (causes single-file-fs total-loss-risk) :by user :src t1)))
+"""
+
+    LOG_WITH_ID_B = """
+(meta :winnow-version "0.2" :log-id "wno-bbb")
+(delta :turn 1
+  (add (claim c1 (causes single-file-fs total-loss-risk) :by user :src t1)))
+"""
+
+    LOG_NO_ID = """
+(delta :turn 3
+  (add (claim c1 (causes single-file-fs total-loss-risk) :by user :src t3)))
+"""
+
+    def test_same_node_different_logs_qualified(self):
+        a, b = graph_from(self.LOG_WITH_ID_A), graph_from(self.LOG_WITH_ID_B)
+        _, nodes, _, _ = merge([a, b])
+        claim = next(n for n in nodes.values() if n["frame"] == "claim")
+        # src should be qualified with both log ids
+        self.assertEqual(claim["src"],
+                         [["wno-aaa", "t1"], ["wno-bbb", "t1"]])
+
+    def test_no_log_id_stays_bare(self):
+        a, b = graph_from(LOG_A), graph_from(LOG_B)
+        _, nodes, _, _ = merge([a, b])
+        risk = next(n for n in nodes.values()
+                    if "total-loss-risk" in str(n["payload"]))
+        # bare provenance union, no qualification
+        self.assertEqual(risk["src"], ["t1", "t3"])
+
+    def test_mixed_qualified_and_bare(self):
+        a = graph_from(self.LOG_WITH_ID_A)
+        b = graph_from(self.LOG_NO_ID)
+        _, nodes, _, _ = merge([a, b])
+        claim = next(n for n in nodes.values() if n["frame"] == "claim")
+        # a's src is qualified, b's stays bare
+        self.assertEqual(claim["src"], [["wno-aaa", "t1"], ["t3"]])
+
+    def test_qualified_output_folds_clean(self):
+        a, b = graph_from(self.LOG_WITH_ID_A), graph_from(self.LOG_WITH_ID_B)
+        text = render(*merge([a, b]))
+        g = refold(text)
+        self.assertEqual(g.errors, [])
+
+    def test_single_log_with_id_preserves_qualification(self):
+        a = graph_from(self.LOG_WITH_ID_A)
+        b = graph_from("""
+(meta :winnow-version "0.2" :log-id "wno-aaa")
+(delta :turn 2
+  (add (claim c2 (has p q) :by user :src t2)))
+""")
+        _, nodes, _, _ = merge([a, b])
+        # two nodes from the same log, each with single qualified src
+        for n in nodes.values():
+            src = n["src"]
+            self.assertIsInstance(src, list)
+            self.assertEqual(src[0], "wno-aaa")
+
+
 if __name__ == "__main__":
     unittest.main()

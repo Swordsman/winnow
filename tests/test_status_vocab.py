@@ -81,8 +81,8 @@ class TestFoldStatusWarnings(unittest.TestCase):
         self.assertEqual(g.warnings, [])
         self.assertEqual(g.nodes["c1"]["status"], "superseded")
 
-    def test_supersede_warns_for_illegal_frame(self):
-        # "superseded" is off-spec for question -- warning is correct here.
+    def test_supersede_question_no_warning(self):
+        # "superseded" is now legal for all frame types.
         g = graph_from("""
 (delta :turn 1
   (add (question q1 (is a b) :by user :src t1))
@@ -90,9 +90,8 @@ class TestFoldStatusWarnings(unittest.TestCase):
 (delta :turn 2
   (supersede c9 q1))
 """)
-        self.assertEqual(len(g.warnings), 1)
-        self.assertIn("superseded", g.warnings[0])
-        self.assertIn("q1", g.warnings[0])
+        self.assertEqual(g.warnings, [])
+        self.assertEqual(g.nodes["q1"]["status"], "superseded")
 
 
 class TestNormalizerStatusRejection(unittest.TestCase):

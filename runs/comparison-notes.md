@@ -111,8 +111,8 @@ model's role recognition-only).
 
 - [x] Post-fix flash rerun (`--model flash`, same prompts) to isolate
       model from prompt version — done, findings 7–13 above.
-- [ ] Decide the `about`-targets-a-term question (spec ruling or prompt
-      nudge) before the next live run; it's 100% of pro rejects.
+- [x] Decide the `about`-targets-a-term question — resolved 2026-07-24:
+      `about` now legally targets term ids (spec §5, fold + normalizer).
 - [ ] Gloss-quality nudge in the normalizer prompt (finding 5).
 - [x] Status-vocabulary validation (finding 12) — done 2026-07-20:
       STATUSES table in fold.py, fold warns (advisory, committed logs

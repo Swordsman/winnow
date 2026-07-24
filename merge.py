@@ -19,7 +19,8 @@ foldable by fold.py. Without --out it prints to stdout.
 """
 import sys
 
-from fold import (Graph, Lit, parse, tokenize, sx, ANN_ORDER, FRAME_ORDER)
+from fold import (Graph, Lit, parse, tokenize, sx, anns, ANN_ORDER,
+                  FRAME_ORDER)
 
 ID_PREFIX = {"claim": "c", "decision": "d", "question": "q",
              "constraint": "k", "def": "f", "action": "a", "artifact": "r"}
@@ -38,46 +39,117 @@ def load(path):
     return g
 
 
+def _qualify_src(src, log_id):
+    """Qualify bare :src values with their source log id.
+    Returns a list of [log_id, turn] pairs."""
+    if src is None:
+        return []
+    if not log_id:
+        bare = src if isinstance(src, list) else [src]
+        return [[t] for t in bare]
+    bare = src if isinstance(src, list) else [src]
+    return [[log_id, t] for t in bare]
+
+
 def _src_union(a, b):
-    def as_list(v):
-        if v is None:
-            return []
-        return list(v) if isinstance(v, list) else [v]
-    seen = list(dict.fromkeys(as_list(a) + as_list(b)))
-    return seen[0] if len(seen) == 1 else seen
+    """Union two lists of qualified :src pairs."""
+    seen = []
+    keys = set()
+    for item in a + b:
+        key = tuple(item)
+        if key not in keys:
+            keys.add(key)
+            seen.append(item)
+    return seen
+
+
+def _render_src(qualified):
+    """Render qualified :src pairs back to a serializable value.
+    Groups turns by log-id for compactness."""
+    if not qualified:
+        return None
+    # all unqualified (single-element items) — stay bare
+    if all(len(q) == 1 for q in qualified):
+        bare = [q[0] for q in qualified]
+        return bare[0] if len(bare) == 1 else bare
+    # at least one qualified item — group by log-id
+    groups = {}
+    order = []
+    for q in qualified:
+        if len(q) == 1:
+            lid, turns = None, [q[0]]
+        else:
+            lid, turns = q[0], q[1:]
+        if lid not in groups:
+            groups[lid] = []
+            order.append(lid)
+        groups[lid].extend(turns)
+    parts = []
+    for lid in order:
+        if lid is None:
+            for t in groups[lid]:
+                parts.append([t])
+        else:
+            parts.append([lid] + groups[lid])
+    return parts[0] if len(parts) == 1 else parts
 
 
 def merge(graphs):
     """Return (terms, nodes, edges, conflicts) of the merged graph.
     nodes is an ordered dict new_id -> node dict; edges a sorted list of
     (etype, src, dst) over new ids; conflicts a list of
-    (new_id, kept_status, other_status)."""
-    by_hash = {}          # hash -> merged node dict
+    (new_id, kept_status, other_status).
+    When input graphs carry :log-id in their meta header, :src values in
+    the merged output are qualified with the source log's id."""
+    by_hash = {}          # hash -> merged node dict (src already qualified)
     hash_order = []       # first-seen order
     conflicts = []
     terms = {}
     per_graph_map = []    # per graph: old nid -> hash
 
+    canon_to_tid = {}     # canon anchor -> chosen term id
+    term_remap = {}       # old tid -> merged tid (when canon anchors join)
+
     for g in graphs:
+        log_id = g.meta.get("log-id") if g.meta else None
+        if isinstance(log_id, Lit):
+            log_id = str(log_id)
         nid_to_hash = {}
         for tid, tail in g.terms.items():
-            if tid not in terms:
+            ta = anns(list(tail))
+            canon = str(ta["canon"]) if "canon" in ta else None
+            if canon and canon in canon_to_tid:
+                term_remap[tid] = canon_to_tid[canon]
+            elif tid not in terms:
                 terms[tid] = tail
+                if canon:
+                    canon_to_tid[canon] = tid
+            # tid already present and no canon conflict — skip
         for nid in sorted(g.nodes, key=g._node_key):
             h = g.hash_id(nid)
             nid_to_hash[nid] = h
             n = g.nodes[nid]
+            q_src = _qualify_src(n.get("src"), log_id)
             if h not in by_hash:
-                by_hash[h] = dict(n)
+                merged = dict(n)
+                merged["_qsrc"] = q_src
+                by_hash[h] = merged
                 hash_order.append(h)
                 continue
             m = by_hash[h]
-            m["src"] = _src_union(m.get("src"), n.get("src"))
+            m["_qsrc"] = _src_union(m["_qsrc"], q_src)
             if n["status"] != m["status"]:
                 conflicts.append((h, m["status"], n["status"]))
             for k, v in n.items():
                 m.setdefault(k, v)
         per_graph_map.append(nid_to_hash)
+
+    # render qualified :src back to serializable values
+    for h in hash_order:
+        m = by_hash[h]
+        rendered = _render_src(m.pop("_qsrc"))
+        if rendered is not None:
+            m["src"] = rendered
 
     # assign fresh serials, frame-grouped, in first-seen order
     serial = {f: 0 for f in ID_PREFIX}
@@ -89,11 +161,15 @@ def merge(graphs):
                 hash_to_id[h] = f"{ID_PREFIX[f]}{serial[f]}"
 
     def rewrite(payload, nid_to_hash):
-        """Node-id args in payloads point at merged ids."""
+        """Node-id and term-id args in payloads point at merged ids."""
         if isinstance(payload, list):
             return [rewrite(x, nid_to_hash) for x in payload]
-        if not isinstance(payload, Lit) and payload in nid_to_hash:
+        if isinstance(payload, Lit):
+            return payload
+        if payload in nid_to_hash:
             return hash_to_id[nid_to_hash[payload]]
+        if payload in term_remap:
+            return term_remap[payload]
         return payload
 
     nodes = {}
@@ -110,9 +186,15 @@ def merge(graphs):
     edges = set()
     for g, nid_to_hash in zip(graphs, per_graph_map):
         for t, a, b in g.edges:
-            if a in nid_to_hash and b in nid_to_hash:
-                edges.add((t, hash_to_id[nid_to_hash[a]],
-                           hash_to_id[nid_to_hash[b]]))
+            new_a = hash_to_id[nid_to_hash[a]] if a in nid_to_hash else None
+            if b in nid_to_hash:
+                new_b = hash_to_id[nid_to_hash[b]]
+            elif t == "about" and (b in terms or b in term_remap):
+                new_b = term_remap.get(b, b)
+            else:
+                new_b = None
+            if new_a and new_b:
+                edges.add((t, new_a, new_b))
 
     # status conflicts become open questions about the disputed node;
     # the first-seen status stands until a human or later delta resolves it

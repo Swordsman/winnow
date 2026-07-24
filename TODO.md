@@ -19,10 +19,10 @@
   status drives Resolver rank class + mass gating; small code-level
   fix candidate — **fixed 2026-07-20** (STATUSES table, fold warns /
   normalizer rejects, 9 tests; sweep also surfaced two grandfathered
-  off-spec decision statuses in the live-run handoff). Remaining, per
-  the notes' next-steps list: the `about`-targets-a-term ruling (100%
-  of pro rejects), gloss-quality prompt nudge, optional per-delta
-  yield curves.
+  off-spec decision statuses in the live-run handoff). **`about`-targets
+  -a-term ruling resolved 2026-07-24:** `about` now legally targets term
+  ids (spec §5 note, fold + normalizer updated, 6 tests). Remaining:
+  gloss-quality prompt nudge, optional per-delta yield curves.
 - [ ] **aimpack packaging.** Needs the aimpack format spec / an example
   pack — not in this repo. Ship spec + fold.py + registry as a part once
   available.
@@ -74,37 +74,27 @@
   responding frontier model emits .wno ops alongside its reply (one
   call); manager-side decomposition is the weak link per flash-baseline
   evidence, so keep the lightweight model's role recognition-only (c29).
-- [ ] **`:src` namespacing + supersede/§2 rulings (Joe).** The
-  arc-split corpus made both concrete (`runs/arc-split/notes.md`):
-  (1) merge namespaces the id axis but unions `:src` verbatim — three
-  different original turns all answer to `t1` in the merged log;
-  options remain session-namespaced `:src` vs per-log meta id.
-  (2) `supersede` sets `:status superseded` on any frame but §2 only
-  legalizes it for claim/decision — grow §2 or frame-restrict the op.
-- [ ] **Merge UX hardening** (post-first-real-use): `:src` values collide
-  across logs (t1 in log A ≠ t1 in log B); currently unioned verbatim.
-  Needs session-namespaced provenance (e.g. `:src (sess-a t1)`) or a
-  log-id in the meta header — spec change; **evidence now concrete**
-  in `runs/arc-split/notes.md` (item 1); blocked on the ruling above.
-- [ ] **Alias-aware hashing.** `hash_id` hashes canonical term ids; two
-  logs whose registries alias the same surface form to different ids
-  won't join. Upgraded mechanism (2026-07-17): **canon anchors** —
-  optional `:canon` key on term entries attaching a Wikipedia-title
-  canonical form, attach-don't-replace; organic ids stay the wire
-  format, anchors are cross-lineage join keys (same pattern as hash
-  ids). fold.py already tolerates the key; needs §8 grammar note +
-  merge/Resolver consumption. Anchoring happens in idle time (pairs
-  with `--stale` maintenance pass).
+- [x] **Merge `:src` qualification (2026-07-24).** merge.py reads
+  `:log-id` from the meta header (not `; id:` comments — comments
+  aren't part of the graph). Qualified `:src` values group turns by
+  log-id: `(wno-xxx t1 t3)`. Logs without `:log-id` produce bare
+  `:src` as before. Spec §7 (meta keys), §8 (grammar), §12 (limits)
+  updated; 5 new tests (120 total).
+  (Supersede/§2 ruling also 2026-07-24: `superseded` added to all
+  frame types — spec §2 + fold.py STATUSES + normalizer prompt updated.)
+- [x] **Canon anchors (2026-07-24).** `:canon` key on term entries
+  documented in spec §4 + §8 grammar. merge.py joins terms across logs
+  by canon anchor (different organic ids, same `:canon` value → one
+  merged term, payloads rewritten). Resolver indexes canon values as
+  surface forms for resolution. Anchoring happens in idle time (pairs
+  with `--stale` maintenance pass); no terms are anchored yet.
 
 ## Minor / notes
-- [ ] **Transfer-file ids + receives: lines (spec patch).** Orphaned
-  ancestor references bit us live: the d10 handoff used terms (gam,
-  rampart, mandol, cuhk-critique) declared only in its ancestor file,
-  which the boot instructions never listed. Convention proposed by the
-  d10 session: `; id: wno-YYYYMMDD-slug-4hex` plus one `; receives:`
-  line per ancestor in the header comment, so a fresh session can detect
-  a missing ancestor immediately. Wants a small spec section alongside
-  the transfer conventions.
+- [x] **Transfer-file ids + receives (2026-07-24).** Moved from comment
+  conventions (`; id:`, `; receives:`) into proper graph structure:
+  `:log-id` and `:receives` meta keys (§7 table, §8 grammar). fold.py
+  stats displays log identity and ancestor list. Comments remain as
+  human-readable hints but are not functional graph components.
 - [ ] **Tier/graph visualizer for Joe.** Interactive model of tiers,
   fold, push/pull for design intuition (Joe: needed before evaluating
   ranking/profile-learning items). Options: Kimi swarm / AI Studio

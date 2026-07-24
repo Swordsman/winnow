@@ -46,12 +46,12 @@ Every node is one of eight frames. Payload is a canonical proposition (§4) unle
 | Frame | Captures | Statuses |
 |---|---|---|
 | `claim` | Descriptive assertion — how things are | `live` `corrected` `retracted` `superseded` |
-| `def` | Term/concept introduction; payload = `termid "gloss"` | `live` `deprecated` |
-| `question` | Open thread | `open` `answered` `dropped` |
+| `def` | Term/concept introduction; payload = `termid "gloss"` | `live` `deprecated` `superseded` |
+| `question` | Open thread | `open` `answered` `dropped` `superseded` |
 | `decision` | Commitment to one option among alternatives | `proposed` `frozen` `superseded` `abandoned` |
-| `constraint` | Requirement or preference bounding solutions | `live` `relaxed` `retired` |
-| `action` | Work item — the implementation-status discriminator | `todo` `doing` `done` `blocked` `dropped` |
-| `artifact` | External referent (file, url, code, doc); payload = string ref | `live` `deprecated` |
+| `constraint` | Requirement or preference bounding solutions | `live` `relaxed` `retired` `superseded` |
+| `action` | Work item — the implementation-status discriminator | `todo` `doing` `done` `blocked` `dropped` `superseded` |
+| `artifact` | External referent (file, url, code, doc); payload = string ref | `live` `deprecated` `superseded` |
 | `edge` | Typed relation between nodes (§5); no id, no status | — |
 
 Notes:
@@ -84,10 +84,12 @@ Fixed key order when serializing: `:status :conf :strength :by :src :time :modal
 **Term registry.** Open set, canonical `kebab-case` ids, declared on first use:
 
 ```lisp
-(term fuse-vfs :gloss "userspace virtual filesystem via FUSE" :aka ("FUSE layer" "jsonfs daemon"))
+(term fuse-vfs :gloss "userspace virtual filesystem via FUSE"
+               :aka ("FUSE layer" "jsonfs daemon")
+               :canon "Filesystem_in_Userspace")
 ```
 
-Aliases map surface forms → canonical id. The normalizer consults the registry before minting anything new; a minted term carries `:new` for later human/agent review.
+Aliases map surface forms → canonical id. `:canon` attaches a cross-lineage anchor — a stable canonical form (convention: Wikipedia article title) that serves as a join key when merging logs whose registries use different organic ids for the same concept. Organic ids stay the wire format; anchors are join keys only. The normalizer consults the registry before minting anything new; a minted term carries `:new` for later human/agent review.
 
 **Relations** are terms too — open set, seeded for technical conversations:
 
@@ -122,9 +124,11 @@ Each registry entry for a relation records its **direction gloss**, e.g. `maps-t
 | `answers` | X resolves question Y | `(answers X Q)` |
 | `motivates` | X is the reason for Y | `(motivates REASON THING)` |
 | `depends` | X needs Y | `(depends X Y)` |
-| `about` | X concerns topic/decision Y | `(about X Y)` |
+| `about` | X concerns topic/decision/term Y | `(about X Y)` |
 
 Eight and no more. If a relation between nodes doesn't fit, it's probably a proposition-level relation (§4), not an edge.
+
+Note: `about` is the one edge whose target may be a **term id** instead of a node id — `(about q5 archival-compression)` reads "this question concerns this topic." All other edges require node ids at both endpoints.
 
 ## 6. Normalization rules — the collapse contract
 
@@ -156,10 +160,21 @@ The wire format. One `delta` per trigger; the graph is `fold(empty, log)`.
 ```lisp
 (meta :winnow-version "0.2"
       :semantic-rep "registry-v0.1"
+      :log-id "wno-20260724-live-sidepayload-a1f3"
+      :receives ("wno-20260720-resolver-batch-7e2c"
+                 "wno-20260720-wno-review-8b4d")
       :profile (:tail 6 :fire-hops 1 :promotion-ttl 2 :widening-base 3))
 ```
 
-`:semantic-rep` declares the term-identity mode (§4); `:profile` declares the cooling profile (§10.4). Every key is optional. A file with no header is a v0.1-legacy log and defaults to `registry-v0.1` with the default profile — v0.1 logs are valid v0.2 logs unchanged. The header is side-effect state (§10.6): it configures the machinery and never cools.
+| Key | Purpose |
+|---|---|
+| `:winnow-version` | Spec version (currently `"0.2"`). |
+| `:semantic-rep` | Term-identity mode (§4); defaults to `"registry-v0.1"`. |
+| `:log-id` | This log's identity — used by merge to qualify `:src` provenance (§12). Convention: `wno-YYYYMMDD-slug-4hex`. |
+| `:receives` | Ancestor log-ids this log depends on — terms, vocabulary, or context inherited from prior sessions. A tool loading this log can detect missing ancestors before trusting the graph. |
+| `:profile` | Cooling profile (§10.4). |
+
+Every key is optional. A file with no header is a v0.1-legacy log and defaults to `registry-v0.1` with the default profile — v0.1 logs are valid v0.2 logs unchanged. The header is side-effect state (§10.6): it configures the machinery and never cools.
 
 ```lisp
 (delta :turn N
@@ -190,8 +205,10 @@ The wire format. One `delta` per trigger; the graph is `fold(empty, log)`.
 ```ebnf
 log       = [ meta ] { delta } ;
 meta      = "(" "meta" { mkey mval } ")" ;
-mkey      = ":winnow-version" | ":semantic-rep" | ":profile" ;
-mval      = string | profile ;
+mkey      = ":winnow-version" | ":semantic-rep" | ":log-id"
+          | ":receives" | ":profile" ;
+mval      = string | idlist | profile ;
+idlist    = "(" { string } ")" ;
 profile   = "(" { key value } ")" ;
 delta     = "(" "delta" ":turn" int { op } ")" ;
 op        = add | update | merge | supersede | del | termdecl ;
@@ -213,7 +230,8 @@ update    = "(" "update" id { ann } ")" ;
 supersede = "(" "supersede" id id { ann } ")" ;   (* NEW OLD *)
 merge     = "(" "merge" id id ")" ;               (* LOSER WINNER *)
 del       = "(" "del" ( id | edge ) ")" ;
-termdecl  = "(" "term" termid { ":gloss" string | ":aka" "(" {string} ")" | ann } ")" ;
+termdecl  = "(" "term" termid { ":gloss" string | ":aka" "(" {string} ")"
+          | ":canon" string | ann } ")" ;
 comment   = ";" text-to-eol ;                     (* outside strings *)
 ```
 
@@ -664,6 +682,7 @@ Every dropped item is either reconstructible from surviving nodes or carried no 
 
 - **Registry drift is the real determinism risk.** Canonical-form invariance (§6) holds *given a shared registry*. Across sessions and models, the registry is shared state and must travel with the log (an aimpack part is the obvious vehicle).
 - **Hash ids for merge.** Serial ids are token-cheap but session-local. Multi-session merge wants content-addressed node ids — hash of `(frame, canonical-payload)` — making cross-log dedup automatic. Deferred; the `merge` op covers v0.2. Hash ids are also the prerequisite for the global KB (§10.5, rung 4) and for cross-representation equivalence below.
+- **`:src` provenance in merged output.** Within a single log, `:src tN` is unambiguous. Across logs, different turns answer to the same index. When input logs carry `:log-id` in their meta header (§7), merge qualifies `:src` values with the source log's id — e.g. `:src (wno-20260720-resolver-batch-7e2c t4)` — so provenance stays traceable. Logs without `:log-id` produce bare `:src` values as before. Single-session wire format is unchanged; qualification is merge-output-only.
 - **Global KB construction.** §10.5 rung 4 specs only the query interface: a time-independent, cross-conversation store answering the same `(frame, status, term)` queries the frontier answers within one log. Building it — dedup across lineages, trust weighting, staleness — is deferred to the hash-id era.
 - **Representation modes beyond registry.** The §4/§7 mode declaration reserves the seam: transport never inspects proposition internals, so the term-identity engine is swappable. Anchor-relative embedding profiles (UEL) are the planned second mode — synonym collapse by geometry instead of lookup. Prime-decomposition schemes (NSM-style) and predicate-calculus schemes (Lojban-style) are conceivable third-party modes. Cross-mode equivalence requires converters through a shared canonical form plus hash ids, and every converter's fidelity limits must be documented; none of this is specified until a second mode actually exists. PRH scale-dependency implies a model-size floor for a geometric canonicalizer; below it, expect alias-table quality anyway.
 - **Profile learning loop.** §10.4 names reach telemetry as the tuning signal but does not spec the update rule. Deliberate: ship static profiles first, measure, then decide whether learning is per-deployment batch analysis or online adjustment.

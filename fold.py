@@ -43,12 +43,12 @@ ETYPES = {"supports", "contradicts", "supersedes", "refines",
 # Graph.warnings / Graph._check_status.
 STATUSES = {
     "claim": {"live", "corrected", "retracted", "superseded"},
-    "def": {"live", "deprecated"},
-    "question": {"open", "answered", "dropped"},
+    "def": {"live", "deprecated", "superseded"},
+    "question": {"open", "answered", "dropped", "superseded"},
     "decision": {"proposed", "frozen", "superseded", "abandoned"},
-    "constraint": {"live", "relaxed", "retired"},
-    "action": {"todo", "doing", "done", "blocked", "dropped"},
-    "artifact": {"live", "deprecated"},
+    "constraint": {"live", "relaxed", "retired", "superseded"},
+    "action": {"todo", "doing", "done", "blocked", "dropped", "superseded"},
+    "artifact": {"live", "deprecated", "superseded"},
 }
 ANN_ORDER = ["status", "conf", "status-conf", "strength", "by",
              "src", "time", "modal", "neg"]
@@ -285,8 +285,25 @@ class Graph:
         for t, a, b in self.edges:
             for x in (a, b):
                 if x not in self.nodes:
+                    if t == "about" and x == b and x in self.terms:
+                        continue
                     self.errors.append(f"dangling ref {x} in ({t} {a} {b})")
         return self.errors
+
+    def undeclared_terms(self):
+        """Terms referenced structurally but never declared.
+        Checks: about-edge targets that are term-like (not node ids),
+        and def-frame payloads whose term id isn't registered."""
+        undeclared = set()
+        for t, a, b in self.edges:
+            if t == "about" and b not in self.nodes and b not in self.terms:
+                undeclared.add(b)
+        for nid, n in self.nodes.items():
+            if n["frame"] == "def":
+                tid = n["payload"][0] if isinstance(n["payload"], list) else None
+                if tid and tid not in self.terms:
+                    undeclared.add(tid)
+        return sorted(undeclared)
 
     # -- shared rendering --------------------------------------------
     def _node_key(self, nid):
@@ -522,10 +539,22 @@ class Graph:
         return "\n".join(lines)
 
     def stats(self):
-        out = [f"deltas applied : {self.deltas}",
-               f"nodes          : {len(self.nodes)}",
-               f"edges          : {len(self.edges)}",
-               f"terms          : {len(self.terms)}"]
+        out = []
+        log_id = self.meta.get("log-id")
+        if log_id:
+            out.append(f"log-id         : {log_id}")
+        receives = self.meta.get("receives")
+        if receives:
+            if isinstance(receives, list):
+                out.append(f"receives       : {len(receives)} ancestor(s)")
+                for r in receives:
+                    out.append(f"  - {r}")
+            else:
+                out.append(f"receives       : {receives}")
+        out += [f"deltas applied : {self.deltas}",
+                f"nodes          : {len(self.nodes)}",
+                f"edges          : {len(self.edges)}",
+                f"terms          : {len(self.terms)}"]
         by_frame = Counter(n["frame"] for n in self.nodes.values())
         for f in FRAME_ORDER:
             if by_frame[f]:
@@ -539,6 +568,18 @@ class Graph:
         snap = self.snapshot()
         out.append(f"snapshot size  : {len(snap)} chars "
                    f"(~{len(snap) // 4} tokens)")
+        undecl = self.undeclared_terms()
+        dangles = [e for e in self.errors if "dangling" in e]
+        if undecl or dangles:
+            out.append(f"gaps           : {len(undecl)} undeclared term(s), "
+                       f"{len(dangles)} dangling ref(s)")
+            if undecl:
+                out.append(f"  terms  : {', '.join(undecl)}")
+            if dangles:
+                for d in dangles:
+                    out.append(f"  ref    : {d}")
+            if receives:
+                out.append("  (likely inherited from declared ancestors)")
         return "\n".join(out)
 
 

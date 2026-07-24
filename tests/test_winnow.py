@@ -96,6 +96,32 @@ class TestNormalizer(unittest.TestCase):
         self.assertEqual(ops, [])
         self.assertEqual(len(rejects), 2)
 
+    def test_about_targets_term_accepted(self):
+        g = graph_from(
+            '(delta :turn 1 (term alpha :gloss "a")'
+            '(add (question q1 (is x y) :by user :src t1)))')
+        ops, rejects = Normalizer(g).normalize(
+            extract_forms('(add (edge (about q1 alpha)))'))
+        self.assertEqual(rejects, [])
+        self.assertEqual(sx(ops[0]), "(add (edge (about q1 alpha)))")
+
+    def test_about_targets_new_term_in_same_batch(self):
+        g = graph_from(
+            '(delta :turn 1 (add (question q1 (is x y) :by user :src t1)))')
+        ops, rejects = Normalizer(g).normalize(
+            extract_forms('(term beta :gloss "b")'
+                          '(add (edge (about q1 beta)))'))
+        self.assertEqual(rejects, [])
+
+    def test_non_about_edge_to_term_rejected(self):
+        g = graph_from(
+            '(delta :turn 1 (term alpha :gloss "a")'
+            '(add (question q1 (is x y) :by user :src t1)))')
+        ops, rejects = Normalizer(g).normalize(
+            extract_forms('(add (edge (supports q1 alpha)))'))
+        self.assertEqual(len(rejects), 1)
+        self.assertIn("dangling", rejects[0])
+
     def test_annotation_order_enforced(self):
         ops, _ = Normalizer(Graph()).normalize(extract_forms(
             '(add (claim x1 (has a b) :src t1 :by user :conf 0.7))'))

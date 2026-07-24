@@ -1,0 +1,123 @@
+; winnow live side-payload extraction — this session's own conversation
+; user=Joe, assistant=Claude (opus 4.6)
+; Mode: side-payload — assistant generates its own .wno representation
+;   alongside its replies; user turns extracted by the same assistant
+;   (recognition only, the lighter half).
+; Session started: 2026-07-24
+
+(meta :winnow-version "0.2"
+      :semantic-rep "registry-v0.1"
+      :log-id "wno-20260724-live-sidepayload-a1f3"
+      :receives ("wno-20260720-resolver-batch-7e2c"
+                 "wno-20260720-wno-review-8f4a"))
+
+(delta :turn 1
+  ; t1-4: boot sequence, project status survey, open questions enumerated
+  (add (claim c1 (verified project-state all-claims-completed tests-green) :by assistant :src t1)
+    ; 109 tests passing, 5/5 claims have completion sections, no in-flight work
+  )
+  (add (claim c2 (identified open-questions ten-items-for-joe) :by assistant :src t3)
+    ; posed all blocked/pending decisions as clear questions to the user;
+    ; the questions themselves already exist in TODO.md and prior handoffs
+  ))
+
+(delta :turn 5
+  ; user asks: should the wno log be built continuously during the
+  ; conversation, not batched at session end?
+  (add (question q1 (adopt live-side-payload-extraction this-session) :status answered :by user :src t5))
+  (add (claim c3 (spec-describes incremental-extraction per-turn-deltas) :by user :src t5))
+  (add (claim c4 (smart-model generates own-representation alongside-output not-separate-pass) :by user :src t7)
+    ; correction: double duty (participant + extractor) only applies to
+    ; interpreting user turns; for model output the representation IS the
+    ; output — the model knows what it's claiming/deciding/asking at
+    ; generation time
+  )
+  (add (decision d1 (begin live-side-payload-extraction this-session) :status frozen :by user :src t7))
+  (add (edge (answers d1 q1)))
+  (add (edge (supports c4 d1)))
+  (add (edge (supports c3 d1))))
+
+(delta :turn 9
+  ; t8-12: three spec rulings — all the same move: the spec was more
+  ; restrictive than the semantics require, relax to match what the
+  ; system actually means.
+  (term about-targets-terms :gloss "ruling: about edges can target term ids, not just node ids")
+  (term supersede-all-frames :gloss "ruling: every frame type can be superseded")
+  (term src-merge-qualification :gloss "ruling: merge qualifies :src using the source log's ; id: header")
+  (add (decision d2 (permit about-edge term-id-target) :status frozen :by user :src t12))
+  (add (claim c5 (spec-grammar-already-allows term-ids-as-args) :by assistant :src t10)
+    ; §4 says ARG = term id | node id | "literal" | number; edges use args;
+    ; the restriction was in the normalizer, not in the semantics
+  )
+  (add (edge (supports c5 d2)))
+  (add (edge (about d2 about-targets-terms)))
+  (add (decision d3 (add superseded-status all-frame-types) :status frozen :by user :src t12))
+  (add (claim c6 (every-frame-type can-be-superseded in-practice) :by assistant :src t10)
+    ; a claim gets superseded by a better claim, a constraint by a relaxed
+    ; replacement, an action when the approach changes — restricting the op
+    ; forces a two-step workaround for what supersede does in one op
+  )
+  (add (edge (supports c6 d3)))
+  (add (edge (about d3 supersede-all-frames)))
+  (add (decision d4 (merge-qualifies-src via-log-id-header) :status frozen :by user :src t12))
+  (add (claim c7 (per-log-meta-id less-invasive-than session-namespaced-src) :by assistant :src t10)
+    ; session-namespaced :src changes the wire format everywhere;
+    ; log-id in the meta header keeps :src bare within a single log,
+    ; merge qualifies only when combining
+  )
+  (add (edge (supports c7 d4)))
+  (add (edge (about d4 src-merge-qualification)))
+  (add (claim c8 (three-rulings same-move removing-fences-wrong-place) :by user :src t12)
+    ; "basically we extend permissions about what can be defined and how
+    ; things can be defined" — no new concepts, no new machinery, just
+    ; removing restrictions that were more narrow than the semantics
+  )
+  (add (edge (supports c8 d2)))
+  (add (edge (supports c8 d3)))
+  (add (edge (supports c8 d4))))
+
+(delta :turn 13
+  ; user: comments are just comments — if information is meant to be
+  ; part of the graph it ought to be represented properly.
+  ; Implication: ; id: headers are hints, not authoritative identity.
+  ; Log identity belongs in (meta :log-id "..."), not in comments.
+  (add (claim c9 (comments not-functional-graph-components) :by user :src t13))
+  (add (decision d5 (use meta-log-id not-comment-id for-merge-provenance) :status frozen :by user :src t13))
+  (add (edge (supports c9 d5)))
+  (add (edge (motivates d5 d4))))
+
+(delta :turn 15
+  ; t14-17: implementation of :log-id, :receives as meta keys;
+  ; ancestor gap detection; canon anchors in merge + resolver.
+  (term canon-anchors :gloss "optional :canon key on term entries — Wikipedia-title canonical form as cross-lineage join key for merge")
+  (term ancestor-gap-detection :gloss "fold.py stats reports undeclared terms and dangling refs alongside :receives — informational, not a gate")
+  (add (decision d6 (formalize receives-as-meta-key not-comment) :status frozen :by user :src t14))
+  (add (edge (supports c9 d6)))
+  (add (edge (about d6 src-merge-qualification)))
+  (add (claim c10 (ancestor-gaps informational-not-blocking) :by user :src t15)
+    ; "rather than refusing to merge, perhaps just indicating explicitly
+    ; what is present and what is absent" — and in some cases, infer what
+    ; the missing content likely was
+  )
+  (add (edge (about c10 ancestor-gap-detection)))
+  (add (claim c11 (implemented canon-anchors merge-and-resolver) :by assistant :src t17))
+  (add (edge (about c11 canon-anchors))))
+
+(delta :turn 17
+  ; t17-18: user asks whether winnow should adopt cbtdag methodology
+  ; for the whole project — formal contracts, modular decomposition,
+  ; design-before-build. Assistant recommends against at current scale
+  ; (~1900 lines, 4 files); cbtdag as task methodology (arc-split style)
+  ; yes, as architectural methodology premature. Spec is the modular
+  ; candidate, not the code.
+  (term cbtdag :gloss "contract-based task DAG — structured project decomposition with frozen interface contracts")
+  (add (question q2 (adopt cbtdag-methodology whole-project) :status answered :by user :src t17))
+  (add (claim c12 (codebase too-small-for-formal-decomposition four-files 1900-lines) :by assistant :src t18))
+  (add (claim c13 (cbtdag-as-task-methodology appropriate arc-split-style) :by assistant :src t18))
+  (add (claim c14 (spec-not-code is-modular-candidate) :by assistant :src t18))
+  (add (decision d7 (defer architectural-cbtdag watch-for-coupling-signal) :status frozen :by user :src t18))
+  (add (edge (answers d7 q2)))
+  (add (edge (supports c12 d7)))
+  (add (edge (supports c13 d7)))
+  (add (edge (supports c14 d7)))
+  (add (edge (about q2 cbtdag))))
