@@ -93,14 +93,11 @@
   with `--stale` maintenance pass).
 
 ## Minor / notes
-- [ ] **Transfer-file ids + receives: lines (spec patch).** Orphaned
-  ancestor references bit us live: the d10 handoff used terms (gam,
-  rampart, mandol, cuhk-critique) declared only in its ancestor file,
-  which the boot instructions never listed. Convention proposed by the
-  d10 session: `; id: wno-YYYYMMDD-slug-4hex` plus one `; receives:`
-  line per ancestor in the header comment, so a fresh session can detect
-  a missing ancestor immediately. Wants a small spec section alongside
-  the transfer conventions.
+- [x] **Transfer-file ids + receives (2026-07-24).** Moved from comment
+  conventions (`; id:`, `; receives:`) into proper graph structure:
+  `:log-id` and `:receives` meta keys (§7 table, §8 grammar). fold.py
+  stats displays log identity and ancestor list. Comments remain as
+  human-readable hints but are not functional graph components.
 - [ ] **Tier/graph visualizer for Joe.** Interactive model of tiers,
   fold, push/pull for design intuition (Joe: needed before evaluating
   ranking/profile-learning items). Options: Kimi swarm / AI Studio

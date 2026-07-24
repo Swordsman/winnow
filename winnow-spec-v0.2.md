@@ -158,10 +158,21 @@ The wire format. One `delta` per trigger; the graph is `fold(empty, log)`.
 ```lisp
 (meta :winnow-version "0.2"
       :semantic-rep "registry-v0.1"
+      :log-id "wno-20260724-live-sidepayload-a1f3"
+      :receives ("wno-20260720-resolver-batch-7e2c"
+                 "wno-20260720-wno-review-8b4d")
       :profile (:tail 6 :fire-hops 1 :promotion-ttl 2 :widening-base 3))
 ```
 
-`:semantic-rep` declares the term-identity mode (§4); `:profile` declares the cooling profile (§10.4); `:log-id` names this log for cross-log merge provenance — when merge.py combines logs, it qualifies `:src` values with their source log's `:log-id` so provenance stays traceable (see §12). Every key is optional. A file with no header is a v0.1-legacy log and defaults to `registry-v0.1` with the default profile — v0.1 logs are valid v0.2 logs unchanged. The header is side-effect state (§10.6): it configures the machinery and never cools.
+| Key | Purpose |
+|---|---|
+| `:winnow-version` | Spec version (currently `"0.2"`). |
+| `:semantic-rep` | Term-identity mode (§4); defaults to `"registry-v0.1"`. |
+| `:log-id` | This log's identity — used by merge to qualify `:src` provenance (§12). Convention: `wno-YYYYMMDD-slug-4hex`. |
+| `:receives` | Ancestor log-ids this log depends on — terms, vocabulary, or context inherited from prior sessions. A tool loading this log can detect missing ancestors before trusting the graph. |
+| `:profile` | Cooling profile (§10.4). |
+
+Every key is optional. A file with no header is a v0.1-legacy log and defaults to `registry-v0.1` with the default profile — v0.1 logs are valid v0.2 logs unchanged. The header is side-effect state (§10.6): it configures the machinery and never cools.
 
 ```lisp
 (delta :turn N
@@ -192,8 +203,10 @@ The wire format. One `delta` per trigger; the graph is `fold(empty, log)`.
 ```ebnf
 log       = [ meta ] { delta } ;
 meta      = "(" "meta" { mkey mval } ")" ;
-mkey      = ":winnow-version" | ":semantic-rep" | ":profile" | ":log-id" ;
-mval      = string | profile ;
+mkey      = ":winnow-version" | ":semantic-rep" | ":log-id"
+          | ":receives" | ":profile" ;
+mval      = string | idlist | profile ;
+idlist    = "(" { string } ")" ;
 profile   = "(" { key value } ")" ;
 delta     = "(" "delta" ":turn" int { op } ")" ;
 op        = add | update | merge | supersede | del | termdecl ;

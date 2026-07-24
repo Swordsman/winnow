@@ -524,10 +524,22 @@ class Graph:
         return "\n".join(lines)
 
     def stats(self):
-        out = [f"deltas applied : {self.deltas}",
-               f"nodes          : {len(self.nodes)}",
-               f"edges          : {len(self.edges)}",
-               f"terms          : {len(self.terms)}"]
+        out = []
+        log_id = self.meta.get("log-id")
+        if log_id:
+            out.append(f"log-id         : {log_id}")
+        receives = self.meta.get("receives")
+        if receives:
+            if isinstance(receives, list):
+                out.append(f"receives       : {len(receives)} ancestor(s)")
+                for r in receives:
+                    out.append(f"  - {r}")
+            else:
+                out.append(f"receives       : {receives}")
+        out += [f"deltas applied : {self.deltas}",
+                f"nodes          : {len(self.nodes)}",
+                f"edges          : {len(self.edges)}",
+                f"terms          : {len(self.terms)}"]
         by_frame = Counter(n["frame"] for n in self.nodes.values())
         for f in FRAME_ORDER:
             if by_frame[f]:

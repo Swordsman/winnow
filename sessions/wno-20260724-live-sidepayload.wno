@@ -1,6 +1,3 @@
-; id: wno-20260724-live-sidepayload-a1f3
-; receives: sessions/resolver-batch-session-transfer.wno
-; receives: sessions/wno-review-session-transfer.wno
 ; winnow live side-payload extraction — this session's own conversation
 ; user=Joe, assistant=Claude (opus 4.6)
 ; Mode: side-payload — assistant generates its own .wno representation
@@ -8,7 +5,11 @@
 ;   (recognition only, the lighter half).
 ; Session started: 2026-07-24
 
-(meta :winnow-version "0.2" :semantic-rep "registry-v0.1")
+(meta :winnow-version "0.2"
+      :semantic-rep "registry-v0.1"
+      :log-id "wno-20260724-live-sidepayload-a1f3"
+      :receives ("wno-20260720-resolver-batch-7e2c"
+                 "wno-20260720-wno-review-8f4a"))
 
 (delta :turn 1
   ; t1-4: boot sequence, project status survey, open questions enumerated
