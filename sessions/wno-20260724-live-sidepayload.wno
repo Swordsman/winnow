@@ -85,3 +85,20 @@
   (add (decision d5 (use meta-log-id not-comment-id for-merge-provenance) :status frozen :by user :src t13))
   (add (edge (supports c9 d5)))
   (add (edge (motivates d5 d4))))
+
+(delta :turn 15
+  ; t14-17: implementation of :log-id, :receives as meta keys;
+  ; ancestor gap detection; canon anchors in merge + resolver.
+  (term canon-anchors :gloss "optional :canon key on term entries — Wikipedia-title canonical form as cross-lineage join key for merge")
+  (term ancestor-gap-detection :gloss "fold.py stats reports undeclared terms and dangling refs alongside :receives — informational, not a gate")
+  (add (decision d6 (formalize receives-as-meta-key not-comment) :status frozen :by user :src t14))
+  (add (edge (supports c9 d6)))
+  (add (edge (about d6 src-merge-qualification)))
+  (add (claim c10 (ancestor-gaps informational-not-blocking) :by user :src t15)
+    ; "rather than refusing to merge, perhaps just indicating explicitly
+    ; what is present and what is absent" — and in some cases, infer what
+    ; the missing content likely was
+  )
+  (add (edge (about c10 ancestor-gap-detection)))
+  (add (claim c11 (implemented canon-anchors merge-and-resolver) :by assistant :src t17))
+  (add (edge (about c11 canon-anchors))))
