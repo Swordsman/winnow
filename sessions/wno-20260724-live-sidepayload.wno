@@ -1,0 +1,37 @@
+; id: wno-20260724-live-sidepayload-a1f3
+; receives: sessions/resolver-batch-session-transfer.wno
+; receives: sessions/wno-review-session-transfer.wno
+; winnow live side-payload extraction — this session's own conversation
+; user=Joe, assistant=Claude (opus 4.6)
+; Mode: side-payload — assistant generates its own .wno representation
+;   alongside its replies; user turns extracted by the same assistant
+;   (recognition only, the lighter half).
+; Session started: 2026-07-24
+
+(meta :winnow-version "0.2" :semantic-rep "registry-v0.1")
+
+(delta :turn 1
+  ; t1-4: boot sequence, project status survey, open questions enumerated
+  (add (claim c1 (verified project-state all-claims-completed tests-green) :by assistant :src t1)
+    ; 109 tests passing, 5/5 claims have completion sections, no in-flight work
+  )
+  (add (claim c2 (identified open-questions ten-items-for-joe) :by assistant :src t3)
+    ; posed all blocked/pending decisions as clear questions to the user;
+    ; the questions themselves already exist in TODO.md and prior handoffs
+  ))
+
+(delta :turn 5
+  ; user asks: should the wno log be built continuously during the
+  ; conversation, not batched at session end?
+  (add (question q1 (adopt live-side-payload-extraction this-session) :status answered :by user :src t5))
+  (add (claim c3 (spec-describes incremental-extraction per-turn-deltas) :by user :src t5))
+  (add (claim c4 (smart-model generates own-representation alongside-output not-separate-pass) :by user :src t7)
+    ; correction: double duty (participant + extractor) only applies to
+    ; interpreting user turns; for model output the representation IS the
+    ; output — the model knows what it's claiming/deciding/asking at
+    ; generation time
+  )
+  (add (decision d1 (begin live-side-payload-extraction this-session) :status frozen :by user :src t7))
+  (add (edge (answers d1 q1)))
+  (add (edge (supports c4 d1)))
+  (add (edge (supports c3 d1))))
