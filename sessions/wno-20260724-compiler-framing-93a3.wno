@@ -1,0 +1,85 @@
+; id: wno-20260724-compiler-framing-93a3
+; receives: sessions/kimi-salvage-session-transfer.wno
+; winnow self-extraction — corpus: Kimi K3 design review + compiler framing session (2026-07-24)
+; user=Joe, assistant=Claude (opus 4.6). Input: Kimi K3 "Winnow Front-End Unified Design & Plan" doc.
+; Session outcome: K3 design reviewed; six "decision items" dissolved to one thesis + defaults;
+;   compiler framing adopted over translation metaphor; WO-0 scoped with this conversation as corpus.
+
+(meta :winnow-version "0.2" :semantic-rep "registry-v0.1" :log-id "wno-20260724-compiler-framing-93a3")
+
+(delta :turn 3
+  ; t1-3: Kimi K3 design doc reviewed; six decision items assessed
+  (term kimi-k3 :gloss "Moonshot Kimi K3; produced the unified front-end design doc positioning winnow as interface layer between conversation and code harnesses")
+  (term winnow-frontend :gloss "winnow positioned as compiler from natural-language instructions to structured work orders; sits between conversation and code harnesses")
+  (term front-end-topology :gloss "three-layer architecture: winnow front-end (distillation) → cbtdag translation (verifiability) → code harness backend (execution)")
+  (add (claim c1 (are kimi-decision-items one-thesis-plus-defaults) :by assistant :src t2))
+  (add (claim c2 (is decision-1 the-only-real-decision) :by assistant :src t2))
+  (add (claim c3 (are decisions-2-through-6 obvious-defaults-or-guardrails) :by assistant :src t2))
+  (add (claim c4 (is never-language rhetorical-not-architectural) :by assistant :src t2))
+  (add (edge (supports c2 c1)))
+  (add (edge (supports c3 c1)))
+  (add (edge (supports c4 c1))))
+
+(delta :turn 5
+  ; t4-5: correct framing established; decisions are provisional
+  (add (decision d1 (adopt winnow-frontend-thesis) :status frozen :by user :src t5))
+  (add (claim c5 (is correct-framing one-thesis-not-six-decisions) :by assistant :src t4))
+  (add (claim c6 (should scope-boundaries carry-revisit-triggers) :by assistant :src t4))
+  (add (edge (motivates c1 c5)))
+  (add (edge (supports c6 c5))))
+
+(delta :turn 7
+  ; t6-7: provisional decisions; graph records junctions not commitments
+  (add (claim c7 (records graph junctions-not-just-path-taken) :by user :src t6))
+  (add (claim c8 (can frozen-decisions be-superseded-by-reality) :by user :src t6))
+  (add (claim c9 (survives provenance when-path-revisited) :by user :src t6))
+  (add (edge (supports c8 c7)))
+  (add (edge (supports c9 c7))))
+
+(delta :turn 9
+  ; t8-9: token efficiency as the economics argument
+  (term token-boundary :gloss "the separation of compiler state (dialogue-dense) from execution state (code-dense) for token efficiency on both sides")
+  (add (claim c10 (have dialogue-and-code different-density-profiles) :by user :src t8))
+  (add (claim c11 (is token-efficiency the-economics-argument) :by assistant :src t9))
+  (add (claim c12 (drowns dialogue in-code-output-in-shared-context) :by user :src t8))
+  (add (claim c13 (is intent-fidelity the-quality-argument) :by assistant :src t9))
+  (add (edge (supports c10 c11)))
+  (add (edge (supports c12 c11)))
+  (add (edge (refines c11 c13))))
+
+(delta :turn 12
+  ; t10-12: compiler framing adopted; dialogue-as-code insight
+  (term compiler-framing :gloss "winnow as compiler: dialogue is source code, graph is IR, fold is optimization pass, work order is object code, reconciliation is runtime feedback")
+  (add (claim c14 (is dialogue code-when-it-encodes-instructions) :by user :src t10))
+  (add (claim c15 (is code instructions-regardless-of-representation) :by user :src t10))
+  (add (claim c16 (is winnow a-compiler-not-a-translator) :by assistant :src t11))
+  (add (claim c17 (implies translation-metaphor two-different-substances) :by assistant :src t11))
+  (add (claim c18 (is actual-substance one-thing-instructions-changing-representation) :by assistant :src t11))
+  (add (decision d2 (adopt compiler-framing over-translation-metaphor) :status frozen :by user :src t12))
+  (add (edge (supports c14 c16)))
+  (add (edge (supports c15 c14)))
+  (add (edge (motivates c17 d2)))
+  (add (edge (supports c18 d2)))
+  (add (edge (refines d2 d1))))
+
+; ============================================================
+; WO-0 STATUS: scoped but not yet executed. This conversation is
+; the test corpus. Pipeline: extract .wno from this conversation
+; (done — this file), fold, hand-render work order from graph
+; slice, dispatch to backend, score constraint adherence.
+;
+; KEY FRAMING (load-bearing for all downstream work):
+;   - Winnow is a compiler from NL instructions to structured
+;     work orders. Not a translator between "human" and "machine."
+;   - The .wno graph is the IR. Fold is the optimization pass.
+;     Work order is the emitted object code. Reconciliation is
+;     runtime feedback from execution back to the compiler.
+;   - Token efficiency at the dialogue/code boundary is the
+;     economics argument; intent fidelity is the quality argument.
+;   - Decisions are provisional. The graph records junctions.
+;     "Never" language replaced by scope boundaries with revisit
+;     triggers.
+;   - The Kimi K3 document's six "decision items" are one thesis
+;     plus obvious defaults. The thesis: winnow is the interface
+;     layer. Everything else follows.
+; ============================================================
