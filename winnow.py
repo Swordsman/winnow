@@ -68,7 +68,7 @@ not a link -- put it inside a node's proposition instead, e.g. \
 (add (claim x3 (maps-to subthread original-messages) :by user :src t7)).
 
 Emit ops as s-expressions, one per line, e.g.:
-(term some-term :gloss "what it means, not just the name expanded")
+(term some-term :gloss "what it means, not just the name expanded" :canon "Wikipedia_Article_Title")
 (add (claim x1 (relation subj obj) :by user :src t3))
 (add (edge (supports x1 x2)))
 (update q2 :status answered)
@@ -113,10 +113,14 @@ edge annotations (:conf etc.) are dropped.
 
 The rules:
 R1 terms -> canonical registry ids: kebab-case; nearest registry match \
-beats minting; minted terms get a (term ID :gloss "...") entry. \
-The gloss must define the concept, not restate the label — \
+beats minting; minted terms get a (term ID :gloss "..." :canon "...") \
+entry. The gloss must define the concept, not restate the label — \
 "graph-db" glossed "graph database" adds nothing; write what a reader \
-needs to understand the term without the transcript.
+needs to understand the term without the transcript. \
+:canon is a Wikipedia article title for the concept when one exists \
+(e.g. :canon "Design_by_contract", :canon "Filesystem_in_Userspace"). \
+Use the exact article title with underscores. Project-specific terms \
+that have no Wikipedia article omit :canon.
 R2 one proposition per node -- split conjunctions into multiple nodes.
 R3 slot order fixed: agent/subject/source first, patient/object/target \
 second.
@@ -139,7 +143,7 @@ R12 numbers/units stay literal; prose quantities normalize ("seventy km" \
 -> "70km").
 
 Op syntax, exactly:
-(term ID :gloss "...")
+(term ID :gloss "..." :canon "Wikipedia_Article_Title")
 (add (FRAME ID PAYLOAD :anns...))
 (add (edge (TYPE FROM TO)))
 (update ID :key val)

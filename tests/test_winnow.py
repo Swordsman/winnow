@@ -135,6 +135,29 @@ class TestNormalizer(unittest.TestCase):
             '(term foo :gloss "x")(term bar :gloss "y")'))
         self.assertEqual([op[1] for op in ops], ["bar"])
 
+    def test_term_canon_passthrough(self):
+        g = Graph()
+        ops, _ = Normalizer(g).normalize(extract_forms(
+            '(term dbc :gloss "design by contract" :canon "Design_by_contract")'))
+        self.assertEqual(ops[0][0], "term")
+        self.assertEqual(ops[0][1], "dbc")
+        from fold import anns as _anns
+        ta = _anns(ops[0][2:])
+        self.assertEqual(ta["canon"], "Design_by_contract")
+        self.assertEqual(ta["gloss"], "design by contract")
+
+    def test_term_canon_folds_into_graph(self):
+        g = Graph()
+        g.apply(parse(tokenize(
+            '(delta :turn 1 '
+            '(term dbc :gloss "design by contract" :canon "Design_by_contract")'
+            '(add (claim c1 (uses project dbc) :by user :src t1)))'))[0])
+        ta = dict(zip(g.terms["dbc"][::2], g.terms["dbc"][1::2]))
+        # fold.py stores raw tail; anns() extracts it
+        from fold import anns as _anns
+        parsed = _anns(list(g.terms["dbc"]))
+        self.assertEqual(parsed["canon"], "Design_by_contract")
+
     def test_edge_dedup(self):
         g = graph_from("(delta :turn 1 "
                        "(add (claim c1 (has a b) :by user :src t1))"
