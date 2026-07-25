@@ -105,6 +105,34 @@
   (add (edge (about c11 rung-4-global-kb)))
   (add (edge (supports c12 d3))))
 
+(delta :turn 8
+  ; Dedup guardrails: specificity hierarchies and false-friend pairs
+  ; identified during the subagent analysis. These must NOT be collapsed
+  ; in future dedup passes.
+  ;
+  ; Specificity hierarchies (parent -> children, not duplicates):
+  ;   resolution-ladder -> fire-tier, global-kb, honest-miss, within-rung-ranking
+  ;   compiler-framing -> language-as-code, homoiconicity, token-boundary
+  ;   background-ai -> background-ai-as-intent-gatekeeper (specialization)
+  ;   usage-mass -> node-mass (same metric, different scope)
+  ;   d9 -> pattern-a, pattern-b, partial-status, graduation-by-structure
+  ;   cooling-profile -> cooling-velocity (knob-set vs transition rate)
+  ;   multi-tier-db -> graph-db, vector-store, key-value-blob-ledger (parts)
+  ;
+  ; False-friend pairs (similar names, different referents):
+  ;   side-payload (relay: model emits wno alongside reply) vs
+  ;     dual-payload-loop (foreground/background AI JSON output)
+  ;   literal-schema (schema in original transcript being compressed) vs
+  ;     schema-json (winnow's own multi-channel-parsing output schema)
+  ;   canonical-form (semantic equivalence concept from ENI) vs
+  ;     canon-anchor (the :canon key mechanism from kimi-salvage)
+  ;   kimi (general Moonshot entity) vs kimi-k3 (specific version/doc)
+
+  (add (constraint x1 (do-not-collapse specificity-hierarchies listed-above) :status live :by assistant :src t8))
+  (add (constraint x2 (do-not-collapse false-friend-pairs listed-above) :status live :by assistant :src t8))
+  (add (edge (about x1 semantic-dedup-pass)))
+  (add (edge (about x2 semantic-dedup-pass))))
+
 ; ============================================================
 ; SESSION SUMMARY
 ;
