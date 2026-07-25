@@ -48,5 +48,48 @@
   "background-ai-as-intent-gatekeeper": "Intent gatekeeper",
 
   "apply-compression-method":     "Apply conversation compression",
-  "apply-conversation-compression": "Apply conversation compression"
+  "apply-conversation-compression": "Apply conversation compression",
+
+  "forward-contract":              "Push interface",
+  "push-interface":                "Push interface",
+
+  "backward-contract":             "Pull interface",
+  "pull-interface":                "Pull interface",
+
+  "winnow-frontend":               "Front-end topology",
+  "front-end-topology":            "Front-end topology",
+
+  "subthread":                     "Thematic thread",
+
+  "preserve-user-node":            "R1 maintain user node",
+  "R1-maintain-user-node":         "R1 maintain user node",
+
+  "dbc-semantic-continuity":                    "DbC conversation",
+  "dbc-conversation":                           "DbC conversation",
+  "interface-contract-boundaries-between-turns": "DbC conversation",
+
+  "full-transcript":               "Vibrational Olfaction Theory transcript",
+  "Vibrational-Olfaction-Theory-transcript": "Vibrational Olfaction Theory transcript",
+
+  "compressed-transcript":                       "Compressed Vibrational Olfaction Theory transcript",
+  "compressed-Vibrational-Olfaction-Theory-transcript": "Compressed Vibrational Olfaction Theory transcript",
+  "compression-result":                          "Compressed Vibrational Olfaction Theory transcript",
+
+  "used-for-olfactory-conversation": "Olfactory conversation",
+  "olfactory-conversation":          "Olfactory conversation",
+
+  "compression-method":             "Compression prompt",
+  "compression-prompt":             "Compression prompt",
+  "compression-prompt-user":        "Compression prompt",
+  "compression-prompt-reuse-text":  "Compression prompt",
+
+  "post-processing-formula":        "Post-processing formula",
+  "post-processing-archive-formula": "Post-processing formula",
+  "formula-to-reduce-existing-conversations": "Post-processing formula",
+
+  "full-standalone-version":        "Self-sufficient compressed form",
+  "user-requires-self-sufficient-compressed-form": "Self-sufficient compressed form",
+
+  "a2-status-incomplete":           "Look-ahead check failure",
+  "assistant-failed-look-ahead-check": "Look-ahead check failure"
 }

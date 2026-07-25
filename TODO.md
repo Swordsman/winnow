@@ -64,18 +64,22 @@
   `background-ai-as-intent-gatekeeper` → "Intent gatekeeper" folds a
   role-attribution into the role. Both are still in `canon-map.json` as
   committed — revert was proposed, not executed, pending Joe's ruling.
-- [ ] **Mega-fold follow-ons (2026-07-24).** (a) MEDIUM-confidence term
-  clusters: 10 clusters / 23 terms needing judgment calls
-  (`dbc-conversation` vs `dbc-semantic-continuity`, `multi-tier-db` vs
-  the fully-enumerated variant). (b) Procedural normalization pre-pass —
-  the HIGH tier was *entirely* mechanical drift (plural, abbreviation,
-  case, rule-number prefix, one stray-conjunction parse artifact), so
-  cheap code may catch most of it before an LLM is involved. (c) Node-level
-  semantic dedup via the same subagent pattern; note there is no `:canon`
-  equivalent for nodes, so output would be an analytical view rather than
-  an automated merge. (d) No tests yet for `mega-fold.py` or
-  `term-table.py`; pytest is not installed in the container, so the 129
-  green baseline was inherited this session, never observed.
+- [ ] **Mega-fold follow-ons (2026-07-24, updated 2026-07-25).** **(a)
+  Junk-term exclusion done 2026-07-25:** `junk-terms.json` (90 terms in 5
+  categories: edge types, bare words, sentence fragments, combination
+  artifacts, placeholders) + `--exclude-terms` flag on mega-fold.py.
+  All junk was in `runs/`, zero in `sessions/`. **(b) Semantic dedup pass
+  done 2026-07-25:** 30 new canon-map entries across 15 clusters (push/pull
+  interfaces, DbC-conversation, compression-prompt family, Vibrational
+  Olfaction transcript variants, R1 restatement, etc.). Canon map now 63
+  entries. mega-all terms: 362 → 259. 8 new tests (137 total). **(c)
+  Remaining MEDIUM clusters and judgment calls:** `etch-scale` vs
+  `degree-annotation` (versioned pair?), `resolution-cascade` vs
+  `resolution-ladder` (evolution?). **(d)** Procedural normalization
+  pre-pass still open — the HIGH tier was entirely mechanical drift, so
+  cheap code may catch most of it before an LLM is involved. **(e)**
+  Node-level semantic dedup via the same subagent pattern; no `:canon`
+  equivalent for nodes. **(f)** No tests yet for `term-table.py`.
 - [ ] **Winnow front-end: WO-0 zero-build validation (2026-07-24).**
   Kimi K3 design reviewed; thesis adopted (winnow as compiler from NL
   instructions to structured work orders); compiler framing over

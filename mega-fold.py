@@ -13,6 +13,7 @@ Usage:
     python3 mega-fold.py --concepts             # print concepts after stats
     python3 mega-fold.py --overlap              # show cross-file node/term overlap detail
     python3 mega-fold.py --canon-map canon-map.json  # apply external canon anchors before merge
+    python3 mega-fold.py --exclude-terms junk-terms.json  # drop extraction-noise terms
 """
 import argparse
 import glob
@@ -68,6 +69,30 @@ def apply_canon_map(graphs, canon_map):
     return patched
 
 
+def apply_exclude_terms(graphs, exclude_set):
+    """Remove junk term IDs from graphs' term registries."""
+    removed = 0
+    for g in graphs:
+        to_drop = [tid for tid in g.terms if tid in exclude_set]
+        for tid in to_drop:
+            del g.terms[tid]
+            removed += 1
+    return removed
+
+
+def load_exclude_terms(path):
+    """Load junk-terms.json: values are lists of term IDs, keyed by category."""
+    with open(path) as f:
+        data = json.load(f)
+    exclude = set()
+    for k, v in data.items():
+        if k.startswith("_"):
+            continue
+        if isinstance(v, list):
+            exclude.update(v)
+    return exclude
+
+
 def overlap_report(files, graphs):
     hash_to_files = {}
     for f, g in zip(files, graphs):
@@ -114,6 +139,8 @@ def main():
                     help="show cross-file overlap detail")
     ap.add_argument("--canon-map",
                     help="JSON file mapping term-id -> canon value")
+    ap.add_argument("--exclude-terms",
+                    help="JSON file listing junk term IDs to drop")
     ns = ap.parse_args()
 
     files = discover(ns.scope)
@@ -124,6 +151,11 @@ def main():
     pairs = load_all(files)
     loaded_files = [f for f, _ in pairs]
     graphs = [g for _, g in pairs]
+
+    if ns.exclude_terms:
+        exclude = load_exclude_terms(ns.exclude_terms)
+        removed = apply_exclude_terms(graphs, exclude)
+        print(f"exclude terms: {len(exclude)} in list, {removed} removed")
 
     if ns.canon_map:
         with open(ns.canon_map) as f:
