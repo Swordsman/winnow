@@ -1,0 +1,175 @@
+; id: wno-20260725-term-dedup-kb-wiring-ba43
+; receives: sessions/wno-20260724-mega-fold-e1da.wno
+; winnow term dedup + rung 4 global KB wiring
+; user=Joe, assistant=Claude (opus 4.6)
+; Session started: 2026-07-25. PR #13.
+
+(meta :winnow-version "0.2"
+      :semantic-rep "registry-v0.1"
+      :log-id "wno-20260725-term-dedup-kb-wiring-ba43"
+      :receives ("wno-20260724-mega-fold-e1da"))
+
+(delta :turn 1
+  ; Boot sequence: 129 tests green, all 5 claims completed, no active
+  ; work stranded. Newest handoffs from 2026-07-24 (mega-fold, compiler
+  ; framing). Joe: pick up where we left off — term dedup via subagent.
+
+  (term junk-term-exclusion :gloss "mechanism to exclude extraction-noise terms from mega-fold output: edge types, bare words, sentence fragments, combination artifacts, placeholders")
+  (term semantic-dedup-pass :gloss "LLM-driven clustering of terms by meaning rather than string similarity, producing canon-map entries for semantic duplicates")
+
+  (add (decision d1 (execute term-dedup via-subagent-clustering) :status frozen :by user :src t1))
+  (add (claim c1 (approach use-llm-judgment not-cosine-similarity) :by user :src t1))
+  (add (edge (motivates c1 d1))))
+
+(delta :turn 3
+  ; Subagent returned: 362 terms analyzed, three buckets.
+  ;   Junk: ~90 terms in 5 categories (edge types as terms, bare generic
+  ;   words, sentence-fragment IDs, combination artifacts, extractor
+  ;   placeholders). ALL concentrated in runs/ extraction files,
+  ;   especially flash-baseline. Zero junk in sessions/.
+  ;   Semantic duplicates: 15 clusters (push/pull interfaces, DbC family,
+  ;   compression-prompt variants, transcript restatements, R1 rule dup).
+  ;   Specificity hierarchies: 10+ groups flagged as do-not-collapse
+  ;   (resolution-ladder -> its rungs, compiler-framing -> its facets,
+  ;   background-ai -> intent-gatekeeper, usage-mass -> node-mass).
+  ;
+  ; Implementation: junk-terms.json (90 IDs, 5 categories) +
+  ; --exclude-terms flag on mega-fold.py. Canon map expanded 33 -> 63
+  ; entries. mega-all terms: 362 -> 259. 8 new tests (137 total).
+
+  (add (artifact r1 (junk-terms-json 90-ids five-categories) :status live :by assistant :src t3))
+  (add (artifact r2 (exclude-terms-flag mega-fold-py) :status live :by assistant :src t3))
+  (add (claim c2 (junk-concentrated runs-not-sessions zero-in-sessions) :by assistant :src t3))
+  (add (claim c3 (canon-map expanded 33-to-63-entries) :by assistant :src t3))
+  (add (claim c4 (mega-all-terms reduced 362-to-259) :by assistant :src t3))
+  (add (edge (about c2 junk-term-exclusion)))
+  (add (edge (about r1 junk-term-exclusion)))
+  (add (edge (about r2 junk-term-exclusion)))
+  (add (edge (supports c2 c4))))
+
+(delta :turn 5
+  ; Joe's key observation: the whole dedup problem is downstream of not
+  ; having canonical identifiers at extraction time. Wikipedia article
+  ; titles as term anchors would prevent most of this drift. The concept
+  ; is already in the repo (wikipedia-resolver, namespace-extension,
+  ; canon-anchor, per-word-graph from the ENI handoff) — the :canon
+  ; slot is specced, the Resolver indexes it, merge.py joins on it.
+  ; The missing piece was the extractor instruction. Joe noted that
+  ; Fable had previously rejected this approach inexplicably.
+  ;
+  ; Implementation: R1 in the normalizer prompt now instructs the LLM
+  ; to set :canon to the Wikipedia article title when the concept maps
+  ; to one. Project-specific terms with no article omit :canon. Extractor
+  ; prompt syntax example also updated. 2 new tests (139 total).
+
+  (term extraction-time-anchoring :gloss "emitting :canon Wikipedia article titles at extraction time so terms self-anchor, preventing post-hoc reconciliation"
+        :canon "Canonical_form")
+  (add (decision d2 (emit canon-anchors at-extraction-time) :status frozen :by user :src t5))
+  (add (claim c5 (dedup-problem is-downstream-of missing-canonical-identifiers) :by user :src t5))
+  (add (claim c6 (wikipedia-titles already-disambiguated stable human-maintained) :by user :src t5))
+  (add (claim c7 (graph-identity not-string-identity prevents-gloss-drift) :by user :src t5))
+  (add (claim c8 (canon-slot already-specced resolver-indexes merge-joins) :by assistant :src t5))
+  (add (claim c9 (only-missing-piece was-extractor-instruction) :by assistant :src t5))
+  (add (claim c10 (fable-previously-rejected-this inexplicably) :by user :src t5))
+  (add (edge (motivates c5 d2)))
+  (add (edge (supports c6 d2)))
+  (add (edge (supports c7 d2)))
+  (add (edge (supports c8 c9))))
+
+(delta :turn 7
+  ; Rung 4 global KB wiring: the #1 priority from the mega-fold handoff.
+  ;
+  ; Resolver now accepts an optional global_kb graph. Queries that miss
+  ; all session rungs (0-3) check the KB at rung 4 before declaring an
+  ; honest miss at rung 5. The resolution ladder is now complete
+  ; (rungs 0-5 all implemented).
+  ;
+  ; Design: KB terms indexed with the same surface/canon/constituent/sense
+  ; machinery as session terms. KB hits ranked by (status class, mass,
+  ; recency) against the KB graph. Reach handling renders KB hits from the
+  ; KB graph (not the session graph) and skips P3 promotion (KB nodes
+  ; aren't session-resident).
+  ;
+  ; CLI: --global-kb runs/mega-all.wno
+  ; 5 new tests (144 total).
+  ;
+  ; Remaining open design questions: trust weighting and staleness policy
+  ; for KB results. The mechanism landed first, as planned.
+
+  (term rung-4-global-kb :gloss "resolution ladder rung 4: cross-conversation resolution against the mega-fold graph before honest miss at rung 5")
+  (add (artifact r3 (rung-4-resolver global-kb-flag) :status live :by assistant :src t7))
+  (add (claim c11 (resolution-ladder now-complete rungs-0-through-5) :by assistant :src t7))
+  (add (claim c12 (kb-hits-rendered from-kb-graph skip-p3-promotion) :by assistant :src t7))
+  (add (decision d3 (mechanism-first trust-weighting-deferred) :status frozen :by assistant :src t7))
+  (add (edge (about r3 rung-4-global-kb)))
+  (add (edge (about c11 rung-4-global-kb)))
+  (add (edge (supports c12 d3))))
+
+(delta :turn 8
+  ; Dedup guardrails: specificity hierarchies and false-friend pairs
+  ; identified during the subagent analysis. These must NOT be collapsed
+  ; in future dedup passes.
+  ;
+  ; Specificity hierarchies (parent -> children, not duplicates):
+  ;   resolution-ladder -> fire-tier, global-kb, honest-miss, within-rung-ranking
+  ;   honesty-principle -> honest-miss (cross-cuts with resolution-ladder)
+  ;   three-tier-compaction -> resolution-ladder (evolution: coarser 3-tier
+  ;     hot/warm/cold framing from d9 evolved into the 6-rung ladder in d10;
+  ;     preserve both — the ladder extends the tiers, doesn't replace them)
+  ;   compiler-framing -> language-as-code, homoiconicity, token-boundary
+  ;   background-ai -> background-ai-as-intent-gatekeeper (specialization)
+  ;   usage-mass -> node-mass (same metric, different scope)
+  ;   d9 -> pattern-a, pattern-b, partial-status, graduation-by-structure
+  ;   cooling-profile -> cooling-velocity (knob-set vs transition rate)
+  ;   multi-tier-db -> graph-db, vector-store, key-value-blob-ledger (parts)
+  ;
+  ; False-friend pairs (similar names, different referents):
+  ;   side-payload (relay: model emits wno alongside reply) vs
+  ;     dual-payload-loop (foreground/background AI JSON output)
+  ;   literal-schema (schema in original transcript being compressed) vs
+  ;     schema-json (winnow's own multi-channel-parsing output schema)
+  ;   canonical-form (semantic equivalence concept from ENI) vs
+  ;     canon-anchor (the :canon key mechanism from kimi-salvage)
+  ;   kimi (general Moonshot entity) vs kimi-k3 (specific version/doc)
+  ;
+  ; Deferred-pair analysis (recorded so a fresh session doesn't re-derive):
+  ;   etch-scale explicitly self-describes as "the degree-annotation redux"
+  ;     — treat as versioned pair, not blind merge (human confirmation needed)
+  ;   resolution-cascade is an earlier 3-stage framing; resolution-ladder is
+  ;     the later 6-rung refinement — evolutionary duplicate, not unrelated
+  ;     (human confirmation needed before collapsing)
+  ;
+  ; Borderline term: io-manager (empty gloss, two sources) — likely a real
+  ;   pipeline component, not junk. Needs a gloss, not deletion.
+
+  (add (constraint x1 (do-not-collapse specificity-hierarchies listed-above) :status live :by assistant :src t8))
+  (add (constraint x2 (do-not-collapse false-friend-pairs listed-above) :status live :by assistant :src t8))
+  (add (edge (about x1 semantic-dedup-pass)))
+  (add (edge (about x2 semantic-dedup-pass))))
+
+; ============================================================
+; SESSION SUMMARY
+;
+; Three commits on PR #13:
+;   1. Term dedup: junk exclusion (90 terms) + semantic canon-map
+;      expansion (33 -> 63 entries). mega-all terms 362 -> 259.
+;   2. Canon extraction instruction: R1 now emits :canon Wikipedia
+;      anchors at extraction time.
+;   3. Rung 4 global KB: Resolver wired to cross-conversation
+;      mega-fold graph. Resolution ladder complete.
+;
+; 144 tests green (was 129 at session start).
+;
+; DEFERRED (judgment calls needing Joe's ruling):
+;   - Polysemy: vector-db-chromadb, background-ai-as-intent-gatekeeper
+;   - Evolution: etch-scale vs degree-annotation, resolution-cascade
+;     vs resolution-ladder
+;   - MEDIUM-confidence clusters: 10 clusters / 23 terms
+;
+; NEXT PRIORITIES (unchanged from mega-fold handoff except rung 4 done):
+;   1. Polysemy rulings on 4 pairs (Joe's call)
+;   2. WO-0 zero-build validation
+;   3. Procedural normalization pre-pass
+;   4. Trust weighting + staleness for rung 4 KB results
+;   5. ENI proposals inclusion decision
+; ============================================================
