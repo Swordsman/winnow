@@ -112,6 +112,10 @@
   ;
   ; Specificity hierarchies (parent -> children, not duplicates):
   ;   resolution-ladder -> fire-tier, global-kb, honest-miss, within-rung-ranking
+  ;   honesty-principle -> honest-miss (cross-cuts with resolution-ladder)
+  ;   three-tier-compaction -> resolution-ladder (evolution: coarser 3-tier
+  ;     hot/warm/cold framing from d9 evolved into the 6-rung ladder in d10;
+  ;     preserve both — the ladder extends the tiers, doesn't replace them)
   ;   compiler-framing -> language-as-code, homoiconicity, token-boundary
   ;   background-ai -> background-ai-as-intent-gatekeeper (specialization)
   ;   usage-mass -> node-mass (same metric, different scope)
@@ -127,6 +131,16 @@
   ;   canonical-form (semantic equivalence concept from ENI) vs
   ;     canon-anchor (the :canon key mechanism from kimi-salvage)
   ;   kimi (general Moonshot entity) vs kimi-k3 (specific version/doc)
+  ;
+  ; Deferred-pair analysis (recorded so a fresh session doesn't re-derive):
+  ;   etch-scale explicitly self-describes as "the degree-annotation redux"
+  ;     — treat as versioned pair, not blind merge (human confirmation needed)
+  ;   resolution-cascade is an earlier 3-stage framing; resolution-ladder is
+  ;     the later 6-rung refinement — evolutionary duplicate, not unrelated
+  ;     (human confirmation needed before collapsing)
+  ;
+  ; Borderline term: io-manager (empty gloss, two sources) — likely a real
+  ;   pipeline component, not junk. Needs a gloss, not deletion.
 
   (add (constraint x1 (do-not-collapse specificity-hierarchies listed-above) :status live :by assistant :src t8))
   (add (constraint x2 (do-not-collapse false-friend-pairs listed-above) :status live :by assistant :src t8))
