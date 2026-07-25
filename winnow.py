@@ -271,13 +271,14 @@ class Resolver:
     """Pull interface + handshake verifier (spec 10.5). Walks the
     resolution ladder procedurally: rung 0/1 resident hits, rung 2 warm
     widening, rung 3 cold scan (the materialized-graph equivalent of
-    fold-replay), rung 5 honest miss. Rung 4 (global KB) is interface-
-    reserved and skipped. An optional llm callable is the cheap-inference
+    fold-replay), rung 4 global KB (cross-conversation mega-fold graph),
+    rung 5 honest miss. An optional llm callable is the cheap-inference
     escalation on lexical miss; the procedural floor runs first always."""
 
-    def __init__(self, graph, llm=None):
+    def __init__(self, graph, llm=None, global_kb=None):
         self.g = graph
         self.llm = llm
+        self.kb = global_kb        # cross-conversation graph for rung 4
         self.surface = {}          # surface form -> canonical term id
         self.constituents = {}     # hyphen-split part -> {term ids}
         self.senses = {}           # base word -> {sense-qualified tids}
@@ -295,6 +296,24 @@ class Resolver:
             if "/" in tid:         # sense-qualified: tap/faucet, tap/strike
                 base = kebab(tid.split("/", 1)[0])
                 self.senses.setdefault(base, set()).add(tid)
+        if global_kb:
+            self.kb_surface = {}
+            self.kb_constituents = {}
+            self.kb_senses = {}
+            for tid, tail in global_kb.terms.items():
+                self.kb_surface[kebab(tid)] = tid
+                tail_anns = anns(list(tail))
+                for aka in tail_anns.get("aka", []) or []:
+                    self.kb_surface[kebab(aka)] = tid
+                canon = tail_anns.get("canon")
+                if canon:
+                    self.kb_surface[kebab(str(canon))] = tid
+                for part in kebab(tid).split("-"):
+                    if part != kebab(tid):
+                        self.kb_constituents.setdefault(part, set()).add(tid)
+                if "/" in tid:
+                    base = kebab(tid.split("/", 1)[0])
+                    self.kb_senses.setdefault(base, set()).add(tid)
 
     def _term_hits(self, toks):
         """Registry terms reached by tokens: exact surface, cross-lineage
@@ -309,6 +328,42 @@ class Resolver:
             # senses never collapse, ranking orders them
             terms |= self.senses.get(t, set())
         return terms
+
+    def _kb_term_hits(self, toks):
+        """Like _term_hits but against the global KB's registry."""
+        if not self.kb:
+            return set()
+        expanded = set(toks)
+        for t in toks:
+            expanded.update(kebab(a) for a in KIMI_ALIASES.get(t, ()))
+        terms = {self.kb_surface[t] for t in expanded if t in self.kb_surface}
+        for t in expanded:
+            terms |= self.kb_constituents.get(t, set())
+            terms |= self.kb_senses.get(t, set())
+        return terms
+
+    def _kb_matches(self, tokens):
+        """Match tokens against the global KB's nodes."""
+        if not self.kb:
+            return []
+        toks = {kebab(t) for t in tokens}
+        terms = {kebab(t) for t in self._kb_term_hits(toks)}
+        out = []
+        for nid in self.kb.nodes:
+            n = self.kb.nodes[nid]
+            syms = {kebab(s) for s in _payload_syms(n["payload"])}
+            if nid in toks or syms & toks or syms & terms:
+                out.append(nid)
+        return out
+
+    def _kb_rank(self, hits):
+        """Rank global KB hits by (status class, mass, recency)."""
+        def key(nid):
+            n = self.kb.nodes[nid]
+            return (_STATUS_CLASS.get(n["status"], 1),
+                    -self.kb.node_mass(nid),
+                    -self.kb.last_touch.get(nid, 0))
+        return sorted(hits, key=key)
 
     def _matches(self, tokens, ids):
         """Nodes among ids whose id or payload symbols hit any token."""
@@ -358,6 +413,10 @@ class Resolver:
         hit = self._matches(tokens, cold)
         if hit:
             return 3, self._rank(hit)
+        if self.kb:                               # rung 4: global KB
+            hit = self._kb_matches(tokens)
+            if hit:
+                return 4, self._kb_rank(hit)
         if self.llm:                              # lexical miss escalation
             guess = self.llm(
                 "Map the query to canonical term ids from the registry, "
@@ -614,7 +673,7 @@ def render_delta(turn, ops):
 
 
 def run(transcript_path, out_path, llm, llm_normalize=True,
-        per_turn=False, verbose=True, seed=None):
+        per_turn=False, verbose=True, seed=None, global_kb=None):
     turns = parse_transcript(open(transcript_path).read())
     if not turns:
         sys.exit("no [tN speaker] turns found in transcript")
@@ -659,7 +718,7 @@ def run(transcript_path, out_path, llm, llm_normalize=True,
         misses = []
         reaches = extract_reaches(loose)
         if reaches:
-            resolver = Resolver(g)
+            resolver = Resolver(g, global_kb=global_kb)
             pulls = []
             for q in reaches:
                 rung, hits = resolver.resolve(q)
@@ -670,11 +729,13 @@ def run(transcript_path, out_path, llm, llm_normalize=True,
                     "hits": list(hits),
                 })
                 if hits:
-                    for nid in hits:
-                        g.promote(nid)             # P3, with TTL
+                    source = resolver.kb if rung == 4 else resolver.g
+                    if rung != 4:
+                        for nid in hits:
+                            g.promote(nid)         # P3, with TTL
                     pulls.append(f"; reach {' '.join(map(str, q))} "
                                  f"-> rung {rung}")
-                    pulls += [resolver.g._full_line(nid) for nid in hits]
+                    pulls += [source._full_line(nid) for nid in hits]
                 else:
                     misses.append(q)
             if pulls:
@@ -752,6 +813,8 @@ def main():
     ap.add_argument("--no-llm-normalizer", action="store_true",
                     help="skip stage-B LLM; procedural enforcement only")
     ap.add_argument("--seed", help="prior .wno log to continue from")
+    ap.add_argument("--global-kb",
+                    help="mega-fold .wno for rung 4 cross-conversation resolution")
     ap.add_argument("--re2", action="store_true",
                     help="deepseek backend: RE2 re-reading, implies "
                          "thinking off (fast non-thinking mode)")
@@ -771,10 +834,22 @@ def main():
             api_key_env="DEEPSEEK_API_KEY")
     else:
         llm = anthropic_client(args.model)
+    kb = None
+    if args.global_kb:
+        kb = Graph()
+        for form in parse(tokenize(open(args.global_kb).read())):
+            if form and form[0] == "meta":
+                kb.set_meta(form)
+            elif form:
+                kb.apply(form)
+        if verbose:
+            print(f"global KB: {len(kb.nodes)} nodes, {len(kb.terms)} terms",
+                  file=sys.stderr)
     run(args.transcript, args.out, llm,
         llm_normalize=not args.no_llm_normalizer,
         per_turn=args.per_turn,
-        seed=open(args.seed).read() if args.seed else None)
+        seed=open(args.seed).read() if args.seed else None,
+        global_kb=kb)
 
 
 if __name__ == "__main__":

@@ -46,16 +46,17 @@
   says "companion to eni-winnow-design.wno", missing the date suffix.
 
 ## Next up
-- [ ] **Rung 4 / global KB wiring (2026-07-24, from mega-fold session).**
-  `mega-fold.py --canon-map` now *is* the global-KB construction sketch
-  this file has been deferring (merge.py + mass ranking + canon anchors,
-  all realized). `winnow.py:270` confirms rung 4 is interface-reserved
-  and skipped, and `Resolver` takes a single graph. Next step: let the
-  Resolver consult `runs/mega-all.wno` at rung 4, then test with a query
-  that honest-misses against one session graph and should resolve against
-  the mega-graph. Load-bearing for the Gau merge and JITCW. Trust
-  weighting + staleness policy remain the genuine open design questions
-  (unchanged from the §12 deferral) — the mechanism can land first.
+- [x] **Rung 4 / global KB wiring (2026-07-24, done 2026-07-25).**
+  `Resolver` now takes an optional `global_kb` graph; queries that miss
+  all session rungs (0–3) check the KB graph at rung 4 before declaring
+  an honest miss at rung 5. CLI: `--global-kb runs/mega-all.wno`. KB
+  terms are indexed with the same surface/canon/constituent/sense
+  machinery as session terms. KB hits are ranked by (status class, mass,
+  recency) against the KB graph. Reach handling renders KB hits from the
+  KB graph (not the session graph) and skips P3 promotion (KB nodes
+  aren't session-resident). 5 new tests (144 total). Trust weighting +
+  staleness policy remain open design questions — the mechanism landed
+  first, as planned.
 - [ ] **Polysemy ruling on two canon-map entries (2026-07-24).** Our own
   canon map may erase specializations rather than collapse synonyms,
   against the polysemy finding (collapse within a sense, preserve across

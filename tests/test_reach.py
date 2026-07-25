@@ -101,6 +101,54 @@ class TestResolver(unittest.TestCase):
             self.assertLessEqual(len(hits), 1)
 
 
+KB_SRC = """
+(delta :turn 1
+  (term polysemy :gloss "one surface form with multiple distinct meanings"
+        :canon "Polysemy")
+  (term jitcw :gloss "just-in-time context window compilation")
+  (add (claim c1 (enables polysemy sense-disambiguation) :by user :src t1))
+  (add (decision d1 (adopt jitcw virtual-memory-for-llms) :status frozen
+       :by user :src t1))
+  (add (edge (supports c1 d1))))
+"""
+
+
+class TestGlobalKB(unittest.TestCase):
+    def setUp(self):
+        self.g = graph_from(LADDER_SRC)
+        self.kb = graph_from(KB_SRC)
+
+    def test_rung4_hit_on_session_miss(self):
+        """Query misses session graph entirely, resolves at rung 4 via KB."""
+        rung, hits = Resolver(self.g, global_kb=self.kb).resolve(["polysemy"])
+        self.assertEqual(rung, 4)
+        self.assertIn("c1", hits)
+
+    def test_rung4_canon_hit(self):
+        """KB term with :canon resolves via the canonical surface form."""
+        rung, hits = Resolver(self.g, global_kb=self.kb).resolve(
+            ["Polysemy"])
+        self.assertEqual(rung, 4)
+        self.assertIn("c1", hits)
+
+    def test_session_hit_preempts_rung4(self):
+        """Session graph hit at rung <=3 takes priority over KB."""
+        rung, hits = Resolver(self.g, global_kb=self.kb).resolve(["flat"])
+        self.assertEqual(rung, 3)
+        self.assertEqual(hits, ["d1"])
+
+    def test_honest_miss_with_kb(self):
+        """Query that misses both session and KB still returns rung 5."""
+        rung, hits = Resolver(self.g, global_kb=self.kb).resolve(
+            ["completely-unknown-thing"])
+        self.assertEqual((rung, hits), (5, []))
+
+    def test_no_kb_skips_rung4(self):
+        """Without a global KB, resolver jumps straight from rung 3 to 5."""
+        rung, hits = Resolver(self.g).resolve(["polysemy"])
+        self.assertEqual((rung, hits), (5, []))
+
+
 class TestPromotionTTL(unittest.TestCase):
     def test_promote_puts_node_in_fire_then_expires(self):
         g = graph_from(LADDER_SRC)   # promotion-ttl default 2
