@@ -84,8 +84,13 @@ protocol that prevents replayed work:
   planned thread from the repo alone?
 - **Session handoffs**: every session produces a `.wno` handoff in
   `sessions/`, committed before the session ends. No session's
-  experience gets left behind. After drafting the handoff, review it
-  against the session asking "is there anything that got left out?"
+  experience gets left behind. Content goes in the graph (nodes, edges,
+  string literals), never in `;` comments: fold, merge and mega-fold
+  drop comments, so anything that lives only in a comment is invisible
+  to the system. Comments may only repeat what the graph already holds,
+  like the `; id:`/`; receives:` header. After drafting the handoff,
+  review it against the session asking "is there anything that got
+  left out?" — check `fold.py --snapshot` output, not the raw file —
   and add what's missing. Repeat until everything important is
   captured.
 
