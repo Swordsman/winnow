@@ -1,9 +1,6 @@
 ; id: wno-20261012-tree-code-goal-7c1e
 ; receives: sessions/wno-20260725-term-dedup-kb-wiring-ba43.wno
-; review of an outside design chat on tree-code term identity, plus Joe's declared goal for it
-; user=Joe, assistant=Claude
-; Session started 2026-10-12. The auto-mode classifier refused one tool call partway through;
-; this file was committed after Joe switched the session to Accept edits.
+; tree-code term identity: review of an outside design chat, plus Joe's declared goal
 
 (meta :winnow-version "0.2"
       :semantic-rep "registry-v0.1"
@@ -11,14 +8,14 @@
       :receives ("wno-20260725-term-dedup-kb-wiring-ba43"))
 
 (delta :turn 1
-  ; Joe pasted a long chat with another model about winnow term identity: NL to semantic IR,
-  ; WordNet plus ASD-STE100 normalization, b64 concept codes, and a balanced binary concept
-  ; tree built from multi-model embedding fingerprints. The personal, non-winnow half of that
-  ; chat is deliberately not recorded. Everything :by user here is Joe's own words from it.
+  (term joe :gloss "the user in this log, and the designer of winnow")
+  (term external-design-chat :gloss "a long chat between Joe and another model about winnow term identity, pasted into this session at turn 1 and not stored in the repo")
   (term tree-code-mode :gloss "candidate term-identity mode where a concept id is its root-to-node path in a balanced binary concept tree, b64-packed, with internal nodes as concepts too")
   (term concept-tree :gloss "balanced binary tree over word senses whose splits come from embedding geometry plus hand-placed branches, so the path is the address")
   (term concept-code :gloss "the b64-packed root-to-node path that identifies one concept in tree-code-mode")
   (term sense-fingerprint :gloss "a word sense's vector pattern across several embedding models, built from its synonyms, antonyms and gloss")
+  (add (claim c24 (is-a joe session-user) :by assistant :src t1))
+  (add (claim c25 (has external-design-chat semantic-ir wordnet-ste100-normalization concept-code concept-tree sense-fingerprint) :by user :src t1))
   (add (claim c1 (achieves tree-code-mode cross-file-equivalence-without-resync) :by user :src t1))
   (add (constraint k1 (has concept-tree balanced-splits) :strength soft :by user :src t1))
   (add (constraint k2 (has concept-tree stable-leading-bits few-uniform-rules) :strength soft :by user :src t1))
@@ -27,110 +24,268 @@
   (add (claim c2 (maps-to furious angry intensifier) :by user :src t1))
   (add (decision d2 (implement concept-tree from-sense-fingerprints wordnet asd-ste100) :status proposed :by user :src t1))
   (add (decision d3 (implement embedding-profiling one-model-at-a-time cheapest-first until-constraints-met) :status proposed :by user :src t1))
-  ; d4: no compression round-trip test and no convergence requirement. A messy tree fails the
-  ; constraints and never gets encoded.
   (add (decision d4 (requires concept-tree-acceptance structural-inspection needs-met-not-convergence) :status proposed :by user :src t1))
+  (add (claim c26 (excludes concept-tree-acceptance compression-roundtrip-test) :by user :src t1))
+  (add (claim c27 (prevents failed-structural-constraints concept-tree-encoding) :by user :src t1))
   (add (edge (motivates k3 k2)))
   (add (edge (refines d3 d2)))
-  (add (edge (about d4 concept-tree))))
+  (add (edge (about d4 concept-tree)))
+  (add (edge (refines c26 d4)))
+  (add (edge (refines c27 d4))))
 
 (delta :turn 2
-  ; Claude's review against the spec, TODO.md and runs/mega-all.wno. Everything :by assistant
-  ; here is Claude's and has not been reviewed by Joe. c8, c9 and c10 are retracted at turn 7.
+  (add (claim c28 (is-a claude session-assistant) :by assistant :src t2))
+  (add (artifact r1 "winnow-spec-v0.2.md" :status live :by assistant :src t2))
+  (add (artifact r2 "TODO.md" :status live :by assistant :src t2))
+  (add (artifact r3 "runs/mega-all.wno" :status live :by assistant :src t2))
+  (add (artifact r4 "canon-map.json" :status live :by assistant :src t2))
+  (add (claim c29 (has external-design-chat joe-corrections mostly-correct) :by assistant :src t2))
+  (add (claim c30 (has external-design-chat other-model-agreeing-with-every-correction degrading-facts) :by assistant :src t2))
   (add (claim c3 (has winnow-spec representation-mode-seam uel-planned-v2) :by assistant :src t2))
   (add (claim c4 (has mega-all-terms 89pct-multiword-compounds) :by assistant :src t2))
+  (add (claim c31 (has mega-all-terms clause-sized-term truncated-term) :by assistant :src t2))
+  (add (claim c32 (has junk-terms-json clause-sized-term truncated-term) :by assistant :src t2 :neg true))
   (add (claim c5 (requires tree-code-mode composition-for-compound-terms) :by assistant :src t2))
-  ; the other model put :past on a tree edge, which spec rule R4 forbids. Degree, the ++
-  ; intensifier, is the one operator R4 leaves open.
   (add (claim c6 (encodes spec-rule-r4 tense-modality-polarity-as-annotations) :by assistant :src t2))
-  ; semantically lossless holds within the frame grammar only, which matters for continuity transfers.
+  (add (claim c33 (has external-design-chat past-tense-as-tree-edge) :by assistant :src t2))
+  (add (claim c34 (encodes spec-rule-r4 degree-operator) :by assistant :src t2 :neg true))
+  (add (question q2 (encodes winnow degree-operator annotation-or-decomposition) :status open :by assistant :src t2))
   (add (claim c7 (excludes spec-rule-r10 register-and-affect) :by assistant :src t2))
+  (add (claim c35 (implies spec-rule-r10 losslessness-only-within-frame-grammar) :by assistant :src t2))
+  (add (claim c36 (costs register-and-affect-loss continuity-transfer-fidelity) :by assistant :src t2))
   (add (claim c8 (costs concept-code more-tokens-than-lemmas) :by assistant :src t2))
   (add (claim c9 (reads llm concept-code-bit-prefixes badly) :by assistant :src t2))
   (add (claim c10 (is-a concept-code join-key-not-wire-format) :by assistant :src t2))
   (add (claim c11 (requires concept-tree sense-embeddings-not-lemma-embeddings) :by assistant :src t2))
-  ; recursive median split of the normalized-Laplacian Fiedler vector, with the medoid owning each
-  ; internal node. Fix eigenvector sign and tiebreaks so codes are deterministic. scipy linkage is
-  ; not balanced by construction.
   (add (claim c12 (achieves median-fiedler-bisection balanced-coherent-splits) :by assistant :src t2))
-  ; rebalancing churns codes below the frozen levels. Keep an old-to-new map, like canon-map.json.
+  (add (claim c37 (has median-fiedler-bisection recursive-median-split normalized-laplacian-fiedler-vector) :by assistant :src t2))
+  (add (claim c38 (has median-fiedler-bisection medoid-owns-internal-node) :by assistant :src t2))
+  (add (claim c39 (requires concept-code-determinism fixed-eigenvector-sign fixed-tiebreaks) :by assistant :src t2))
+  (add (claim c40 (achieves scipy-linkage balanced-tree) :by assistant :src t2 :neg true))
   (add (claim c13 (requires concept-tree versioning frozen-top-levels) :by assistant :src t2))
-  ; internal nodes are concepts, so a path plus padding is ambiguous. Append a 1 bit, then zero-pad to 6.
+  (add (claim c41 (causes concept-tree-rebalancing code-churn-below-frozen-levels) :by assistant :src t2))
+  (add (claim c42 (requires concept-tree-versions old-to-new-code-map) :by assistant :src t2))
   (add (claim c14 (requires concept-code stop-bit-framing) :by assistant :src t2))
+  (add (claim c43 (causes internal-node-concepts padded-path-ambiguity) :by assistant :src t2))
+  (add (claim c44 (has stop-bit-framing append-one-bit zero-pad-to-6) :by assistant :src t2))
   (add (claim c15 (has prior-art-candidates "Brown clustering 1992, bit-path word codes with prefixes as coarser classes | Mnih and Hinton 2008, Morin and Bengio 2005, binary word trees from vectors and from WordNet | DSI 2022 and TIGER 2023 semantic IDs | Wilkins Real Character 1668 and the Borges essay on it | WordNet supersenses via lexname, 45 categories | meta-embeddings, Yin and Schutze 2016, Coates and Bollegala 2018 | ConceptNet Numberbatch and retrofitting, Faruqui 2015 | relative representations, Moschella 2023, the formal name for UEL anchor profiles | vec2vec 2025 | LMMS 2019 sense embeddings | NRC Emotion Intensity and VAD lexicons | Gromov delta-hyperbolicity") :by assistant :src t2))
   (add (claim c16 (has other-model-embedding-errors "text-embedding-004 is 768-dim, superseded by gemini-embedding-001 at 3072 with Matryoshka truncation | scikit-learn ships no CKA | all-Quanto-MiniLM-L6-v2 is not a known model | 4 b64 chars hold 24 bits, not 16") :by assistant :src t2))
+  (add (claim c45 (has turn-2-suggestions joe-review) :by assistant :src t2 :neg true))
+  (add (edge (supports r1 c3)))
+  (add (edge (supports r2 c3)))
+  (add (edge (supports r3 c4)))
+  (add (edge (supports r3 c31)))
+  (add (edge (supports r1 c6)))
+  (add (edge (supports r1 c7)))
   (add (edge (supports c4 c5)))
+  (add (edge (contradicts c6 c33)))
+  (add (edge (motivates c34 q2)))
+  (add (edge (about q2 c2)))
+  (add (edge (refines c35 c7)))
+  (add (edge (refines c36 c7)))
   (add (edge (about c12 concept-tree)))
-  (add (edge (about c15 tree-code-mode))))
+  (add (edge (refines c37 c12)))
+  (add (edge (refines c38 c12)))
+  (add (edge (refines c39 c12)))
+  (add (edge (motivates c40 c12)))
+  (add (edge (motivates c41 c13)))
+  (add (edge (refines c42 c13)))
+  (add (edge (about c42 r4)))
+  (add (edge (motivates c43 c14)))
+  (add (edge (refines c44 c14)))
+  (add (edge (about c15 tree-code-mode)))
+  (add (edge (about c45 c11)))
+  (add (edge (about c45 c12)))
+  (add (edge (about c45 c13)))
+  (add (edge (about c45 c14)))
+  (add (edge (about c45 c15))))
 
 (delta :turn 6
-  ; Joe sent a base64 probe and asked for a decode without tools. Claude decoded it and softened
-  ; c9 to hard-at-a-glance, which Joe disputed. Test for q1: legend in context, a few hundred
-  ; codes, thinking off, score category accuracy. Compare char-aligned with bit-packed codes,
-  ; with base64 of random bytes as the no-redundancy control.
+  (add (claim c46 (encodes base64-probe decode-without-tools-request) :by user :src t3))
+  (add (claim c47 (achieves claude base64-probe-decode-without-tools) :by assistant :src t4))
+  (add (claim c48 (reads llm concept-code-bit-prefixes hard-at-a-glance) :by assistant :src t4))
   (add (question q1 (reads llm concept-code-category via-in-context-legend) :status open :by assistant :src t6))
-  (add (edge (about q1 k3))))
+  (add (claim c49 (has q1-test legend-in-context few-hundred-codes thinking-off category-accuracy-score) :by assistant :src t6))
+  (add (claim c50 (compares q1-test char-aligned-codes bit-packed-codes) :by assistant :src t6))
+  (add (claim c51 (uses q1-test random-byte-base64-as-no-redundancy-control) :by assistant :src t6))
+  (add (edge (refines c48 c9)))
+  (add (edge (about q1 k3)))
+  (add (edge (about c49 q1)))
+  (add (edge (refines c50 c49)))
+  (add (edge (refines c51 c49))))
 
 (delta :turn 7
-  ; Joe: frontier models read base64 transparently, and tree codes were never about tokens.
-  ; Evidence: DeepSeek v4.1 flash with thinking and search off decoded the probe at once, and
-  ; GPT-4o held multipage base64 chunks as chat-side storage, slipping only around 10KB.
   (add (claim c17 (permits frontier-models base64-decoding-without-chain-of-thought) :by user :src (t5 t7)))
+  (add (claim c52 (achieves deepseek-v4.1-flash base64-probe-decode thinking-off search-off) :by user :src t7))
+  (add (claim c53 (uses gpt-4o multipage-base64-chunks chat-side-storage) :by user :src t7))
+  (add (claim c54 (has gpt-4o base64-slip-threshold "about 10KB") :by user :src t7))
   (add (constraint k4 (achieves tree-code-mode procedural-computability consistent-queryable-structure) :strength hard :by user :src t7))
   (add (claim c18 (requires tree-code-mode token-efficiency) :by user :src t7 :neg true))
-  ; c8 measured against a goal Joe never had, and c17 contradicts c9. c10 rested on both, and on
-  ; applying registry mode's anchors-are-join-keys rule to a mode where codes can be the identity.
   (update c8 :status retracted)
   (update c9 :status retracted)
   (update c10 :status retracted)
+  (update c48 :status retracted)
+  (add (edge (supports c52 c17)))
+  (add (edge (supports c53 c17)))
+  (add (edge (refines c54 c53)))
   (add (edge (contradicts c17 c9)))
+  (add (edge (contradicts c17 c48)))
   (add (edge (contradicts c18 c8)))
-  (add (edge (contradicts k4 c10))))
+  (add (edge (contradicts k4 c10)))
+  (add (edge (depends c10 c8)))
+  (add (edge (depends c10 c9))))
 
 (delta :turn 8
-  ; Root cause: Claude took the other model's compression framing of the b64 idea as Joe's,
-  ; although Joe had corrected it inside the transcript, then kept a token caveat after pushback.
   (add (claim c19 (causes compression-framing-from-other-model token-efficiency-misread) :by assistant :src t8))
-  ; This alphabet has ASCII order equal to value order; Firebase push IDs use it for the same reason.
-  ; With stop-bit packing, sorted codes give an in-order walk, so every subtree is one contiguous run,
-  ; and ancestor, LCA and depth are pure functions. Proved by hand, not executed.
-  ;   B64 = "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz"
-  ;   def pack(path):
-  ;       bits = path + "1"
-  ;       bits += "0" * (-len(bits) % 6)
-  ;       return "".join(B64[int(bits[i:i+6], 2)] for i in range(0, len(bits), 6))
-  ;   def unpack(code):
-  ;       return "".join(f"{B64.index(c):06b}" for c in code).rstrip("0")[:-1]
-  ;   def lca(a, b):
-  ;       pa, pb = unpack(a), unpack(b)
-  ;       n = next((i for i, (x, y) in enumerate(zip(pa, pb)) if x != y), min(len(pa), len(pb)))
-  ;       return pack(pa[:n])
-  ;   def under(code, root):  # on unpacked paths; a raw bit-prefix test can catch an ancestor
-  ;       return unpack(code).startswith(unpack(root))
+  (add (claim c55 (has external-design-chat joe-correction-of-compression-framing) :by assistant :src t8))
+  (add (claim c56 (has claude-turns-4-and-6 token-caveat-after-pushback) :by assistant :src t8))
+  (add (claim c57 (requires canon-join-key-rule registry-mode) :by assistant :src t8))
+  (add (claim c58 (permits representation-mode-seam concept-code-as-term-identity) :by assistant :src t8))
   (add (claim c20 (enables sortable-b64-alphabet concept-code-subtree-ranges) :by assistant :src t8))
-  ; d5 is committed as its own commit beside this file so it can be reverted alone. It stays
-  ; proposed until Joe merges or rejects it.
+  (add (claim c59 (has sortable-b64-alphabet "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz") :by assistant :src t8))
+  (add (claim c60 (achieves sortable-b64-alphabet ascii-order-equals-value-order) :by assistant :src t8))
+  (add (claim c61 (uses firebase-push-ids sortable-b64-alphabet) :by assistant :src t8))
+  (add (claim c62 (achieves stop-bit-packing-with-sortable-alphabet sorted-codes-equal-in-order-walk) :by assistant :src t8))
+  (add (claim c63 (enables in-order-sort subtree-as-contiguous-run) :by assistant :src t8))
+  (add (claim c64 (enables concept-code ancestor-lca-depth-as-pure-functions) :by assistant :src t8))
+  (add (claim c65 (verifies hand-proof c62) :by assistant :src t8))
+  (add (claim c66 (verifies executed-test c62) :by assistant :src t8 :neg true))
+  (add (artifact r5 "B64 = '-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz'
+def pack(path):
+    bits = path + '1'
+    bits += '0' * (-len(bits) % 6)
+    return ''.join(B64[int(bits[i:i+6], 2)] for i in range(0, len(bits), 6))
+def unpack(code):
+    return ''.join(f'{B64.index(c):06b}' for c in code).rstrip('0')[:-1]
+def lca(a, b):
+    pa, pb = unpack(a), unpack(b)
+    n = next((i for i, (x, y) in enumerate(zip(pa, pb)) if x != y), min(len(pa), len(pb)))
+    return pack(pa[:n])
+def under(code, root):
+    return unpack(code).startswith(unpack(root))" :status live :by assistant :src t8))
+  (add (claim c67 (causes raw-bit-prefix-subtree-test ancestor-false-positive) :by assistant :src t8))
   (add (decision d5 (extends claude-md goals-are-intent-principle) :status proposed :by assistant :src t8))
+  (add (claim c68 (has d5 separate-commit revertable-alone) :by assistant :src t8))
+  (add (claim c69 (requires d5-freeze joe-merge) :by assistant :src t8))
+  (add (claim c70 (excludes this-log personal-half-of-external-design-chat) :by assistant :src t8))
+  (add (edge (supports c55 c19)))
+  (add (edge (refines c56 c19)))
+  (add (edge (about c19 c8)))
+  (add (edge (contradicts c57 c10)))
+  (add (edge (contradicts c58 c10)))
   (add (edge (supports c20 k4)))
-  (add (edge (about c19 c8))))
+  (add (edge (refines c59 c20)))
+  (add (edge (refines c60 c59)))
+  (add (edge (supports c61 c60)))
+  (add (edge (refines c62 c20)))
+  (add (edge (refines c63 c62)))
+  (add (edge (refines c64 c20)))
+  (add (edge (refines r5 c20)))
+  (add (edge (refines c67 r5)))
+  (add (edge (about c68 d5)))
+  (add (edge (about c69 d5))))
+
+(delta :turn 9
+  (add (claim c71 (achieves retry-until-success auto-mode-classifier-failure-recovery) :by user :src t9)))
+
+(delta :turn 11
+  (add (claim c72 (causes silent-classifier-retry-burn fail-loud-classifier-change) :by user :src t11)))
 
 (delta :turn 16
-  ; Doc findings from the code.claude.com auto-mode-config and errors pages. The one refused call
-  ; was a read-only Bash command at turn 8 (spec and handoff reads, a PR-template check, a random
-  ; hex for this file's name), the first tool call after Joe's base64 probe. Per the errors page,
-  ; a separate API safety filter refused the classifier's own request because of earlier
-  ; conversation content: not a verdict on the action, retrying will not help, switch permission
-  ; mode or start fresh. The other variant, an unparseable classifier response, is transient and
-  ; usually clears on retry. Reads, searches and edits inside the working directory skip the
-  ; classifier.
+  (add (artifact r6 "https://code.claude.com/docs/en/auto-mode-config.md" :status live :by user :src t15))
+  (add (artifact r7 "https://code.claude.com/docs/en/errors.md" :status live :by assistant :src t16))
+  (add (artifact r8 "https://code.claude.com/docs/en/permission-modes.md" :status live :by assistant :src t16))
   (add (claim c21 (prevents classifier-safety-filter-refusal one-bash-call) :by assistant :src (t8 t16)))
-  ; The classifier reads the user's messages and the commands Claude runs, not their output. The
-  ; pasted transcript was already present when turn-1 commands passed, so the trigger is likely
-  ; later content. The base64 probe is suspected, not confirmed.
-  (add (claim c22 (reads auto-mode-classifier user-messages-and-commands-not-output) :by assistant :src t16)))
+  (add (claim c73 (is-a refused-tool-call read-only-bash-command) :by assistant :src t16))
+  (add (claim c74 (has refused-tool-call spec-reads handoff-read pr-template-check random-hex-for-log-id) :by assistant :src t16))
+  (add (claim c75 (has refused-tool-call first-tool-call-after-base64-probe) :by assistant :src t16))
+  (add (claim c76 (causes earlier-conversation-content api-safety-filter-refusal-of-classifier-request) :by assistant :src t16))
+  (add (claim c77 (is-a classifier-request-refusal verdict-on-action) :by assistant :src t16 :neg true))
+  (add (claim c78 (achieves retry classifier-request-refusal-recovery) :by assistant :src t16 :neg true))
+  (add (claim c79 (achieves permission-mode-switch-or-fresh-session classifier-request-refusal-recovery) :by assistant :src t16))
+  (add (claim c80 (achieves retry unparseable-classifier-response-recovery) :by assistant :src t16))
+  (add (claim c81 (excludes auto-mode-classifier workdir-reads-searches-edits) :by assistant :src t16))
+  (add (claim c22 (reads auto-mode-classifier user-messages-and-commands-not-output) :by assistant :src t16))
+  (add (claim c82 (has turn-1-tool-calls classifier-pass transcript-present) :by assistant :src t16))
+  (add (claim c83 (implies c82 classifier-trigger-is-later-content) :by assistant :src t16))
+  (add (question q3 (causes base64-probe classifier-request-refusal) :status open :by assistant :src t16))
+  (add (claim c84 (has web-app mode-dropdown-next-to-prompt-box) :by assistant :src t16))
+  (add (claim c85 (has desktop-app mode-selector-next-to-send) :by assistant :src t16))
+  (add (claim c86 (has mobile-app permission-menu-under-plus-button) :by assistant :src t16))
+  (add (claim c87 (has claude-code-before-2.1.225 classifier-refusal-reported-as-genuine-block) :by assistant :src t16))
+  (add (edge (refines c73 c21)))
+  (add (edge (refines c74 c73)))
+  (add (edge (refines c75 c73)))
+  (add (edge (supports r7 c76)))
+  (add (edge (supports r7 c77)))
+  (add (edge (supports r7 c78)))
+  (add (edge (supports r7 c79)))
+  (add (edge (supports r7 c80)))
+  (add (edge (supports r7 c81)))
+  (add (edge (supports r7 c87)))
+  (add (edge (supports r6 c22)))
+  (add (edge (supports r8 c84)))
+  (add (edge (supports r8 c85)))
+  (add (edge (supports r8 c86)))
+  (add (edge (supports c80 c71)))
+  (add (edge (contradicts c78 c71)))
+  (add (edge (supports c87 c72)))
+  (add (edge (supports c82 c83)))
+  (add (edge (motivates c83 q3))))
 
 (delta :turn 19
-  ; Joe's mobile client has no mode dropdown: the permission control sits under the + button in
-  ; the prompt box, the file-upload button, then Permission. Docs: the web app has a dropdown next
-  ; to the prompt box, the desktop app a selector next to send.
-  (add (claim c23 (has joes-mobile-client permission-control-under-plus-button) :by user :src (t13 t19))))
+  (add (claim c88 (has joes-mobile-client mode-dropdown) :by user :src t13 :neg true))
+  (add (claim c23 (has joes-mobile-client permission-menu-under-plus-button) :by user :src (t13 t19)))
+  (add (claim c89 (is-a plus-button file-upload-button) :by user :src t19))
+  (add (edge (supports c86 c23)))
+  (add (edge (refines c89 c23))))
+
+(delta :turn 20
+  (add (artifact r9 "https://github.com/Swordsman/winnow/pull/14" :status live :by assistant :src t20))
+  (add (claim c90 (achieves accept-edits-switch handoff-commit) :by assistant :src t20))
+  (add (claim c91 (has this-container pytest) :by assistant :src t20 :neg true))
+  (add (claim c92 (achieves unittest-discover test-suite-run "144 tests pass") :by assistant :src t20))
+  (add (edge (supports r9 c90))))
+
+(delta :turn 22
+  (add (claim c93 (has this-log comments) :by user :src t21))
+  (add (claim c94 (has this-log-version-1 "65 of 128 non-blank lines are comments") :by assistant :src t22))
+  (add (claim c95 (has session-handoffs "886 of 2240 non-blank lines are comments, about 40 percent") :by assistant :src t22))
+  (add (claim c96 (has july-24-to-25-handoffs "56 to 74 percent comment lines") :by assistant :src t22))
+  (add (claim c97 (has mid-july-handoffs "9 to 39 percent comment lines") :by assistant :src t22))
+  (add (claim c98 (excludes fold comments) :by assistant :src t22))
+  (add (claim c99 (implies c98 comment-content-misses-fold-based-boot) :by assistant :src t22))
+  (add (claim c100 (has todo-2026-07-24 id-and-receives-moved-from-comments-to-meta) :by assistant :src t22))
+  (add (edge (refines c94 c93)))
+  (add (edge (refines c96 c95)))
+  (add (edge (refines c97 c95)))
+  (add (edge (supports c98 c99)))
+  (add (edge (supports c100 c98))))
+
+(delta :turn 23
+  (add (constraint k5 (requires winnow capture-all-semantic-data) :strength hard :by user :src t23))
+  (add (claim c101 (prevents handoff-comments full-semantic-capture) :by user :src t23))
+  (add (edge (about c101 k5)))
+  (add (edge (supports c98 c101))))
+
+(delta :turn 24
+  (add (claim c102 (causes newest-handoff-template-style comment-borne-content) :by assistant :src t24))
+  (add (claim c103 (is-a fold-validation-ok completeness-check) :by assistant :src t24 :neg true))
+  (add (claim c104 (achieves this-log-version-2 comment-content-in-graph) :by assistant :src t24))
+  (add (claim c105 (has fold-default-output stats-only) :by assistant :src t24))
+  (add (claim c106 (excludes mega-fold-kb handoff-comments) :by assistant :src t24))
+  (add (decision d6 (extends claude-md handoff-content-in-graph-rule) :status proposed :by assistant :src t24))
+  (add (decision d7 (implement fold-py comment-line-count) :status proposed :by assistant :src t24))
+  (add (decision d8 (requires boot-step-6 fold-snapshot-flag) :status proposed :by assistant :src t24))
+  (add (question q4 (requires older-handoffs comment-migration) :status open :by assistant :src t24))
+  (add (claim c107 (has q4-options leave-as-is lift-by-hand winnow-extractor-over-comment-text) :by assistant :src t24))
+  (add (edge (about c102 c94)))
+  (add (edge (refines c103 c102)))
+  (add (edge (about c104 c101)))
+  (add (edge (supports c98 c106)))
+  (add (edge (motivates k5 d6)))
+  (add (edge (motivates c101 d6)))
+  (add (edge (motivates c103 d7)))
+  (add (edge (motivates c105 d8)))
+  (add (edge (motivates c101 q4)))
+  (add (edge (about c107 q4))))
