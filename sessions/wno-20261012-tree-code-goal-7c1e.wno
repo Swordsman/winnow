@@ -576,3 +576,12 @@ def under(code, root):
   (add (edge (about c208 d20)))
   (add (edge (about q9 d20)))
   (add (edge (about a2 r11))))
+
+(delta :turn 43
+  (add (decision d21 (implement new-work under-sync-swords-plugin-umbrella) :status proposed :by user :src t42))
+  (add (claim c210 (has sync-swords-plugin littlewing-code-copy) :by user :src t42))
+  (add (claim c211 (has sync-swords-plugin winnow-skill-doc) :by assistant :src t43))
+  (add (claim c212 (has sync-swords-plugin winnow-code) :by assistant :src t43 :neg true))
+  (add (edge (about c210 q9)))
+  (add (edge (about d21 q9)))
+  (add (edge (about c212 d16))))
