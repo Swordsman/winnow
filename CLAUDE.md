@@ -87,9 +87,10 @@ protocol that prevents replayed work:
   is winnow.py's default on every backend; never lower it to save time or
   money without Joe's say-so. Max effort is slow on dense prompts, so run
   live extractions in the background. **Leave DeepSeek's max_tokens
-  undefined**: never set it, not even to the maximum (Joe: the default is
-  stable; touching it causes chaos). ds sends none; use the deepseek
-  backend. DeepSeek's API glitches now and then; retry once
+  undefined** (Joe: the default is stable; touching it is brittle). ds
+  sends none. Where a client requires it, set the maximum (393,216),
+  never lower: a cap starves DeepSeek's thinking and can hang the call.
+  The deepseek-anthropic backend does exactly that. DeepSeek's API glitches now and then; retry once
   before debugging a hang. See ds-guide.md.
 - **Handoff headers**: every generated `.wno` transfer file opens with
   `; id: wno-YYYYMMDD-slug-4hex` and one `; receives:` line per
