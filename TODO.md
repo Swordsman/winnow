@@ -1,6 +1,22 @@
 # winnow — open items
 
 ## Blocked on input
+- [ ] **Further neutral-wording changes (Joe to decide, 2026-10-13).**
+  The plugin's winnow, wash and sync skills were reworded in
+  sync_swords_plugin#4. These candidates are still open:
+  - Rename the wash skill: its name is `context-window-washing`.
+    Renaming changes how the skill is invoked.
+  - Taskdagger: about 200 "wash" hits in the plugin, 102 of them in
+    `skills/taskdagger/references/washing_machine.py`, plus
+    `references/wash.md`. The upstream is Swordsman/cbtdag, so change it
+    there and then re-copy it to the plugin.
+  - The winnow spec: line 3 of `winnow-spec-v0.2.md` says "Streaming
+    semantic distillation". Change it here, the source, then re-copy it
+    to the plugin's `skills/winnow/references/`. The same tagline is
+    in README.md and CLAUDE.md here.
+  - Other "distill" uses: the plugin's delegate-fileread and
+    delegate-research skills say "distilled returns". This is probably
+    benign. Check with a grep before changing anything.
 - [ ] **DeepSeek doc audit (q4 from d10 handoff).** Joe is denoising the
   docs that fed the d9/d10 design sessions; audit them against the merged
   spec for dropped commitments when they arrive. Salvage-only — the spec
@@ -138,6 +154,42 @@
   with `--stale` maintenance pass); no terms are anchored yet.
 
 ## Minor / notes
+- [x] **winnow copied into the plugin (2026-10-13).** Code, data files,
+  `ds`, `demo-deltas.wno` and `tests/` went to
+  Swordsman/sync_swords_plugin `scripts/winnow/`. The spec,
+  `docs/hash-ids.md` and `ds-guide.md` went to
+  `skills/winnow/references/`. Its SKILL.md was updated, and all 144
+  tests pass there. The PR is
+  https://github.com/Swordsman/sync_swords_plugin/pull/4, and Joe
+  merges it. This repo stays the source, so when copied files change
+  here, re-copy them to the plugin. Joe expects winnow to move into
+  the plugin eventually.
+- [x] **Plugin skill descriptions reworded (2026-10-13).** The plugin's
+  README had already swapped classifier-trigger terms for neutral
+  wording, but three skill descriptions kept them. Joe asked to reword
+  those descriptions, which ride the same PR (sync_swords_plugin#4).
+  - winnow: "semantic distillation" became "semantic extraction".
+  - wash: "context window washing" became "context review".
+  - sync: "self-syncing" became "auto-updating".
+
+  The skill bodies were reworded the same way, on Joe's word that the
+  classifier reads whole files. The only old term left in those three
+  files is the wash skill's name, `context-window-washing`.
+
+  Other plugin files still use "wash", mostly under taskdagger: about
+  200 hits, 102 of them in `washing_machine.py`. The winnow spec copy
+  in `references/` still says "semantic distillation", because it
+  stays a byte-identical copy of the upstream file.
+- [x] **.wno records moved to Session Records (2026-10-13).** The 17
+  handoffs and 10 run outputs now live in the Session Records doc
+  (https://claude.ai/code/artifact/f57faba9-75c5-418f-9b5f-c21516af9b1f):
+  handoffs in its index, runs in its Runs tab, uploaded as `.wno.txt`
+  and SHA-256 checked. They're out of git; `sessions/*.wno` and
+  `runs/**/*.wno` are gitignored. Boot step 4 downloads the newest
+  handoff; download runs under `runs/` before mega-fold.py or
+  term-table.py. `demo-deltas.wno` and the cbtdag fixture stay in the
+  repo because tests and the spec use them. Older `sessions/` and
+  `runs/` paths in this file and in `claims/` are history.
 - [x] **Transfer-file ids + receives (2026-07-24).** Moved from comment
   conventions (`; id:`, `; receives:`) into proper graph structure:
   `:log-id` and `:receives` meta keys (§7 table, §8 grammar). fold.py
