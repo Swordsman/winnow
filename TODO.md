@@ -251,6 +251,14 @@
 - [ ] UEL / embedding-anchor representation mode (§12) — v2 identity engine.
 
 ## Done
+- [x] **Prompts reach ds as files (2026-10-13).** Joe: shoving content in
+      as an argument is insane. winnow's deepseek client passed the system
+      prompt and the whole user message as argv; one argument over 128 KiB
+      fails exec (a 300 KB task: "Argument list too long"), and argv shows
+      in `ps`. Now both go in files: `ds --system-file` and the new
+      `ds --task-file` (verbatim; dry-run request identical to the argument
+      form), stdin closed so ds can't read the caller's. ds-guide's winnow
+      commands use files. 1 test (187 total).
 - [x] **Claude subagent backend and checker (2026-10-13).** Joe: a
       subagent instead of DeepSeek is fine; Haiku only if Sonnet or better
       double-checks it, Sonnet solo or with Opus checking, Opus solo.
