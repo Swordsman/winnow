@@ -15,8 +15,10 @@ protocol that prevents replayed work:
    - `git log` — what actually happened (authoritative, can't be stale)
    - `TODO.md` — open/done items, updated *in the same commit* as the
      work it describes, never in a separate cleanup pass
-   - `sessions/*.wno` — session handoffs, headers carry `; id:` and
-     `; receives:` lines forming an explicit dependency chain
+   - Session handoffs — `.wno` logs stored in the Session Records doc
+     (https://claude.ai/code/artifact/f57faba9-75c5-418f-9b5f-c21516af9b1f),
+     indexed newest first; headers carry `; id:` and `; receives:`
+     lines forming an explicit dependency chain
    - `claims/` — live task ownership: who is working on what right now,
      with before/intent/warnings declared at claim time and a completion
      declaration at finish (see the `/task-ownership` skill)
@@ -27,9 +29,10 @@ protocol that prevents replayed work:
    the repo contradicts the instruction, the repo wins — the
    instruction is stale; note that and move on.
 3. **Update state at completion time, not session end.** The moment an
-   item finishes, its TODO.md flip and any handoff note go into the
-   same commit as the work. An interrupted session then strands
-   nothing: whatever the last commit shows is exactly what happened.
+   item finishes, its TODO.md flip goes into the same commit as the
+   work, and any handoff note into a fresh upload of the session's
+   handoff. An interrupted session then strands nothing: the last
+   commit and the newest upload show exactly what happened.
 
 ## Boot sequence
 
@@ -39,9 +42,11 @@ protocol that prevents replayed work:
    Follow `.claude/skills/task-ownership/SKILL.md` (the `/task-ownership`
    skill) before touching anything a claim names.
 3. Read `TODO.md` — open items, blockers.
-4. Find the newest handoff in `sessions/` (check `; id:` header dates).
-   Verify every `; receives:` ancestor is present in the repo; a
-   missing ancestor means missing vocabulary — ask for the file before
+4. Find the newest handoff in the Session Records index (link above).
+   Download it with the Artifact tool's read action, its asset id as
+   the path, and save it under `sessions/` as `<name>.wno` (gitignored).
+   Verify every `; receives:` ancestor is in the index; a missing
+   ancestor means missing vocabulary — ask for the file before
    trusting the graph.
 5. `python3 -m pytest tests/ -q` — should be green before you change
    anything.
@@ -78,13 +83,16 @@ protocol that prevents replayed work:
   blocked on something (a live run, a long call, user input), use the
   wait to make sure the *full remainder* of everything planned —
   intended next steps, methodology in your head, half-formed
-  observations — is written into TODO.md / the claim / the handoff and
-  committed. Sessions can be cut off without warning; the test is: if
-  the container died right now, could a fresh session pick up every
-  planned thread from the repo alone?
-- **Session handoffs**: every session produces a `.wno` handoff in
-  `sessions/`, committed before the session ends. No session's
-  experience gets left behind. Content goes in the graph (nodes, edges,
+  observations — is written into TODO.md and the claim (committed) or
+  the handoff (uploaded). Sessions can be cut off without warning; the
+  test is: if the container died right now, could a fresh session pick
+  up every planned thread from the repo and Session Records alone?
+- **Session handoffs**: every session produces a `.wno` handoff,
+  uploaded to Session Records as `<name>.wno.txt` (uploads refuse
+  `.wno`) and added to its index before the session ends; when it
+  changes, upload again and repoint the index row. Never commit a
+  `.wno` record: local copies under `sessions/` and `runs/` are
+  gitignored. No session's experience gets left behind. Content goes in the graph (nodes, edges,
   string literals), never in `;` comments: fold, merge and mega-fold
   drop comments, so anything that lives only in a comment is invisible
   to the system. Comments may only repeat what the graph already holds,
@@ -93,6 +101,9 @@ protocol that prevents replayed work:
   left out?" — check `fold.py --snapshot` output, not the raw file —
   and add what's missing. Repeat until everything important is
   captured.
+- **Run outputs**: extractions, merges and mega-folds live in Session
+  Records' Runs tab. Download the ones you need under `runs/`, at
+  their old paths, before running mega-fold.py or term-table.py.
 
 ## Operating principles
 

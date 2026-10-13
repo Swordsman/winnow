@@ -138,6 +138,16 @@
   with `--stale` maintenance pass); no terms are anchored yet.
 
 ## Minor / notes
+- [x] **.wno records moved to Session Records (2026-10-13).** The 17
+  handoffs and 10 run outputs now live in the Session Records doc
+  (https://claude.ai/code/artifact/f57faba9-75c5-418f-9b5f-c21516af9b1f):
+  handoffs in its index, runs in its Runs tab, uploaded as `.wno.txt`
+  and SHA-256 checked. They're out of git; `sessions/*.wno` and
+  `runs/**/*.wno` are gitignored. Boot step 4 downloads the newest
+  handoff; download runs under `runs/` before mega-fold.py or
+  term-table.py. `demo-deltas.wno` and the cbtdag fixture stay in the
+  repo because tests and the spec use them. Older `sessions/` and
+  `runs/` paths in this file and in `claims/` are history.
 - [x] **Transfer-file ids + receives (2026-07-24).** Moved from comment
   conventions (`; id:`, `; receives:`) into proper graph structure:
   `:log-id` and `:receives` meta keys (§7 table, §8 grammar). fold.py

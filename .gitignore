@@ -1,2 +1,7 @@
 __pycache__/
 *.pyc
+
+# .wno records live in the Session Records doc (see CLAUDE.md);
+# downloaded copies stay local
+sessions/*.wno
+runs/**/*.wno
