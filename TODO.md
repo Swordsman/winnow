@@ -148,10 +148,17 @@
   merges it. This repo stays the source, so when copied files change
   here, re-copy them to the plugin. Joe expects winnow to move into
   the plugin eventually.
-- [ ] **Plugin SKILL.md wording.** The plugin README swapped
-  "semantic distillation" for neutral wording to avoid classifier
-  triggers. The winnow SKILL.md still says it, and it was left as is.
-  Change it? (Joe)
+- [x] **Plugin skill descriptions reworded (2026-10-13).** The plugin's
+  README had already swapped classifier-trigger terms for neutral
+  wording, but three skill descriptions kept them. Joe asked to reword
+  those descriptions, which ride the same PR (sync_swords_plugin#4).
+  - winnow: "semantic distillation" became "semantic extraction".
+  - wash: "context window washing" became "context review".
+  - sync: "self-syncing" became "auto-updating".
+
+  Only the descriptions changed. The skill names
+  (`context-window-washing`, `sync-swords`) and the skill bodies keep
+  the old terms.
 - [x] **.wno records moved to Session Records (2026-10-13).** The 17
   handoffs and 10 run outputs now live in the Session Records doc
   (https://claude.ai/code/artifact/f57faba9-75c5-418f-9b5f-c21516af9b1f):
