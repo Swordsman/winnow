@@ -138,6 +138,20 @@
   with `--stale` maintenance pass); no terms are anchored yet.
 
 ## Minor / notes
+- [x] **winnow copied into the plugin (2026-10-13).** Code, data files,
+  `ds`, `demo-deltas.wno` and `tests/` went to
+  Swordsman/sync_swords_plugin `scripts/winnow/`. The spec,
+  `docs/hash-ids.md` and `ds-guide.md` went to
+  `skills/winnow/references/`. Its SKILL.md was updated, and all 144
+  tests pass there. The PR is
+  https://github.com/Swordsman/sync_swords_plugin/pull/4, and Joe
+  merges it. This repo stays the source, so when copied files change
+  here, re-copy them to the plugin. Joe expects winnow to move into
+  the plugin eventually.
+- [ ] **Plugin SKILL.md wording.** The plugin README swapped
+  "semantic distillation" for neutral wording to avoid classifier
+  triggers. The winnow SKILL.md still says it, and it was left as is.
+  Change it? (Joe)
 - [x] **.wno records moved to Session Records (2026-10-13).** The 17
   handoffs and 10 run outputs now live in the Session Records doc
   (https://claude.ai/code/artifact/f57faba9-75c5-418f-9b5f-c21516af9b1f):

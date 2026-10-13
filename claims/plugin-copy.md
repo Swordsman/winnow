@@ -52,3 +52,28 @@ stays the source, and will probably move into the plugin later.
 - The plugin has no root .gitignore. Run its tests with `python3 -B`
   so no `__pycache__` gets committed.
 - The plugin has no CI. Its CLAUDE.md says not to watch its PRs.
+
+## completion
+- completed: 2026-10-13T02:45Z
+- outcome: matched the intent.
+  - Plugin PR https://github.com/Swordsman/sync_swords_plugin/pull/4
+    (commit 051a43b, v0.7.0) holds every listed file, byte-identical.
+    Joe merges it, as with plugin PRs #1-#3.
+  - Handoff delta :turn 45 is uploaded (asset
+    67fdd96a7b51c9356a8dd26c1ec3d723, blob 227f1f60-7cfc, 44725 bytes,
+    sha256 e91666d0). The index row is repointed.
+  - In the anchor, the winnow tab, the pipeline brief and the Active
+    sessions row are updated. PR #14's title and body now describe
+    its net diff.
+- hiccups:
+  - The worker restarted after the upload. Local state survived.
+  - The tree-code handoff left PR #14's diff when the records moved,
+    so the PR title changed.
+  - SKILL.md keeps "semantic distillation", which the plugin README
+    had swapped for neutral wording. TODO.md has a question for Joe.
+- checklist:
+  - tests green: yes (unittest, 144, both in winnow and from the
+    plugin's scripts/winnow/tests)
+  - TODO.md flipped: yes
+  - handoff updated: yes (uploaded, index repointed)
+  - pushed: yes
