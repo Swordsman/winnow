@@ -82,9 +82,11 @@ protocol that prevents replayed work:
 - **DEEPSEEK_API_KEY**: Joe provides per session; env var only, never
   commit it, never write it to a file in the repo.
 - **Live runs**: `python3 winnow.py transcripts/X.txt --out OUT.wno
-  --backend deepseek --model pro|flash`. See ds-guide.md for latency
-  expectations (thinking is on by default and slow on dense prompts;
-  short calls ~2-4s).
+  --backend deepseek --model pro|flash`. **Always at max thinking
+  effort** (Joe, 2026-10-13: anything less is a bad idea). `--think max`
+  is winnow.py's default on every backend; never lower it to save time or
+  money without Joe's say-so. Max effort is slow on dense prompts, so run
+  live extractions in the background. See ds-guide.md for latency.
 - **Handoff headers**: every generated `.wno` transfer file opens with
   `; id: wno-YYYYMMDD-slug-4hex` and one `; receives:` line per
   ancestor file it depends on.

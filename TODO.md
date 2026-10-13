@@ -251,6 +251,12 @@
 - [ ] UEL / embedding-anchor representation mode (§12) — v2 identity engine.
 
 ## Done
+- [x] **Max thinking effort by default (2026-10-13).** Joe: running winnow
+      below max effort is a bad idea. winnow.py `--think` (default `max`)
+      now reaches every backend: `ds --think max` for deepseek, and
+      `output_config.effort` with streaming (64K max_tokens) for the
+      anthropic and deepseek-anthropic backends. CLAUDE.md's live-run
+      convention says so. 2 tests.
 - [x] **basis view (2026-10-13).** `basis.py` (`wno.py basis`) labels every
       node with grounds holds / pending / undermined, with the chain to
       each cause, what it rests on, and `--rests-on ID` for a premise's
