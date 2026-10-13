@@ -156,9 +156,14 @@
   - wash: "context window washing" became "context review".
   - sync: "self-syncing" became "auto-updating".
 
-  Only the descriptions changed. The skill names
-  (`context-window-washing`, `sync-swords`) and the skill bodies keep
-  the old terms.
+  The skill bodies were reworded the same way, on Joe's word that the
+  classifier reads whole files. The only old term left in those three
+  files is the wash skill's name, `context-window-washing`.
+
+  Other plugin files still use "wash", mostly under taskdagger: about
+  200 hits, 102 of them in `washing_machine.py`. The winnow spec copy
+  in `references/` still says "semantic distillation", because it
+  stays a byte-identical copy of the upstream file.
 - [x] **.wno records moved to Session Records (2026-10-13).** The 17
   handoffs and 10 run outputs now live in the Session Records doc
   (https://claude.ai/code/artifact/f57faba9-75c5-418f-9b5f-c21516af9b1f):
