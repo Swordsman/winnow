@@ -533,3 +533,10 @@ def under(code, root):
   (add (edge (about c196 d17)))
   (add (edge (about c197 d16)))
   (add (edge (supports r2 c197))))
+
+(delta :turn 39
+  (add (claim c198 (has claude-docs account-private-by-default) :by user :src t38))
+  (update c195 :status retracted)
+  (add (claim c199 (requires session-records separate-unshared-doc) :by assistant :src t39))
+  (add (edge (contradicts c198 c195)))
+  (add (edge (about c199 d17))))
