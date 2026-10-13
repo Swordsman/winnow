@@ -40,3 +40,25 @@ with opus as a quality checker, opus can be used solo".
   rather than guessed at; Fable models are refused too. Joe may widen it.
 - A live littlewing recording is running in the background on deepseek;
   don't break the deepseek path.
+
+## completion
+- completed: 2026-10-13T05:45Z
+- outcome: matched the intent. claude-code backend, --checker, the pairing
+  policy on both Claude backends, per-backend --model defaults and the
+  --global-kb fix, pushed as 2a808a7; littlewing's wno mode passes
+  "checker" through (plugin PR #5).
+- live check: `--backend claude-code --model haiku --checker sonnet` at
+  max effort on a 3-turn transcript: 2 deltas, 7 nodes, 5 edges,
+  validation OK, the "go with xz" turn froze the decision and answered
+  the question. 14 min wall clock for 7 calls (~2 min each at max effort).
+  It exposed an old bug: annotations inside a (reach ...) became search
+  terms and then an open question; fixed in the next commit.
+- hiccups: the claim was written after the work began (noted in the
+  header). Joe flagged prompts passed as arguments; this backend already
+  used a file and stdin, the deepseek path didn't (claims/prompts-as-files.md).
+- checklist:
+  - tests green: yes (python3 -m unittest discover -s tests, 188 with the reach fix)
+  - TODO.md flipped: yes (Done entry in 2a808a7)
+  - handoff updated: not-needed separately; this session's handoff is the
+    one pending on claims/fold-frontier-digest-split.md
+  - pushed: yes

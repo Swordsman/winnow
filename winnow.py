@@ -636,9 +636,26 @@ def extract_reaches(text):
         try:
             for form in parse(tokenize(f)):
                 if isinstance(form, list) and form and form[0] == "reach":
-                    out.append(form[1:])
+                    query = _without_anns(form[1:])
+                    if query:
+                        out.append(query)
         except (IndexError, AssertionError):
             continue
+    return out
+
+
+def _without_anns(tokens):
+    """A reach query minus `:key value` pairs. Extractors tag reaches like
+    any op (seen live 2026-10-13: (reach the-export :by user :src t1)), and
+    the tags aren't search terms."""
+    out, skip = [], False
+    for t in tokens:
+        if skip:
+            skip = False
+        elif isinstance(t, str) and not isinstance(t, Lit) and t.startswith(":"):
+            skip = True
+        else:
+            out.append(t)
     return out
 
 

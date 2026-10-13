@@ -251,6 +251,11 @@
 - [ ] UEL / embedding-anchor representation mode (§12) — v2 identity engine.
 
 ## Done
+- [x] **Reach queries drop annotations (2026-10-13).** Seen live
+      (claude-code haiku): `(reach the-export :by user :src t1)` searched for
+      `:by user :src t1` too, missed, and became the open question
+      `(locate the-export by user src t1)`. `extract_reaches` now strips
+      `:key value` pairs and skips a query left empty. 1 test (188 total).
 - [x] **Prompts reach ds as files (2026-10-13).** Joe: shoving content in
       as an argument is insane. winnow's deepseek client passed the system
       prompt and the whole user message as argv; one argument over 128 KiB
