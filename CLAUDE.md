@@ -63,6 +63,7 @@ protocol that prevents replayed work:
 | `fold.py` | The fold: log → graph (replay, validate, snapshot, stats) |
 | `frontier.py` | Frontier view: what's still open |
 | `digest.py` | Tiers and the digest the extractor sees |
+| `basis.py` | What each conclusion rests on; holds / pending / undermined |
 | `query.py` | Query, concepts, stale, hashes views |
 | `winnow.py` | Live orchestrator: extractor → normalizer → delta log |
 | `merge.py` / `split.py` | Cross-log merge / procedural slicing |

@@ -1,6 +1,34 @@
 # winnow — open items
 
 ## Blocked on input
+- [ ] **`:modal assumed` (Joe to decide, 2026-10-13).** basis.py treats a
+  `:modal may` premise as a hedge, so whatever rests on it is pending. A
+  stated assumption ("assuming X...") is a different stance from "X may
+  be so", but spec §3 closes `:modal` at must/should/may/can. Add
+  `assumed` there, add an epistemic key beside `:modal`, or keep `may`?
+- [ ] **Failure frame (design, Joe 2026-10-13).** A ninth frame, `failure`,
+  for something that went wrong: what happened is the node (provenance
+  via `:src`), its kind is a `:mode` term from the registry
+  (miscommunication, wrong-assumption, instruction-violation,
+  tool-failure, regression, omission, stale-state), its statuses run open
+  → diagnosed → repaired → prevented (plus dismissed, superseded). The
+  cause is an ordinary claim, a hypothesis until shown: `(motivates CAUSE
+  F)`; repair `(answers FIX F)` (answers widens from questions to open
+  items); prevention `(motivates F GUARD)`. No blame in payloads: name the
+  faulty assumption or action, and `:by` records who spotted it. basis.py
+  already cascades through those edges, so a retracted cause reopens the
+  failure's explanation. Cheap first step, no spec change: a trouble view
+  listing the failure signals logs already hold (corrected/retracted
+  claims, abandoned decisions, blocked/dropped actions, live contradicts,
+  honest misses) with their `:src` turns. Test cases from this session:
+  the false "uploads can't be compressed" claim (wrong-assumption), the
+  normalizer crash on a dangling key (tool-failure), "fold" meaning three
+  things (miscommunication).
+- [ ] **Extractor guidance for premises.** basis.py is only as good as the
+  `depends`/`motivates` edges the extractor writes. Candidate prompt line:
+  when someone reasons from a premise ("since X", "assuming X", "if X
+  then"), record the conclusion and a `depends` edge to the premise. A
+  prompt change, so measure on a live run before adopting.
 - [ ] **Extractor prompt rewording (Joe to confirm, 2026-10-13).** The
   fold/frontier/digest split reworded one phrase in the extractor prompt
   (winnow.py and spec §9): "the note graph so far (just the live
@@ -223,6 +251,20 @@
 - [ ] UEL / embedding-anchor representation mode (§12) — v2 identity engine.
 
 ## Done
+- [x] **basis view (2026-10-13).** `basis.py` (`wno.py basis`) labels every
+      node with grounds holds / pending / undermined, with the chain to
+      each cause, what it rests on, and `--rests-on ID` for a premise's
+      blast radius. Joe's design: logic chains, no scores ("Y holds so long
+      as X holds"). `depends` premises are all needed, `motivates` reasons
+      need one survivor; evidence edges don't cascade except that a live
+      `contradicts` leaves the target pending. fold now records each
+      delta's turn (`Graph.delta_turns`, `touched_at_turn`). Spec: glossary
+      row, §5 note, Files. 14 tests (177 total).
+- [x] **ds on DeepSeek-V4.1-Flash (2026-10-13).** `-m flash` asks for
+      `deepseek-flash` (the retired `deepseek-v4-flash` is redirected to it
+      anyway), `--think low` added, cost estimates use current off-peak and
+      peak prices. Flash output went from $0.28 to $0.60/M off-peak, $1.20
+      peak. Joe: update ds here, ds-worker is being phased out.
 - [x] **fold / frontier / digest split (2026-10-13).** "Fold" had come to
       mean three things in the docs: the replay, the open-items view, and
       the tiered window. Now one script per job behind `wno.py`:

@@ -36,3 +36,21 @@ found.
   used; it goes to TODO as a spec question for Joe.
 - A live littlewing recording calls `ds` per request in the background;
   keep `ds` working at every step.
+
+## completion
+- completed: 2026-10-13T04:42Z
+- outcome: matched the intent. basis.py with holds / pending / undermined,
+  chains, rests-on and blast radius; AND over depends, OR over motivates;
+  fold records each delta's turn; ds on V4.1 Flash with --think low and
+  current prices. `:modal assumed` went to TODO as Joe's call, as planned.
+- hiccups: three ds test calls hung for 90 s each around 04:26 UTC; the old
+  ds answered in 2 s right after and the new one did too on retry, so it
+  was transient (API or proxy), not the edit. ds was restored to the old
+  copy while that was checked, so the live littlewing run never used a
+  suspect ds.
+- checklist:
+  - tests green: yes (python3 -m unittest discover -s tests, 177)
+  - TODO.md flipped: yes (two Done items, three design items under Blocked on input)
+  - handoff updated: not-needed separately; this session's handoff is the
+    one pending on claims/fold-frontier-digest-split.md
+  - pushed: yes

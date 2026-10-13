@@ -33,6 +33,7 @@ python3 wno.py fold demo-deltas.wno              # fold: stats + validation
 python3 wno.py fold demo-deltas.wno --snapshot   # the whole folded graph
 python3 wno.py frontier demo-deltas.wno          # what's still open
 python3 wno.py digest demo-deltas.wno            # the tiered window the extractor sees
+python3 wno.py basis demo-deltas.wno             # what each conclusion rests on, and whether it holds
 python3 wno.py frontier demo-deltas.wno --upto 4 # any prefix is a valid state
 python3 wno.py query demo-deltas.wno "frame=constraint strength=hard"
 python3 wno.py query demo-deltas.wno --hashes    # content-hash id table (v0.3 prototype)
@@ -77,6 +78,7 @@ Tests: `python3 -m unittest discover tests`
 | `fold.py` | the fold: log → full graph, validation, snapshot, stats, yield curve |
 | `frontier.py` | the frontier view: what's still open |
 | `digest.py` | tiers (fire/hot/warm/cold) and the digest, the window the extractor sees |
+| `basis.py` | what each conclusion rests on (`depends` premises, `motivates` reasons): holds / pending / undermined, with the chain to the cause and the blast radius of a premise |
 | `query.py` | query, concepts, stale, hashes views |
 | `winnow.py` | streaming extraction orchestrator (spec §9 loop + §10.5 resolution ladder; live via the Anthropic SDK, or deterministic `--replay` mode) |
 | `merge.py` | cross-log merge on content-hash join keys (v0.3 feature, shipped early) |
