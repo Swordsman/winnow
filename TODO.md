@@ -1,6 +1,22 @@
 # winnow — open items
 
 ## Blocked on input
+- [ ] **Further neutral-wording changes (Joe to decide, 2026-10-13).**
+  The plugin's winnow, wash and sync skills were reworded in
+  sync_swords_plugin#4. These candidates are still open:
+  - Rename the wash skill: its name is `context-window-washing`.
+    Renaming changes how the skill is invoked.
+  - Taskdagger: about 200 "wash" hits in the plugin, 102 of them in
+    `skills/taskdagger/references/washing_machine.py`, plus
+    `references/wash.md`. The upstream is Swordsman/cbtdag, so change it
+    there and then re-copy it to the plugin.
+  - The winnow spec: line 3 of `winnow-spec-v0.2.md` says "Streaming
+    semantic distillation". Change it here, the source, then re-copy it
+    to the plugin's `skills/winnow/references/`. The same tagline is
+    in README.md and CLAUDE.md here.
+  - Other "distill" uses: the plugin's delegate-fileread and
+    delegate-research skills say "distilled returns". This is probably
+    benign. Check with a grep before changing anything.
 - [ ] **DeepSeek doc audit (q4 from d10 handoff).** Joe is denoising the
   docs that fed the d9/d10 design sessions; audit them against the merged
   spec for dropped commitments when they arrive. Salvage-only — the spec
