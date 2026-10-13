@@ -48,3 +48,13 @@ recency tail goes wherever makes sense.
   re-copy after this lands. littlewing's recorder there loads fold.py's
   reader by path.
 - Never commit .wno records.
+
+## progress (2026-10-13, before completion)
+- Work pushed: a3cfb0e (the split) and a65e557 (normalizer rejects a
+  dangling annotation key; found by the live run below). PR #15. 163 tests.
+- Plugin copy done: Swordsman/sync_swords_plugin PR #5, same branch name.
+- Remaining: the session handoff. littlewing's new wno mode is recording
+  this session live (DeepSeek flash, scratch storage only). When it
+  finishes: review it with `fold.py --snapshot`, add the `; id:` /
+  `; receives:` header and `:log-id`, upload to Session Records as
+  `.wno.txt`, index it, then write the completion section.
