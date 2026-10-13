@@ -42,7 +42,7 @@ with opus as a quality checker, opus can be used solo".
   don't break the deepseek path.
 
 ## completion
-- completed: 2026-10-13T05:45Z
+- completed: 2026-10-13T05:37Z
 - outcome: matched the intent. claude-code backend, --checker, the pairing
   policy on both Claude backends, per-backend --model defaults and the
   --global-kb fix, pushed as 2a808a7; littlewing's wno mode passes
@@ -52,7 +52,7 @@ with opus as a quality checker, opus can be used solo".
   validation OK, the "go with xz" turn froze the decision and answered
   the question. 14 min wall clock for 7 calls (~2 min each at max effort).
   It exposed an old bug: annotations inside a (reach ...) became search
-  terms and then an open question; fixed in the next commit.
+  terms and then an open question; fixed in the same commit (1ae26c3).
 - hiccups: the claim was written after the work began (noted in the
   header). Joe flagged prompts passed as arguments; this backend already
   used a file and stdin, the deepseek path didn't (claims/prompts-as-files.md).
