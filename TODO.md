@@ -1,6 +1,13 @@
 # winnow — open items
 
 ## Blocked on input
+- [ ] **Extractor prompt rewording (Joe to confirm, 2026-10-13).** The
+  fold/frontier/digest split reworded one phrase in the extractor prompt
+  (winnow.py and spec §9): "the note graph so far (just the live
+  frontier)" became "(a digest of what's live, not the whole graph)",
+  because the extractor gets the digest. Prompt wording has moved
+  extraction quality before (see the quality comparison below), so the
+  next live run should watch for drift; revert the phrase if it hurts.
 - [ ] **Further neutral-wording changes (Joe to decide, 2026-10-13).**
   The plugin's winnow, wash and sync skills were reworded in
   sync_swords_plugin#4. These candidates are still open:
@@ -216,6 +223,24 @@
 - [ ] UEL / embedding-anchor representation mode (§12) — v2 identity engine.
 
 ## Done
+- [x] **fold / frontier / digest split (2026-10-13).** "Fold" had come to
+      mean three things in the docs: the replay, the open-items view, and
+      the tiered window. Now one script per job behind `wno.py`:
+      `sexpr.py` (reader), `fold.py` (log → graph only), `frontier.py`
+      (what's still open), `digest.py` (tiers + the window the extractor
+      sees; owns P3 promotions as expiry indices the fold never ages),
+      `query.py` (query, concepts, stale, hashes). The recency tail moved
+      from the frontier into the digest's hot tier, so the frontier is
+      strictly open items; digest output is unchanged apart from the hot
+      tier's label (checked against the old code on every prefix of both
+      repo logs: 81 outputs identical or exactly as intended). Spec gained
+      a glossary and §1/§7/§9/§10/§11/Files/Appendix rewrites; §11 now
+      shows the real digest entering turn 8 (~460 tokens, not the v0.1
+      frontier's 175). CLAUDE.md has a vocabulary rule. 162 tests (144
+      kept, 18 new; a test file per script).
+      Follow-up: `fold.py --frontier/--digest/--query/--hashes/--concepts/
+      --stale` still forward to the new scripts with a deprecation note;
+      remove them next release.
 - [x] **Mega-fold (2026-07-24).** `mega-fold.py` merges every source
       `.wno` into one graph via content-hash dedup and folds it;
       `--scope sessions|runs|all`, `--overlap`, `--canon-map`,

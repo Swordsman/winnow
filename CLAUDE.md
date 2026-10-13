@@ -58,7 +58,12 @@ protocol that prevents replayed work:
 | File | What |
 |---|---|
 | `winnow-spec-v0.2.md` | The spec. Authoritative over all code. |
-| `fold.py` | Graph, fold, tiers, digest, query layer |
+| `wno.py` | Front door: `wno.py fold\|frontier\|digest\|query\|extract\|...` |
+| `sexpr.py` | s-expression reader/printer every script shares |
+| `fold.py` | The fold: log → graph (replay, validate, snapshot, stats) |
+| `frontier.py` | Frontier view: what's still open |
+| `digest.py` | Tiers and the digest the extractor sees |
+| `query.py` | Query, concepts, stale, hashes views |
 | `winnow.py` | Live orchestrator: extractor → normalizer → delta log |
 | `merge.py` / `split.py` | Cross-log merge / procedural slicing |
 | `ds` | DeepSeek CLI harness (copied from ds-worker repo) |
@@ -68,6 +73,11 @@ protocol that prevents replayed work:
 
 ## Conventions
 
+- **Vocabulary**: *fold* means replaying the log into the full graph,
+  nothing else. The *frontier* (what's still open) and the *digest* (the
+  tiered window the extractor sees) are views of the folded graph, each
+  with its own script. Never call a view "the fold"; the spec's glossary
+  defines all four words, snapshot included.
 - **DEEPSEEK_API_KEY**: Joe provides per session; env var only, never
   commit it, never write it to a file in the repo.
 - **Live runs**: `python3 winnow.py transcripts/X.txt --out OUT.wno
