@@ -86,7 +86,10 @@ protocol that prevents replayed work:
   effort** (Joe, 2026-10-13: anything less is a bad idea). `--think max`
   is winnow.py's default on every backend; never lower it to save time or
   money without Joe's say-so. Max effort is slow on dense prompts, so run
-  live extractions in the background. See ds-guide.md for latency.
+  live extractions in the background. **Never cap DeepSeek's output
+  tokens**: ds sends no max_tokens; where an API requires one, send the
+  model's full capacity. DeepSeek's API glitches now and then; retry once
+  before debugging a hang. See ds-guide.md.
 - **Handoff headers**: every generated `.wno` transfer file opens with
   `; id: wno-YYYYMMDD-slug-4hex` and one `; receives:` line per
   ancestor file it depends on.
