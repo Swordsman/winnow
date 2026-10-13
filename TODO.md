@@ -251,10 +251,24 @@
 - [ ] UEL / embedding-anchor representation mode (§12) — v2 identity engine.
 
 ## Done
+- [x] **Claude subagent backend and checker (2026-10-13).** Joe: a
+      subagent instead of DeepSeek is fine; Haiku only if Sonnet or better
+      double-checks it, Sonnet solo or with Opus checking, Opus solo.
+      `--backend claude-code` runs a tool-less `claude -p` from an empty
+      scratch directory (project settings only, no MCP, no skills, so no
+      hooks, plugins or CLAUDE.md reach it), at `--effort` from `--think`,
+      prompt on stdin. `--checker MODEL` runs a second model on the same
+      backend over each delta (digest, registry, pulls, new turns,
+      candidate) before the procedural normalizer; `claude_policy_error`
+      enforces the pairing on both Claude backends. `--model` now defaults
+      per backend (deepseek-anthropic no longer gets a Claude model id),
+      and `--global-kb` no longer dies on an undefined `verbose`. 5 tests
+      (186 total).
 - [x] **Max thinking effort by default (2026-10-13).** Joe: running winnow
       below max effort is a bad idea. winnow.py `--think` (default `max`)
       now reaches every backend: `ds --think max` for deepseek, and
-      `output_config.effort` with streaming (64K max_tokens) for the
+      `output_config.effort` with streaming (each model's full output
+      capacity as max_tokens) for the
       anthropic and deepseek-anthropic backends. CLAUDE.md's live-run
       convention says so. 2 tests.
 - [x] **basis view (2026-10-13).** `basis.py` (`wno.py basis`) labels every

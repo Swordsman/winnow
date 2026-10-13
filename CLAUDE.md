@@ -92,6 +92,11 @@ protocol that prevents replayed work:
   never lower: a cap starves DeepSeek's thinking and can hang the call.
   The deepseek-anthropic backend does exactly that. DeepSeek's API glitches now and then; retry once
   before debugging a hang. See ds-guide.md.
+- **Claude models** (`--backend anthropic` or `claude-code`, the latter a
+  tool-less `claude -p` subagent on the local login): Haiku only when
+  Sonnet or better double-checks its output, Sonnet solo or with Opus as
+  quality checker, Opus solo (Joe, 2026-10-13). `--checker MODEL` is the
+  double-check; winnow.py refuses any other pairing.
 - **Handoff headers**: every generated `.wno` transfer file opens with
   `; id: wno-YYYYMMDD-slug-4hex` and one `; receives:` line per
   ancestor file it depends on.

@@ -45,9 +45,13 @@ from spec §9, procedural stage-B enforcement, one `.wno` log out:
 
 ```sh
 python3 winnow.py transcript.txt --out log.wno          # live (needs anthropic + API key)
+python3 winnow.py transcript.txt --out log.wno --backend claude-code   # a `claude -p` subagent
+python3 winnow.py transcript.txt --out log.wno --backend deepseek --model flash
 python3 winnow.py transcript.txt --out log.wno --replay fixtures.txt   # offline/deterministic
 python3 winnow.py transcript.txt --out log.wno --seed prior.wno        # continue a session
 ```
+
+Every backend thinks at max effort unless `--think` says otherwise. `--checker MODEL` adds a second model, on the same backend, that checks each delta against the new turns before it's committed. On the Claude backends (`anthropic`, `claude-code`) the pairing is fixed: haiku only with a sonnet or opus checker, sonnet solo or with an opus checker, opus solo; anything else is refused.
 
 When the extractor can't place a reference it emits `(reach QUERY)`; the orchestrator walks the §10.5 resolution ladder (resident hit → warm widening → cold scan → honest miss), promotes what it finds into the fire tier with a TTL, re-passes the extractor with the pull results, and turns unresolvable references into open questions addressed to the human — never a fabricated referent.
 
@@ -80,7 +84,7 @@ Tests: `python3 -m unittest discover tests`
 | `digest.py` | tiers (fire/hot/warm/cold) and the digest, the window the extractor sees |
 | `basis.py` | what each conclusion rests on (`depends` premises, `motivates` reasons): holds / pending / undermined, with the chain to the cause and the blast radius of a premise |
 | `query.py` | query, concepts, stale, hashes views |
-| `winnow.py` | streaming extraction orchestrator (spec §9 loop + §10.5 resolution ladder; live via the Anthropic SDK, or deterministic `--replay` mode) |
+| `winnow.py` | streaming extraction orchestrator (spec §9 loop + §10.5 resolution ladder; live via the Anthropic SDK, a `claude -p` subagent or DeepSeek, optionally with a checker model; or deterministic `--replay` mode) |
 | `merge.py` | cross-log merge on content-hash join keys (v0.3 feature, shipped early) |
 | `split.py` | procedural log slicing — topic slices, archival partition, component extraction |
 | `demo-deltas.wno` | runnable demo log (spec §11) |
