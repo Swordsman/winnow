@@ -58,3 +58,19 @@ recency tail goes wherever makes sense.
   finishes: review it with `fold.py --snapshot`, add the `; id:` /
   `; receives:` header and `:log-id`, upload to Session Records as
   `.wno.txt`, index it, then write the completion section.
+
+## progress (2026-10-15T05:37Z)
+- The live recording hit its 7000 s limit on 2026-10-13 06:49Z and kept
+  turns 1-28 (266 nodes, 141 edges, validation OK). littlewing now drops
+  background-task notifications from transcripts (plugin f707b00), which
+  merges old t26-t28 into t26; the record was remapped to match
+  (12 `:src t28` -> t26) and still folds clean.
+- Interim handoff uploaded to Session Records:
+  wno-20261013-littlewing-fold-split-2ca4.wno.txt, asset
+  6abac979dc385f4ebc326c4c36dd3185, index row marked INTERIM (turns 1-26).
+  Receives wno-20261012-tree-code-goal-7c1e.
+- Running: winnow over turns 27-54 (deepseek flash, think max), seeded
+  with that record. When it lands: review with `fold.py --snapshot`
+  (drop the spurious `(locate ...)` questions the old reach bug made,
+  add what's missing, including turns 55+ by hand), upload again,
+  repoint the index row, then write the completion section here.

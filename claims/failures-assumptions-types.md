@@ -34,3 +34,12 @@ adversarial workflow before pushing.
   run should check for drift.
 - Plugin copy needs a re-copy afterwards. A live littlewing recording runs
   in the background against the plugin's copy; don't break ds.
+
+## progress (2026-10-15T05:37Z)
+- Still live: the same session, resumed after the account's session
+  limit stopped its design workflow on 2026-10-13 (9 of 11 agents failed).
+  Liveness extended: consider this claim dead after 2026-10-16T06:00Z.
+- Design workflow resumed from its run id (workflow wxer71gv3): finished
+  agents replay from cache; the failure, assumptions and types designs,
+  their judges, and the deepseek-api docs review run again.
+- Nothing implemented yet; spec, code and prompts unchanged by this claim.
