@@ -264,6 +264,12 @@
       `ds --task-file` (verbatim; dry-run request identical to the argument
       form), stdin closed so ds can't read the caller's. ds-guide's winnow
       commands use files. 1 test (187 total).
+      2026-10-15: ds's own self-calls too (`--help-me-out` put its ~89 KB
+      source plus the help text in one argument, ~98 KB and growing;
+      auto-titling used the same path). Both go through `_call_self`:
+      temp files, stdin closed, and this same ds file instead of whatever
+      `ds` is on PATH (none here, so `--help-me-out` crashed). It also no
+      longer prints the whole help text before answering. 1 test (189).
 - [x] **Claude subagent backend and checker (2026-10-13).** Joe: a
       subagent instead of DeepSeek is fine; Haiku only if Sonnet or better
       double-checks it, Sonnet solo or with Opus checking, Opus solo.

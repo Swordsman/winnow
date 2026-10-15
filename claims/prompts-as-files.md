@@ -33,3 +33,17 @@
   passing argv until it finishes. Don't restart it for this.
 - provider-api-library/skills/deepseek-api/ is being edited by the design
   workflow's docs agent; don't edit it until that agent finishes.
+
+## progress (2026-10-15)
+- The sweep (workflow wq9669pkx) finished on 2026-10-13 apart from its
+  final completeness critic, which the account's session limit stopped.
+  Confirmed instances in winnow: ds's self-calls (`--help-me-out`,
+  `_quick_inference`); fixed with `_call_self` and tests/test_ds.py.
+- Confirmed elsewhere, not fixed here: term_capture broker.py and ai-coop
+  (tmux send-keys), shellcrawl explore.py, taskdagger
+  washing_machine.py, token-counter SKILL.md, term-capture
+  PEER_MESH_ARCHITECTURE.md (all copies of upstream repos inside the
+  plugin), and deepseek-api SKILL.md + scripts/deepseek.sh
+  (provider-api-library, then the plugin copy).
+- Open question for Joe: fix the upstream repos (then re-copy) or only
+  the plugin copies, which the next sync would overwrite.
