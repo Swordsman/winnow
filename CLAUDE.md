@@ -58,7 +58,13 @@ protocol that prevents replayed work:
 | File | What |
 |---|---|
 | `winnow-spec-v0.2.md` | The spec. Authoritative over all code. |
-| `fold.py` | Graph, fold, tiers, digest, query layer |
+| `wno.py` | Front door: `wno.py fold\|frontier\|digest\|query\|extract\|...` |
+| `sexpr.py` | s-expression reader/printer every script shares |
+| `fold.py` | The fold: log → graph (replay, validate, snapshot, stats) |
+| `frontier.py` | Frontier view: what's still open |
+| `digest.py` | Tiers and the digest the extractor sees |
+| `basis.py` | What each conclusion rests on; holds / pending / undermined |
+| `query.py` | Query, concepts, stale, hashes views |
 | `winnow.py` | Live orchestrator: extractor → normalizer → delta log |
 | `merge.py` / `split.py` | Cross-log merge / procedural slicing |
 | `ds` | DeepSeek CLI harness (copied from ds-worker repo) |
@@ -68,12 +74,29 @@ protocol that prevents replayed work:
 
 ## Conventions
 
+- **Vocabulary**: *fold* means replaying the log into the full graph,
+  nothing else. The *frontier* (what's still open) and the *digest* (the
+  tiered window the extractor sees) are views of the folded graph, each
+  with its own script. Never call a view "the fold"; the spec's glossary
+  defines all four words, snapshot included.
 - **DEEPSEEK_API_KEY**: Joe provides per session; env var only, never
   commit it, never write it to a file in the repo.
 - **Live runs**: `python3 winnow.py transcripts/X.txt --out OUT.wno
-  --backend deepseek --model pro|flash`. See ds-guide.md for latency
-  expectations (thinking is on by default and slow on dense prompts;
-  short calls ~2-4s).
+  --backend deepseek --model pro|flash`. **Always at max thinking
+  effort** (Joe, 2026-10-13: anything less is a bad idea). `--think max`
+  is winnow.py's default on every backend; never lower it to save time or
+  money without Joe's say-so. Max effort is slow on dense prompts, so run
+  live extractions in the background. **Leave DeepSeek's max_tokens
+  undefined** (Joe: the default is stable; touching it is brittle). ds
+  sends none. Where a client requires it, set the maximum (393,216),
+  never lower: a cap starves DeepSeek's thinking and can hang the call.
+  The deepseek-anthropic backend does exactly that. DeepSeek's API glitches now and then; retry once
+  before debugging a hang. See ds-guide.md.
+- **Claude models** (`--backend anthropic` or `claude-code`, the latter a
+  tool-less `claude -p` subagent on the local login): Haiku only when
+  Sonnet or better double-checks its output, Sonnet solo or with Opus as
+  quality checker, Opus solo (Joe, 2026-10-13). `--checker MODEL` is the
+  double-check; winnow.py refuses any other pairing.
 - **Handoff headers**: every generated `.wno` transfer file opens with
   `; id: wno-YYYYMMDD-slug-4hex` and one `; receives:` line per
   ancestor file it depends on.
