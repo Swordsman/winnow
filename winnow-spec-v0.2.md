@@ -304,7 +304,7 @@ Every key is optional. A file with no header is a v0.1-legacy log and defaults t
 
 **Fold semantics (normative).** Folding the log yields the whole graph and nothing else; every reduced rendering of it (frontier §9, digest §10, query §12) is a view computed from the folded graph, never part of the fold.
 
-- `term` declares a registry entry. A later `term` with the same id replaces the entry whole (last declaration wins). The fold never inspects propositions. Checking them against `:sig` belongs to registry-v0.1: the normalizer does it before commit, and validation does it after the fold against the final registry. At validation a misfit is a warning, never an error, so logs written before a sig existed fold to the same graph.
+- `term` declares a registry entry. A later `term` with the same id replaces the entry whole (last declaration wins). The fold never inspects propositions. Checking them against `:sig` belongs to registry-v0.1: the normalizer does it before commit, and validation does it after the fold against the final registry. At validation a misfit or a malformed `:sig` is a warning, never an error, so logs written before a sig existed fold to the same graph.
 - `add` — insert; duplicate id is an error.
 - `update` — shallow-merge annotations onto existing node.
 - `supersede NEW OLD` — sets `OLD :status superseded`; `:conf` on the op lands as `:status-conf` on OLD; emits `(supersedes NEW OLD)`.

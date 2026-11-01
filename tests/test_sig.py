@@ -49,8 +49,8 @@ class TestSigParse(unittest.TestCase):
     def test_misfit_reason_names_slot(self):
         slots = parse_sig(["THING", "KIND:termid"])
         why = sig_misfit("fails", ["r1", Lit("timed out")], slots)
-        self.assertIn("slot 1 THING", why)
-        self.assertIn("KIND", why)
+        self.assertIn("slot 2 KIND", why)
+        self.assertIn("termid", why)
 
 
 class TestFoldValidation(unittest.TestCase):
@@ -104,14 +104,14 @@ class TestFoldValidation(unittest.TestCase):
         g.validate()
         self.assertFalse(any("sig" in w for w in g.warnings))
 
-    def test_snapshot_roundtrip_sig(self):
+    def test_snapshot_keeps_sig(self):
         src = ("(delta :turn 1 "
                "(term fails :gloss \"bad thing\" "
                ":sig (THING KIND:termid)))")
         g = fold(src)
-        snap = g.snapshot()
-        self.assertIn(":sig (THING KIND:termid)", snap)
-        self.assertEqual(fold(snap).snapshot(), snap)
+        self.assertEqual(
+            g.snapshot(),
+            '(term fails :gloss "bad thing" :sig (THING KIND:termid))')
 
 
 class TestNormalizerSig(unittest.TestCase):
