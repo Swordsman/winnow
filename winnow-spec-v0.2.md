@@ -29,6 +29,8 @@ Named for what it does: separate grain from chaff. Signal becomes nodes; noise n
 
 Three more words name how suppositions are read (§2, §5): an **assumption** is a claim with `:status assumed`; a **conditional** is a claim `(implies A C)` over two node ids; **discharge** is basis's reading of a conditional, with A treated as holding on every path below it.
 
+Two more words name how relation arguments are checked (§4, §6): a **sig** is a relation's declared slots in R3 order, each a role name with optional sorts, and a proposition is **well-typed** when it fits its relation's sig.
+
 ---
 
 ## 1. Architecture
@@ -117,7 +119,17 @@ causes  requires  permits  excludes  implies  achieves  costs
 scales-as  marks  extends  replaces  represents  design  implement  fails
 ```
 
-Each registry entry for a relation records its **direction gloss**, e.g. `maps-to: (maps-to SOURCE TARGET)`, `causes: (causes CAUSE EFFECT)`, `fails: (fails THING KIND)`, `implies: (implies ANTECEDENT CONSEQUENT)`. Direction ambiguity is a registry problem, solved once, not a per-extraction judgment call. With two node-id arguments, `implies` writes a conditional (§5); over terms, `(implies rain wet-ground)` stays an ordinary proposition.
+Each registry entry for a relation records its **direction gloss**: as `:sig` where it can (below), otherwise in `:gloss` prose. The seeded directions are `maps-to: (maps-to SOURCE TARGET)`, `causes: (causes CAUSE EFFECT)`, `fails: (fails THING KIND)`, `implies: (implies ANTECEDENT CONSEQUENT)`. Direction ambiguity is a registry problem, solved once, not a per-extraction judgment call. With two node-id arguments, `implies` writes a conditional (§5); over terms, `(implies rain wet-ground)` stays an ordinary proposition.
+
+**Signatures.** A relation's registry entry may carry `:sig`, its direction gloss in checkable form: one slot per argument, in R3 order. Each slot is a role name in capitals, optionally followed by `:` and the sorts it admits:
+
+```lisp
+(term causes :gloss "CAUSE brings about EFFECT" :sig (CAUSE EFFECT))
+(term maps-to :sig (SOURCE TARGET))
+(term fails :sig (THING KIND:termid))
+```
+
+Sorts are the four `arg` alternatives of §8: `termid`, `id` (a node id), `string`, `number`. They join with `|` (`OWNER:id|termid`), and a bare role admits any arg. A slot is one symbol, with no spaces. A proposition is **well-typed** when its relation has a sig, it has exactly one arg per slot, and each arg is of a sort its slot admits. A relation without `:sig` is untyped (any arity, any args), and a relation whose arity varies stays untyped. Sigs are declared, never inferred from usage. No per-node typing result is ever logged (§6 graduation principle): fitness is checked by the normalizer before commit (R3) and reported by validation after the fold (§7). Of the seeded relations, `causes`, `maps-to` and `fails` carry the sigs above, and the normalizer declares them with those sigs on first committed use; the rest stay untyped until one is declared. To give an existing relation a sig, re-declare the term with `:sig`; the normalizer carries the rest of the entry forward. Retyping a relation that already has a different sig is a maintenance edit to the log, not something the live normalizer does.
 
 **Propositions** — the payload grammar:
 
@@ -132,7 +144,7 @@ Each registry entry for a relation records its **direction gloss**, e.g. `maps-t
 **Failures.** Something that went wrong is a claim whose payload uses the seeded relation `fails`: `(claim c4 (fails c2 false-belief) :by user :src t6)`.
 
 - **THING** (first slot) is what went wrong: a node id (the false claim, the skipped action) or a term id (an overloaded word, a tool), never a speaker. Who held a faulty node is that node's `:by`; the failure's own `:by` is who spotted it. Responsibility is never a payload argument.
-- **KIND** (second slot) is a failure-kind term. Seven are seeded (table below). Like any term, a kind is declared on first use, and a new one is minted (`:new`) only when none fits (R13).
+- **KIND** (second slot) is a failure-kind term. Seven are seeded (table below). Like any term, a seeded kind is declared on first use. A kind outside the table is kept (the registry is open), the trouble view flags it for review, and a new term is minted (`:new`) only when one should enter the registry (R13).
 - **When**: the failure's `:src` is when it was reported; THING's `:src` is when it happened.
 - **A report, not a verdict**: retract a failure that wasn't one; correct and supersede one whose details were wrong. When the report holds only given some fact (the correction that exposed it, a reproduced crash), record `(depends F FACT)`.
 - **Diagnosis**: why it happened is its own claim `(causes CAUSE F)`, with CAUSE an action, node or term. It is a hypothesis like every claim: pending when hedged (`:modal may`) or disputed (a live `contradicts`), undermined when corrected or retracted. The normalizer adds `(depends D F)`, plus `(depends D CAUSE)` when CAUSE is a node. Competing diagnoses are separate claims, and one that holds is enough. A failure never rests on its diagnosis: losing the explanation does not undo the failure.
@@ -196,6 +208,8 @@ A miscommunication over an overloaded word, with a guard that only makes sense i
 
 **Representation modes.** Everything outside this section — frames, edges, delta ops, fold semantics, tiers — is representation-agnostic *transport*: it never inspects the inside of a proposition. What varies is the **term/relation identity scheme**: how surface forms map to canonical ids. v0.2 names this choice and declares it in the file header (§7) as `:semantic-rep "registry-v0.1"` — the alias-table registry defined in this section, and the only mode this spec defines. Files without a header are `registry-v0.1` by definition, so every v0.1 log is a valid v0.2 log. Future modes (anchor-relative embedding profiles, prime-decomposition schemes) swap the identity engine without touching transport; cross-mode equivalence needs converters and hash ids and is explicitly deferred — see §12.
 
+Signature checking (`:sig`, R3) is part of the registry-v0.1 mode. Transport, the fold included, still never inspects a proposition.
+
 ## 5. Edges (closed set)
 
 | Edge | Reading | Direction convention |
@@ -223,7 +237,7 @@ Note: `about` is the one edge whose target may be a **term id** instead of a nod
 
 - **R1** Terms → canonical registry ids (alias lookup; kebab-case; mint + `:new` if absent).
 - **R2** One proposition per node — conjunctions split into multiple nodes.
-- **R3** Fixed slot order per relation, per the registry direction gloss.
+- **R3** Fixed slot order per relation. A relation with `:sig` (§4) takes exactly its slots, in order, each arg of an admitted sort. The normalizer rejects an ill-typed proposition, except that a two-slot proposition which fits only with its args swapped is swapped (R5, done procedurally). An untyped relation follows its prose direction gloss.
 - **R4** Tense, modality, polarity, supposition → annotations (`:time` `:modal` `:neg`; supposition is `:status assumed`, §2), never new relations or terms.
 - **R5** Passive voice → active; swap args to canonical direction.
 - **R6** Verb phrases nominalize to registry relations (nearest match beats invention).
@@ -237,7 +251,7 @@ Note: `about` is the one edge whose target may be a **term id** instead of a nod
   - The canonical form is `(fails THING KIND)`, exactly two arguments.
   - THING is a node id or term id, never a speaker (a `:by` value: `user`, `assistant`, `orchestrator`, `merge-tool`, or any agent id in the log or the batch).
   - KIND is the nearest seeded kind. Aliases map to it, in the kind slot only (`wrong-assumption` → `false-belief`; the bare words `bug` and `crash` → `tool-failure`), and a seeded kind is declared with its seeded gloss on first use. A kind the log already declared keeps its own gloss. An unseeded kind is kept (the registry is open), and the trouble view flags it for review.
-  - A `failed`, `fail`, `failure`, `went-wrong` or `goes-wrong` head whose second argument is a kind becomes `fails`. A standing limitation is not a failure.
+  - A `failed`, `fail`, `failure`, `went-wrong`, `goes-wrong`, `broke` or `breaks` head whose second argument is a kind becomes `fails`. A standing limitation is not a failure.
   - A diagnosis `(causes CAUSE F)`, with F a failure, names no speaker as CAUSE and gains `(depends D F)`, plus `(depends D CAUSE)` when CAUSE is a node.
   - `(motivates X F)` into a failure is refused: a reason for a failure is a diagnosis.
 - **R14** Suppositions and conditionals (§2, §5):
@@ -290,6 +304,7 @@ Every key is optional. A file with no header is a v0.1-legacy log and defaults t
 
 **Fold semantics (normative).** Folding the log yields the whole graph and nothing else; every reduced rendering of it (frontier §9, digest §10, query §12) is a view computed from the folded graph, never part of the fold.
 
+- `term` declares a registry entry. A later `term` with the same id replaces the entry whole (last declaration wins). The fold never inspects propositions. Checking them against `:sig` belongs to registry-v0.1: the normalizer does it before commit, and validation does it after the fold against the final registry. At validation a misfit is a warning, never an error, so logs written before a sig existed fold to the same graph.
 - `add` — insert; duplicate id is an error.
 - `update` — shallow-merge annotations onto existing node.
 - `supersede NEW OLD` — sets `OLD :status superseded`; `:conf` on the op lands as `:status-conf` on OLD; emits `(supersedes NEW OLD)`.
@@ -331,7 +346,11 @@ supersede = "(" "supersede" id id { ann } ")" ;   (* NEW OLD *)
 merge     = "(" "merge" id id ")" ;               (* LOSER WINNER *)
 del       = "(" "del" ( id | edge ) ")" ;
 termdecl  = "(" "term" termid { ":gloss" string | ":aka" "(" {string} ")"
-          | ":canon" string | ann } ")" ;
+          | ":canon" string | ":sig" sig | ann } ")" ;
+sig       = "(" slot { slot } ")" ;
+slot      = role [ ":" sort { "|" sort } ] ;   (* one symbol, no spaces *)
+; role is a symbol in capitals, digits and hyphens allowed after the first
+sort      = "termid" | "id" | "string" | "number" ;
 comment   = ";" text-to-eol ;                     (* outside strings *)
 ```
 
@@ -374,12 +393,14 @@ Casual peer framing on purpose — structure emerges from the territory, and get
 > Apply R1–R14. A claim `(fails THING KIND)` follows R13: THING never a speaker, KIND the nearest seeded kind. Unknown surface term → nearest registry id, else mint kebab-case and emit a `(term ...)` entry flagged `:new`. Candidate node whose canonical payload already exists in the graph → drop it (R11), unless its status differs → emit `update`. Assign ids: next serial per frame. If an op references an unknown id, return `(reject "reason")` for that op and continue.
 >
 > Suppositions are claims with `:status assumed` (R4). `:status assumed` on a decision becomes `proposed`; on any other frame, return `(reject "assumed is a claim status")` for that op. Conditionals follow R14: `(implies A C)` needs two distinct existing node ids, neither of them the conditional's own; if A is not already among C's grounds, add `(depends C A)`; declare `implies` on first use. A restated assumption whose status changed is an `update`, not a new node.
+>
+> A relation whose registry entry has `:sig` takes exactly one argument per slot, in slot order. A slot written `ROLE:termid|id` takes only those sorts (`termid`, `id` = node id, `string`, `number`); a bare `ROLE` takes anything. When you mint a relation and its argument roles are clear, you may give it `:sig (ROLE ROLE ...)`, with roles in capitals and subject/source first. Leave `:sig` off when unsure: an untyped relation is always accepted.
 
 Stage B is mechanical enough for a small model, and large parts (alias lookup, slot ordering, id assignment, dedup) can go fully procedural.
 
 ### Checker (optional — between stage B's model pass and its procedural pass)
 
-A second model can check each delta before it commits. It sees what the extractor saw (digest, pull results, new turns) plus the term registry and the candidate delta, and outputs the delta that should commit: unsupported ops dropped (a `(fails ...)` claim the turns don't treat as a problem among them), distorted ones fixed (speaker, turn, polarity, modality, argument order, frame, status, edge type), missed commitments added, right ops kept verbatim. The procedural pass then runs on its output as on any other. A checker is how a cheap extractor earns trust: the reference orchestrator (`--checker MODEL`) refuses Claude Haiku without a Sonnet-or-better checker, lets Sonnet run solo or under Opus, and runs Opus solo.
+A second model can check each delta before it commits. It sees what the extractor saw (digest, pull results, new turns) plus the term registry and the candidate delta, and outputs the delta that should commit: unsupported ops dropped (a `(fails ...)` claim the turns don't treat as a problem among them), distorted ones fixed (speaker, turn, polarity, modality, argument order per the relation's `:sig` where it has one, frame, status, edge type), missed commitments added, right ops kept verbatim. The procedural pass then runs on its output as on any other. A checker is how a cheap extractor earns trust: the reference orchestrator (`--checker MODEL`) refuses Claude Haiku without a Sonnet-or-better checker, lets Sonnet run solo or under Opus, and runs Opus solo.
 
 ### Partial resolution (questions, but the patterns generalize)
 
@@ -830,7 +851,7 @@ Every dropped item is either reconstructible from surviving nodes or carried no 
 - `trouble.py` — the trouble view; `python3 trouble.py LOG.wno [--upto N] [--unrepaired] [--kind KIND]`
 - `winnow.py` — reference orchestrator for the §9 loop (extractor → normalizer → optional checker → delta → log); backends: Anthropic SDK, `claude -p` subagent, DeepSeek (`ds` or its Anthropic-compatible API)
 - `docs/hash-ids.md` — content-hash id design (v0.3 direction for §12's merge/KB items)
-- `tests/` — unit tests pinning fold semantics, the frontier, tier computation and the digest, the query views, normalizer enforcement, failures (the trouble view and R13), and suppositions (basis discharge and R14)
+- `tests/` — unit tests pinning fold semantics, the frontier, tier computation and the digest, the query views, normalizer enforcement, failures (the trouble view and R13), suppositions (basis discharge and R14), and relation signatures (`:sig`)
 - Session handoffs — design-session transfer logs (winnow self-extractions; provenance for v0.2 decisions), stored in the Session Records doc rather than the repo; see CLAUDE.md
 
 ## Appendix — reference implementation

@@ -215,7 +215,7 @@ def grounds_closure(g, nid):
         if discharged is not None:
             off = off | {discharged}
         for y in prem + rsn:
-            if y not in off and (y, off) not in seen:
+            if y != x and y not in off and (y, off) not in seen:
                 seen.add((y, off))
                 out.add(y)
                 todo.append((y, off))
@@ -247,7 +247,12 @@ def rests_on_closure(g, nid):
 
 
 def has_grounds(g, nid):
-    return bool(premises(g, nid) or reasons(g, nid) or conditional(g, nid))
+    n = g.nodes[nid]
+    ac = cond_args(n)
+    missing_conditional = bool(
+        ac and any(x not in g.nodes and IDLIKE.match(x) for x in ac))
+    return bool(premises(g, nid) or reasons(g, nid)
+                or conditional(g, nid) or missing_conditional)
 
 
 def _render_one(g, nid, b):

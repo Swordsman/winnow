@@ -167,8 +167,9 @@ class TestR13(unittest.TestCase):
 
     def test_kind_alias_and_seeded_term_declared_once(self):
         ops, _ = self.norm("", '(add (claim x1 (fails c9 wrong-assumption) :by user :src t1))')
-        self.assertEqual(ops[0][:2], ["term", "false-belief"])
-        self.assertEqual(sx(ops[1]), "(add (claim c1 (fails c9 false-belief) :by user :src t1))")
+        self.assertEqual(ops[0][:2], ["term", "fails"])
+        self.assertEqual(ops[1][:2], ["term", "false-belief"])
+        self.assertEqual(sx(ops[2]), "(add (claim c1 (fails c9 false-belief) :by user :src t1))")
         g = fold("(delta :turn 1 " + " ".join(sx(o) for o in ops) + ")")
         ops2, _ = Normalizer(g).normalize(extract_forms(
             '(add (claim x1 (fails c8 stale-state) :by user :src t2))'
@@ -192,9 +193,10 @@ class TestR13(unittest.TestCase):
                                   '(add (claim x4 (fails hermes omission) :by user :src t2))')
         self.assertEqual(len(rej), 3)
         self.assertTrue(any("not who" in r for r in rej))
-        self.assertEqual([sx(o) for o in ops],
-                         ["(add (claim c2 (causes word-overload c1) :by hermes :src t2))",
-                          "(add (edge (depends c2 c1)))"])
+        lines = [sx(o) for o in ops]
+        self.assertTrue(lines[0].startswith("(term causes"))
+        self.assertEqual(lines[1], "(add (claim c2 (causes word-overload c1) :by hermes :src t2))")
+        self.assertEqual(lines[2], "(add (edge (depends c2 c1)))")
 
     def test_fails_arity(self):
         ops, rej = self.norm("", '(add (claim x1 (fails c1) :by user :src t1))'
@@ -211,7 +213,9 @@ class TestR13(unittest.TestCase):
     def test_causes_between_ordinary_nodes_untouched(self):
         ops, _ = self.norm("(delta :turn 1 (add (claim c1 (has a b) :by user :src t1)))",
                            '(add (claim x1 (causes c1 risk) :by user :src t2))')
-        self.assertEqual(len(ops), 1)
+        self.assertEqual(len(ops), 2)
+        self.assertEqual(ops[0][:2], ["term", "causes"])
+        self.assertEqual(sx(ops[1]), "(add (claim c2 (causes c1 risk) :by user :src t2))")
 
     def test_motivates_into_a_failure_rejected(self):
         src = """(delta :turn 1 (add (claim c1 (fails fold miscommunication) :by user :src t1))

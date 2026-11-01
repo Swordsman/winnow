@@ -238,6 +238,8 @@ class TestAssumptions(unittest.TestCase):
         b = basis.analyze(g)["c3"]
         self.assertEqual((b.label, b.causes["c3"][2]),
                          ("pending", "conditional over missing node c9"))
+        self.assertTrue(basis.has_grounds(g, "c3"))
+        self.assertIn("(claim c3", basis.render(g))
 
     def test_rests_on_respects_discharge(self):
         g = fold(ASSUMED + COND + D1_ON.format("c3"))

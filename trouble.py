@@ -60,7 +60,8 @@ SPEAKERS = {"user", "assistant", "orchestrator", "merge-tool"}
 # Surface heads the normalizer rewrites to `fails` when the second
 # argument is a failure kind; the trouble view lists them as symptoms
 # in logs written before R13.
-FAILURE_LIKE = {"failed", "fail", "failure", "went-wrong", "goes-wrong"}
+FAILURE_LIKE = {"failed", "fail", "failure", "went-wrong",
+                "goes-wrong", "broke", "breaks"}
 
 
 def _kebab(s):

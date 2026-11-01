@@ -32,13 +32,23 @@ import types
 import basis
 import digest as digest_view
 import trouble
-from fold import Graph, Lit, parse, tokenize, sx, anns, ETYPES, FRAMES, STATUSES
+from fold import (Graph, Lit, parse, tokenize, sx, anns, ETYPES, FRAMES,
+                  STATUSES, parse_sig, sig_misfit)
 
 ID_PREFIX = {"claim": "c", "decision": "d", "question": "q",
              "constraint": "k", "def": "f", "action": "a", "artifact": "r"}
 ANN_ORDER = ["status", "conf", "status-conf", "strength", "by",
              "src", "time", "modal", "neg"]
 DEFAULT_MODEL = "claude-opus-4-8"
+
+SEED_SIGS = {
+    "fails": ("THING failed in the way KIND names",
+              ["THING", "KIND:termid"]),
+    "causes": ("CAUSE brings about EFFECT",
+               ["CAUSE", "EFFECT"]),
+    "maps-to": ("SOURCE corresponds to TARGET",
+                ["SOURCE", "TARGET"]),
+}
 
 EXTRACTOR_SYSTEM = """\
 You're taking working notes on a live conversation, for a future reader \
@@ -148,8 +158,10 @@ needs to understand the term without the transcript. \
 Use the exact article title with underscores. Project-specific terms \
 that have no Wikipedia article omit :canon.
 R2 one proposition per node -- split conjunctions into multiple nodes.
-R3 slot order fixed: agent/subject/source first, patient/object/target \
-second.
+R3 relation signatures: a relation whose registry entry has :sig takes \
+exactly one argument per slot, in slot order, each arg of the sort the \
+slot admits; a two-slot proposition that fits only reversed is swapped \
+(R5). An untyped relation follows its prose direction gloss.
 R4 tense, modality, polarity, supposition -> annotations (:time :modal \
 :neg; a supposition is :status assumed, R14), never new relations or terms.
 R5 passive voice -> active; swap args to canonical direction.
@@ -188,8 +200,15 @@ when something attaches to the conditional itself or the speaker says it \
 holds either way. If A is not already among C's grounds, add (depends C \
 A); declare implies on first use.
 
+A relation whose registry entry has :sig takes exactly one argument per \
+slot, in slot order. A slot written ROLE:termid|id takes only those sorts \
+(termid, id = node id, string, number); a bare ROLE takes anything. When \
+you mint a relation and its argument roles are clear, you may give it \
+:sig (ROLE ROLE ...), with roles in capitals and subject/source first. \
+Leave :sig off when unsure: an untyped relation is always accepted.
+
 Op syntax, exactly:
-(term ID :gloss "..." :canon "Wikipedia_Article_Title")
+(term ID :gloss "..." :aka ("...") :canon "..." :sig (ROLE ROLE:sort))
 (add (FRAME ID PAYLOAD :anns...))
 (add (edge (TYPE FROM TO)))
 (update ID :key val)
@@ -211,8 +230,8 @@ Check every op against the new turns:
 - drop an op the turns don't support: invented content, a stance the \
 speaker didn't take, something the digest already holds
 - fix an op that distorts what was said: wrong :by or :src, flipped \
-polarity or modality, swapped arguments, wrong frame, wrong status, wrong \
-edge type or direction
+polarity or modality, swapped arguments (per the relation's :sig where \
+it has one), wrong frame, wrong status, wrong edge type or direction
 - add what the candidate missed: a commitment, correction, requirement, \
 decision or open thread in the new turns with no op
 - drop a (fails ...) claim the turns don't treat as a problem; fix one \
@@ -715,6 +734,29 @@ def _map_payload(v, idmap):
     return v
 
 
+def _drop_key(tail, key):
+    """A copy of a term tail with `:key value` pairs removed."""
+    out, i = [], 0
+    while i < len(tail):
+        if tail[i] == key:
+            i += 2
+        else:
+            out.append(tail[i])
+            i += 1
+    return out
+
+
+def _tail_sig(tail):
+    """(parsed_sig, error) for a term tail."""
+    a = anns(list(tail))
+    if "sig" not in a:
+        return None, None
+    try:
+        return parse_sig(a["sig"]), None
+    except ValueError as e:
+        return None, e
+
+
 def _assumed_status(frame, a):
     """R14: `assumed` is a claim status. A supposed decision is a proposed
     one (rewritten in `a`); on any other frame, the reject reason."""
@@ -778,6 +820,7 @@ class Normalizer:
         self.payload_index = {
             (n["frame"], sx(n["payload"])): nid
             for nid, n in graph.nodes.items()}
+        self.coercions = []
 
     def _next_id(self, frame):
         self.serial[frame] += 1
@@ -795,6 +838,55 @@ class Normalizer:
             if k in ann_dict:
                 parts += [":" + k, ann_dict[k]]
         return parts
+
+    def _sig(self, rel, new_terms):
+        """Parsed slots for rel, preferring this batch then the graph."""
+        tail = new_terms.get(rel)
+        if tail is not None:
+            slots, _ = _tail_sig(tail)
+            if slots is not None:
+                return slots
+            if rel in SEED_SIGS:
+                return parse_sig(list(SEED_SIGS[rel][1]))
+            return None
+        src = self.g.terms.get(rel)
+        if src is not None:
+            slots, _ = _tail_sig(src)
+            if slots is not None:
+                return slots
+            if rel in SEED_SIGS:
+                return parse_sig(list(SEED_SIGS[rel][1]))
+            return None
+        if rel in SEED_SIGS:
+            return parse_sig(list(SEED_SIGS[rel][1]))
+        return None
+
+    def _seed_relation(self, head, new_terms, out):
+        """Declare a seeded typed relation on first committed use, and
+        add :sig to an existing registry entry that lacks one."""
+        if head not in SEED_SIGS:
+            return
+        gloss, sig_tokens = SEED_SIGS[head]
+        sig_val = list(sig_tokens)
+        if head in new_terms:
+            tail = list(new_terms[head])
+            slots, _ = _tail_sig(tail)
+            if slots is None:
+                tail = _drop_key(tail, ":sig") + [":sig", sig_val]
+                new_terms[head] = tail
+                out.append(["term", head] + tail)
+            return
+        if head in self.g.terms:
+            tail = list(self.g.terms[head])
+            slots, _ = _tail_sig(tail)
+            if slots is None:
+                tail = _drop_key(tail, ":sig") + [":sig", sig_val]
+                new_terms[head] = tail
+                out.append(["term", head] + tail)
+            return
+        tail = [":gloss", Lit(gloss), ":sig", sig_val]
+        new_terms[head] = tail
+        out.append(["term", head] + tail)
 
     def _conditional(self, payload, a, xid, idmap, added):
         """R14: (is_conditional, reject reason). (implies A C) with a
@@ -819,7 +911,7 @@ class Normalizer:
         out, rejects, idmap = [], [], {}
         new_frames = {}   # nid assigned this batch -> frame (for update
                            # ops that target a node added earlier in it)
-        new_terms = set()  # term ids declared this batch
+        new_terms = {}     # term id -> tail declared this batch
         new_payloads = {}  # nid assigned this batch -> payload (R13)
         batch_edges = set()
         speakers = trouble.speakers(self.g, forms)
@@ -835,9 +927,46 @@ class Normalizer:
                 continue
             head = op[0]
             if head == "term":
-                if op[1] not in self.g.terms:
-                    out.append(op)
-                    new_terms.add(op[1])
+                tid = op[1]
+                tail = list(op[2:])
+                a = anns(tail)
+                parsed_sig = None
+                if "sig" in a:
+                    try:
+                        parsed_sig = parse_sig(a["sig"])
+                    except ValueError as e:
+                        rejects.append(f"malformed :sig on term {tid}: {e}")
+                        tail = _drop_key(tail, ":sig")
+                        a = anns(tail)
+                if tid in SEED_SIGS and parsed_sig is not None \
+                        and parsed_sig != parse_sig(list(SEED_SIGS[tid][1])):
+                    rejects.append(
+                        f"sig conflict for {tid}: seeded relation takes "
+                        f"{sx(SEED_SIGS[tid][1])}, got {sx(a['sig'])}")
+                    continue
+                if tid not in self.g.terms and tid not in new_terms:
+                    out.append(["term", tid] + tail)
+                    new_terms[tid] = tail
+                    continue
+                known_tail = new_terms[tid] if tid in new_terms \
+                    else self.g.terms[tid]
+                known_a = anns(list(known_tail))
+                if parsed_sig is not None:
+                    known_sig = None
+                    if "sig" in known_a:
+                        try:
+                            known_sig = parse_sig(known_a["sig"])
+                        except ValueError:
+                            known_sig = None
+                    if known_sig is None:
+                        merged = _drop_key(list(known_tail), ":sig") \
+                            + [":sig", a["sig"]]
+                        out.append(["term", tid] + merged)
+                        new_terms[tid] = merged
+                    elif known_sig != parsed_sig:
+                        rejects.append(
+                            f"sig conflict for {tid}: registry has "
+                            f"{sx(known_a['sig'])}, got {sx(a['sig'])}")
                 continue
             if head == "add":
                 item = op[1]
@@ -910,11 +1039,37 @@ class Normalizer:
                     if why:
                         rejects.append(why)
                         continue
-                    kind = trouble.seeded_kind(payload)
-                    if kind and kind not in self.g.terms \
-                            and kind not in new_terms:
-                        out.append(trouble.kind_term(kind))
-                        new_terms.add(kind)
+                if frame not in ("def", "artifact") \
+                        and isinstance(payload, list) and payload \
+                        and isinstance(payload[0], str) \
+                        and not isinstance(payload[0], Lit):
+                    slots = self._sig(payload[0], new_terms)
+                    if slots is not None:
+                        why = sig_misfit(payload[0], payload[1:], slots,
+                                         provisional=True)
+                        if why and len(slots) == 2 and len(payload) == 3:
+                            sw = [payload[0], payload[2], payload[1]]
+                            if frame == "claim":
+                                sw, sw_why = trouble.canonical_failure(
+                                    sw, speakers, is_fail)
+                                if sw_why is not None:
+                                    rejects.append(
+                                        f"sig mismatch {sx(payload)}: {why}")
+                                    continue
+                            if not sig_misfit(payload[0], sw[1:], slots,
+                                              provisional=True):
+                                self.coercions.append(
+                                    f"swapped to sig order: "
+                                    f"{sx(payload)} -> {sx(sw)}")
+                                payload = sw
+                            else:
+                                rejects.append(
+                                    f"sig mismatch {sx(payload)}: {why}")
+                                continue
+                        elif why:
+                            rejects.append(
+                                f"sig mismatch {sx(payload)}: {why}")
+                            continue
                 a = anns(tail)
                 why = _assumed_status(frame, a)
                 if why:
@@ -926,15 +1081,11 @@ class Normalizer:
                         f"off-spec status {a['status']} for {frame}")
                     continue
                 if frame == "claim":                # R14 conditionals
-                    is_cond, why = self._conditional(payload, a, xid,
-                                                     idmap, added)
+                    _, why = self._conditional(payload, a, xid,
+                                               idmap, added)
                     if why:
                         rejects.append(why)
                         continue
-                    if is_cond and basis.COND not in self.g.terms \
-                            and basis.COND not in new_terms:
-                        out.append(_implies_term())
-                        new_terms.add(basis.COND)
                 key = (frame, sx(payload))
                 if key in self.payload_index:      # R11
                     existing = self.payload_index[key]
@@ -950,6 +1101,23 @@ class Normalizer:
                 self.payload_index[key] = nid
                 new_frames[nid] = frame
                 new_payloads[nid] = payload
+                if frame not in ("def", "artifact") \
+                        and isinstance(payload, list) and payload \
+                        and isinstance(payload[0], str) \
+                        and not isinstance(payload[0], Lit):
+                    self._seed_relation(payload[0], new_terms, out)
+                if frame == "claim" and isinstance(payload, list) and payload:
+                    kind = trouble.seeded_kind(payload)
+                    if kind and kind not in self.g.terms \
+                            and kind not in new_terms:
+                        out.append(trouble.kind_term(kind))
+                        new_terms[kind] = trouble.kind_term(kind)[2:]
+                    if payload[0] == basis.COND \
+                            and basis.COND not in self.g.terms \
+                            and basis.COND not in new_terms:
+                        it = _implies_term()
+                        out.append(it)
+                        new_terms[basis.COND] = it[2:]
                 out.append(["add", self._node_form(frame, nid, payload, a)])
                 continue
             if head in ("update", "supersede", "merge", "del"):
@@ -1000,6 +1168,8 @@ class Normalizer:
                                 else new_payloads.get(r))
         for nid, pl in list(new_payloads.items()):
             for dst in trouble.diagnosis_grounds(pl, payload_of, known):
+                if dst == nid:
+                    continue
                 e = ("depends", nid, dst)
                 if e not in batch_edges and e not in set(self.g.edges):
                     batch_edges.add(e)
@@ -1129,6 +1299,8 @@ def run(transcript_path, out_path, llm, llm_normalize=True,
         ops, rejects = norm.normalize(forms)
         for r in rejects:
             print(f"  (reject \"{r}\")", file=sys.stderr)
+        for c in norm.coercions:
+            print(f"  (coercion \"{c}\")", file=sys.stderr)
         if not ops:
             if verbose:
                 print(f"turn {turn_no}: no signal", file=sys.stderr)
