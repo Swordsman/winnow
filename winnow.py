@@ -27,8 +27,11 @@ import argparse
 import json
 import re
 import sys
+import types
 
+import basis
 import digest as digest_view
+import trouble
 from fold import Graph, Lit, parse, tokenize, sx, anns, ETYPES, FRAMES, STATUSES
 
 ID_PREFIX = {"claim": "c", "decision": "d", "question": "q",
@@ -53,8 +56,28 @@ Loose syntax is fine; a normalizer cleans up after you. What matters:
 note the stance -- the verdict outranks the summary
 - if something restates what's already in the graph, skip it
 - if a new statement kills or changes an old node, say so (update / supersede)
+- when someone reasons from a supposition ("assume", "suppose", "say \
+that", "for the sake of argument", "if we take X as given"), note the \
+supposition as a claim with :status assumed, and hang what they conclude \
+from it on it with (depends CONCLUSION SUPPOSITION); a plain "if/when X, \
+Y" describing how something behaves is an ordinary claim, not a supposition
+- when an assumption gets checked, flip it: (update ID :status live) if \
+it held, :status retracted if it didn't; never add it again
+- if the conditional itself gets used (it's someone's reason, it answers \
+something, or they say it holds either way), note it too, as a claim \
+(implies SUPPOSITION CONCLUSION) over the two nodes
 - attribute everything: who said it (:by), which turn (:src)
 - unsure? include it with low :conf rather than dropping it
+- when something went wrong and someone treats it as a problem -- calls \
+it a mistake, a bug or a misunderstanding, or says what it cost (work \
+redone, a wrong turn, time lost) -- note a claim (fails WHAT KIND). WHAT \
+is the note or term that went wrong, never a person: :by already says who \
+spotted it. KIND is one of false-belief, miscommunication, \
+instruction-violation, tool-failure, regression, omission, outdated-state. \
+Why it happened, if anyone says, is its own claim (causes WHY FAILURE), \
+:modal may when they're guessing. A fix links (answers fix failure); \
+something put in place so it can't happen again links (motivates failure \
+guard). A correction nobody calls a problem is just a correction.
 
 Never note: greetings, filler, vibes, meta-chatter about the conversation \
 itself.
@@ -62,8 +85,8 @@ itself.
 The vocabulary (loose phrasing welcome, but stay inside it):
 - node frames: claim, question, decision, constraint, def, action, artifact
 - links, always exactly (type from to): supports, contradicts, \
-supersedes (new old), refines (detail parent), answers (x question), \
-motivates (reason thing), depends (x y), about (x topic)
+supersedes (new old), refines (detail parent), answers (x \
+question-or-failure), motivates (reason thing), depends (x y), about (x topic)
 Eight link types, no others. A relationship that doesn't fit is content, \
 not a link -- put it inside a node's proposition instead, e.g. \
 (add (claim x3 (maps-to subthread original-messages) :by user :src t7)).
@@ -73,6 +96,8 @@ Emit ops as s-expressions, one per line, e.g.:
 (add (claim x1 (relation subj obj) :by user :src t3))
 (add (edge (supports x1 x2)))
 (update q2 :status answered)
+(add (claim x4 (fails c2 false-belief) :by user :src t6))
+(add (claim x5 (causes dropped-workaround x4) :modal may :by assistant :src t6))
 Use any placeholder ids you like; the normalizer assigns real ones.
 
 If the new turns reference something that isn't on the digest -- an \
@@ -92,18 +117,18 @@ term ids, node ids, "literals", or numbers. Default statuses (omit them): \
 claim/constraint/def/artifact live, question open, decision proposed, \
 action todo.
 
-Legal statuses per frame, nothing else: claim live/corrected/retracted/\
-superseded; def live/deprecated/superseded; question open/answered/\
+Legal statuses per frame, nothing else: claim live/assumed/corrected/\
+retracted/superseded; def live/deprecated/superseded; question open/answered/\
 dropped/superseded; decision proposed/frozen/superseded/abandoned; \
 constraint live/relaxed/retired/superseded; action todo/doing/done/\
 blocked/dropped/superseded; artifact live/deprecated/superseded.
 
 Edge types (only these eight), always exactly (TYPE FROM TO), no extra \
 args: supports (evidence first), contradicts (challenger first), \
-supersedes (new first), refines (detail first), answers (answer first, \
-question second), motivates (reason first), depends (dependent first), \
-about (node first, topic/node/term second -- about is the one edge \
-whose target may be a term id instead of a node id). \
+supersedes (new first), refines (detail first), answers (answer or fix \
+first, question or failure second), motivates (reason first), depends \
+(dependent first), about (node first, topic/node/term second -- about \
+is the one edge whose target may be a term id instead of a node id). \
 A candidate edge with any other type: \
 map it to the nearest of the eight when meaning allows -- \
 references/addresses/relates-to are usually about; because/rationale/\
@@ -125,8 +150,8 @@ that have no Wikipedia article omit :canon.
 R2 one proposition per node -- split conjunctions into multiple nodes.
 R3 slot order fixed: agent/subject/source first, patient/object/target \
 second.
-R4 tense, modality, polarity -> annotations (:time :modal :neg), never \
-new relations or terms.
+R4 tense, modality, polarity, supposition -> annotations (:time :modal \
+:neg; a supposition is :status assumed, R14), never new relations or terms.
 R5 passive voice -> active; swap args to canonical direction.
 R6 verb phrases nominalize to registry relations -- nearest match beats \
 invention.
@@ -137,11 +162,31 @@ after you.
 R9 no synonym relations -- nearest registry relation, or a new (term ...) \
 entry.
 R10 unwrap rhetoric: humor, hypotheticals-as-emphasis, framing devices \
-reduce to their payload proposition; phatic content reduces to nothing.
+reduce to their payload proposition; phatic content reduces to nothing. \
+A supposition someone reasons from is not rhetoric: it is :status assumed \
+(R14), not a reduction to its payload.
 R11 identical canonical payloads within the delta collapse to one node \
 (graph-level dedup runs after you).
 R12 numbers/units stay literal; prose quantities normalize ("seventy km" \
 -> "70km").
+R13 failures: something that went wrong is a claim (fails THING KIND), \
+exactly two args. THING is the node id or term id that went wrong, never \
+a speaker. KIND is the nearest of false-belief, miscommunication, \
+instruction-violation, tool-failure, regression, omission, outdated-state; \
+mint a new kind only when none fits. Failed/went-wrong/broke phrasing maps \
+to fails; a standing limitation ("X doesn't work on Y") is not a failure \
+and takes another relation. Why it happened is a claim (causes CAUSE \
+FAILURE-ID) whose CAUSE is an action, node or term, never a speaker.
+R14 suppositions: a claim someone reasons from without asserting it takes \
+:status assumed. :status assumed on a decision becomes proposed; on any \
+other frame, return (reject "assumed is a claim status") for that op. A \
+restated assumption whose status changed is an update, not a new node. A \
+conclusion drawn under a supposition gets (depends CONCLUSION \
+SUPPOSITION). A conditional is a claim (implies A C) over two distinct \
+existing node ids, neither of them the conditional's own; write one only \
+when something attaches to the conditional itself or the speaker says it \
+holds either way. If A is not already among C's grounds, add (depends C \
+A); declare implies on first use.
 
 Op syntax, exactly:
 (term ID :gloss "..." :canon "Wikipedia_Article_Title")
@@ -170,15 +215,17 @@ polarity or modality, swapped arguments, wrong frame, wrong status, wrong \
 edge type or direction
 - add what the candidate missed: a commitment, correction, requirement, \
 decision or open thread in the new turns with no op
+- drop a (fails ...) claim the turns don't treat as a problem; fix one \
+that names a person where it should name what went wrong
 - keep every right op exactly as it is, ids included
 If the candidate is right, output it unchanged.
 
 Stay inside the candidate's vocabulary. Node frames, only these seven: \
 claim, question, decision, constraint, def, action, artifact. Edges, only \
 these eight, always exactly (TYPE FROM TO): supports, contradicts, \
-supersedes (new old), refines (detail parent), answers (answer question), \
-motivates (reason thing), depends (dependent dependency), about (node \
-topic). Op syntax, exactly:
+supersedes (new old), refines (detail parent), answers (answer-or-fix \
+question-or-failure), motivates (reason thing), depends (dependent \
+dependency), about (node topic). Op syntax, exactly:
 (term ID :gloss "..." :canon "Wikipedia_Article_Title")
 (add (FRAME ID PAYLOAD :anns...))
 (add (edge (TYPE FROM TO)))
@@ -400,7 +447,7 @@ KIMI_ALIASES = {
 # dead last. Mass and recency break ties within a class.
 _STATUS_CLASS = {
     "open": 0, "doing": 0, "blocked": 0, "live": 0, "proposed": 0,
-    "todo": 0,
+    "todo": 0, "assumed": 0,
     "frozen": 1, "done": 1, "answered": 1, "accepted": 1, "resolved": 1,
     "superseded": 2, "rejected": 2, "retracted": 2,
 }
@@ -659,6 +706,51 @@ def _without_anns(tokens):
     return out
 
 
+def _map_payload(v, idmap):
+    """Placeholder node ids inside a payload -> assigned ids (R8)."""
+    if isinstance(v, list):
+        return [_map_payload(x, idmap) for x in v]
+    if isinstance(v, str) and not isinstance(v, Lit):
+        return idmap.get(v, v)
+    return v
+
+
+def _assumed_status(frame, a):
+    """R14: `assumed` is a claim status. A supposed decision is a proposed
+    one (rewritten in `a`); on any other frame, the reject reason."""
+    if a.get("status") != "assumed" or frame == "claim":
+        return None
+    if frame == "decision":
+        a["status"] = "proposed"
+        return None
+    return "assumed is a claim status"
+
+
+_PLACEHOLDER = re.compile(r"x[0-9]+\Z")
+
+
+def _implies_term():
+    return ["term", basis.COND, ":gloss",
+            Lit("(implies ANTECEDENT CONSEQUENT): if the first node holds, "
+                "so does the second")]
+
+
+def _batch_view(g, out):
+    """The graph plus this batch's adds: enough for basis's walks."""
+    nodes, edges = dict(g.nodes), list(g.edges)
+    for op in out:
+        if op[0] != "add":
+            continue
+        item = op[1]
+        if item[0] == "edge":
+            edges.append(tuple(item[1]))
+        else:
+            cut = 4 if item[0] == "def" else 3
+            nodes[item[1]] = dict(anns(item[cut:]), frame=item[0],
+                                  payload=item[2] if cut == 3 else item[2:4])
+    return types.SimpleNamespace(nodes=nodes, edges=edges)
+
+
 def _dangling_key(form):
     """True if any list in `form` ends with a bare :keyword."""
     if not isinstance(form, list):
@@ -672,7 +764,7 @@ def _dangling_key(form):
 class Normalizer:
     """Procedural stage-B enforcement: serial ids (R8), dedup (R11),
     annotation order (R7), reference validation. Semantic normalization
-    (R1-R6, R9-R12) is the upstream LLM pass's job; everything here holds
+    (R1-R6, R9-R14) is the upstream LLM pass's job; everything here holds
     even if that pass is skipped or misbehaves."""
 
     def __init__(self, graph):
@@ -704,6 +796,23 @@ class Normalizer:
                 parts += [":" + k, ann_dict[k]]
         return parts
 
+    def _conditional(self, payload, a, xid, idmap, added):
+        """R14: (is_conditional, reject reason). (implies A C) with a
+        node-shaped arg is a conditional, and both args must then be
+        distinct nodes -- existing, assigned this batch, or added later in
+        it -- other than the conditional's own."""
+        ac = basis.cond_args(dict(a, frame="claim", payload=payload))
+        assigned = set(idmap.values())
+        known = lambda r: r != xid and (r in self.g.nodes or r in assigned
+                                        or r in added)
+        if not ac or not any(known(r) or r == xid or basis.IDLIKE.match(r)
+                             or _PLACEHOLDER.match(r) for r in ac):
+            return False, None
+        if ac[0] == ac[1] or not all(known(r) for r in ac):
+            return True, (f"conditional {sx(payload)} needs two distinct "
+                          f"existing nodes other than its own")
+        return True, None
+
     def normalize(self, forms):
         """Return (canonical_ops, rejects). canonical_ops are parsed
         forms ready to serialize into one delta."""
@@ -711,6 +820,13 @@ class Normalizer:
         new_frames = {}   # nid assigned this batch -> frame (for update
                            # ops that target a node added earlier in it)
         new_terms = set()  # term ids declared this batch
+        new_payloads = {}  # nid assigned this batch -> payload (R13)
+        batch_edges = set()
+        speakers = trouble.speakers(self.g, forms)
+        added = {op[1][1] for op in forms        # node placeholders (R14)
+                 if isinstance(op, list) and len(op) > 1 and op[0] == "add"
+                 and isinstance(op[1], list) and len(op[1]) > 1
+                 and op[1][0] != "edge"}
         for op in forms:
             if _dangling_key(op):
                 # e.g. `(add (claim x1 (has a b) :by))`: a model emitted a
@@ -758,9 +874,17 @@ class Normalizer:
                     if not a_ok or not b_ok:
                         rejects.append(f"dangling edge ({et} {a} {b})")
                         continue
-                    if ("edge", et, a, b) in {("edge", t, s, d)
-                                              for t, s, d in self.g.edges}:
+                    if et == "motivates" and trouble.is_failure_payload(
+                            self.g.nodes[b]["payload"] if b in self.g.nodes
+                            else new_payloads.get(b)):
+                        rejects.append(f"(motivates {a} {b}): a reason for a "
+                                       f"failure is a diagnosis claim "
+                                       f"(causes {a} {b})")
+                        continue
+                    if (et, a, b) in batch_edges or \
+                            (et, a, b) in set(self.g.edges):
                         continue  # R11 for edges
+                    batch_edges.add((et, a, b))
                     out.append(["add", ["edge", [et, a, b]]])
                     continue
                 frame, xid = item[0], item[1]
@@ -776,13 +900,41 @@ class Normalizer:
                 if frame == "def":
                     payload, tail = [item[2], item[3]], item[4:]
                 else:
-                    payload, tail = item[2], item[3:]
+                    payload, tail = _map_payload(item[2], idmap), item[3:]
+                if frame == "claim":                # R13 failures
+                    is_fail = lambda r: trouble.is_failure_payload(
+                        self.g.nodes[r]["payload"] if r in self.g.nodes
+                        else new_payloads.get(r))
+                    payload, why = trouble.canonical_failure(
+                        payload, speakers, is_fail)
+                    if why:
+                        rejects.append(why)
+                        continue
+                    kind = trouble.seeded_kind(payload)
+                    if kind and kind not in self.g.terms \
+                            and kind not in new_terms:
+                        out.append(trouble.kind_term(kind))
+                        new_terms.add(kind)
                 a = anns(tail)
+                why = _assumed_status(frame, a)
+                if why:
+                    rejects.append(why)
+                    continue
                 if "status" in a and a["status"] not in \
                    STATUSES.get(frame, set()):
                     rejects.append(
                         f"off-spec status {a['status']} for {frame}")
                     continue
+                if frame == "claim":                # R14 conditionals
+                    is_cond, why = self._conditional(payload, a, xid,
+                                                     idmap, added)
+                    if why:
+                        rejects.append(why)
+                        continue
+                    if is_cond and basis.COND not in self.g.terms \
+                            and basis.COND not in new_terms:
+                        out.append(_implies_term())
+                        new_terms.add(basis.COND)
                 key = (frame, sx(payload))
                 if key in self.payload_index:      # R11
                     existing = self.payload_index[key]
@@ -797,6 +949,7 @@ class Normalizer:
                 idmap[xid] = nid
                 self.payload_index[key] = nid
                 new_frames[nid] = frame
+                new_payloads[nid] = payload
                 out.append(["add", self._node_form(frame, nid, payload, a)])
                 continue
             if head in ("update", "supersede", "merge", "del"):
@@ -818,6 +971,10 @@ class Normalizer:
                     if "status" in a:
                         frame = self.g.nodes.get(mapped[1], {}).get("frame") \
                             or new_frames.get(mapped[1])
+                        why = _assumed_status(frame, a)
+                        if why:
+                            rejects.append(why)
+                            continue
                         if a["status"] not in STATUSES.get(frame, set()):
                             rejects.append(
                                 f"off-spec status {a['status']} for {frame}")
@@ -829,6 +986,33 @@ class Normalizer:
                 out.append(mapped)
                 continue
             rejects.append(f"unknown op {head}")
+        # forward references: a payload naming a node added later in the
+        # batch gets its final id now (R8)
+        for op in out:
+            if op[0] == "add" and op[1][0] not in ("edge", "def"):
+                op[1][2] = _map_payload(op[1][2], idmap)
+                if op[1][1] in new_payloads:
+                    new_payloads[op[1][1]] = op[1][2]
+        # R13: a diagnosis holds only while its failure and cause hold
+        assigned = set(idmap.values())
+        known = lambda r: r in self.g.nodes or r in assigned
+        payload_of = lambda r: (self.g.nodes[r]["payload"] if r in self.g.nodes
+                                else new_payloads.get(r))
+        for nid, pl in list(new_payloads.items()):
+            for dst in trouble.diagnosis_grounds(pl, payload_of, known):
+                e = ("depends", nid, dst)
+                if e not in batch_edges and e not in set(self.g.edges):
+                    batch_edges.add(e)
+                    out.append(["add", ["edge", list(e)]])
+        # R14: no vacuous discharge -- a new conditional's consequent
+        # rests on its antecedent
+        view = _batch_view(self.g, out)
+        for nid in new_payloads:
+            cond = basis.conditional(view, nid)
+            if cond and cond[0] not in basis.grounds_closure(view, cond[1]):
+                e = ("depends", cond[1], cond[0])
+                view.edges.append(e)
+                out.append(["add", ["edge", list(e)]])
         return out, rejects
 
 

@@ -10,6 +10,7 @@ own script:
     digest.py     the tiered window a model sees: fire/hot/warm/cold (10)
     basis.py      what each conclusion rests on, and whether that holds
     query.py      query, concepts, stale, hashes
+    trouble.py    what went wrong: failures and symptoms
 
 `wno.py` is the front door to all of them.
 
@@ -47,7 +48,7 @@ ETYPES = {"supports", "contradicts", "supersedes", "refines",
 # are grandfathered in existing logs: fold WARNS, never errors -- see
 # Graph.warnings / Graph._check_status.
 STATUSES = {
-    "claim": {"live", "corrected", "retracted", "superseded"},
+    "claim": {"live", "assumed", "corrected", "retracted", "superseded"},
     "def": {"live", "deprecated", "superseded"},
     "question": {"open", "answered", "dropped", "superseded"},
     "decision": {"proposed", "frozen", "superseded", "abandoned"},

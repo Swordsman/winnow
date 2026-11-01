@@ -43,3 +43,6 @@ adversarial workflow before pushing.
   agents replay from cache; the failure, assumptions and types designs,
   their judges, and the deepseek-api docs review run again.
 - Nothing implemented yet; spec, code and prompts unchanged by this claim.
+
+## progress (2026-11-01T17:39Z)
+- Unreviewed implementation parked on branch ccr-5eed05a4-xvny6x-wip (failure + assumptions done, types partial), designs in claims/designs/. Finishing types and reviewing via one DeepSeek pro call (bundle in, patch + findings + digest out to disk). Liveness: dead after 2026-11-02T12:00Z.
