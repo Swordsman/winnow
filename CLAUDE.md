@@ -93,15 +93,17 @@ protocol that prevents replayed work:
   The deepseek-anthropic backend does exactly that. DeepSeek's API glitches now and then; retry once
   before debugging a hang. See ds-guide.md.
 - **Claude models** (`--backend anthropic` or `claude-code`, the latter a
-  tool-less `claude -p` subagent on the local login): Haiku only when
-  Sonnet or better double-checks its output, Sonnet solo or with Opus as
-  quality checker, Opus solo (Joe, 2026-10-13). `--checker MODEL` is the
-  double-check; winnow.py refuses any other pairing.
+  tool-less `claude -p` subagent on the local login): the only rule is
+  don't trust haiku to approve its own work (Joe, 2026-10-13). A haiku
+  extractor needs a `--checker` that isn't haiku (sonnet or opus);
+  everything else is allowed. `--checker MODEL` is the double-check;
+  unknown model families are refused.
 - **Handoff headers**: every generated `.wno` transfer file opens with
   `; id: wno-YYYYMMDD-slug-4hex` and one `; receives:` line per
   ancestor file it depends on.
 - **Commits**: small, one concern each; TODO.md state flips ride with
-  the work they describe.
+  the work they describe; each user-visible change gets a CHANGELOG.md
+  line in the same commit.
 - **Write the remainder down while waiting.** Any time the session is
   blocked on something (a live run, a long call, user input), use the
   wait to make sure the *full remainder* of everything planned —

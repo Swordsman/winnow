@@ -400,13 +400,8 @@ def claude_code_client(model, effort="max", claude_path="claude", retries=3,
     return call
 
 
-# Which Claude models may run winnow, and with what checker (Joe,
-# 2026-10-13): Haiku only when Sonnet or better double-checks its output;
-# Sonnet solo or with Opus as quality checker; Opus solo.
-CLAUDE_PAIRINGS = {("haiku", "sonnet"), ("haiku", "opus"),
-                   ("sonnet", None), ("sonnet", "opus"), ("opus", None)}
-
-
+# Claude model policy (Joe, 2026-10-13; simplified 2026-11-01): don't
+# trust haiku to approve its own work.
 def claude_family(model):
     """haiku / sonnet / opus from an alias or a full model id, else None."""
     for family in ("haiku", "sonnet", "opus"):
@@ -419,17 +414,21 @@ def claude_policy_error(model, checker=None):
     """Why this extractor/checker pairing breaks the Claude model policy,
     or None when it's allowed."""
     family = claude_family(model)
+    if family is None:
+        return (f"{model!r} isn't a haiku, sonnet or opus model; the "
+                f"Claude backends' model policy covers only those")
     checked_by = claude_family(checker) if checker else None
-    for name, fam in ((model, family), (checker, checked_by)):
-        if name and fam is None:
-            return (f"{name!r} isn't a haiku, sonnet or opus model; the "
-                    f"Claude backends' model policy covers only those")
-    if (family, checked_by) in CLAUDE_PAIRINGS:
-        return None
-    return {"haiku": "haiku runs only with a Sonnet-or-better checker: "
-                     "add --checker sonnet or --checker opus",
-            "sonnet": "sonnet runs solo or with --checker opus",
-            "opus": "opus runs solo: drop --checker"}[family]
+    if checker and checked_by is None:
+        return (f"{checker!r} isn't a haiku, sonnet or opus model; the "
+                f"Claude backends' model policy covers only those")
+    if family == "haiku":
+        if checked_by is None:
+            return ("a haiku extractor needs a non-haiku checker: add "
+                    "--checker sonnet or --checker opus")
+        if checked_by == "haiku":
+            return ("a haiku extractor needs a non-haiku checker: use "
+                    "--checker sonnet or --checker opus, not haiku")
+    return None
 
 
 def replay_client(path):
@@ -1376,8 +1375,8 @@ def main():
     ap.add_argument("--checker", metavar="MODEL",
                     help="a second model on the same backend that checks "
                          "each delta before it's committed; on the Claude "
-                         "backends haiku needs one (sonnet or opus), sonnet "
-                         "may have opus, opus runs solo")
+                         "backends a haiku extractor needs a non-haiku "
+                         "checker (sonnet or opus)")
     ap.add_argument("--replay", help="canned-response fixture (offline)")
     ap.add_argument("--per-turn", action="store_true",
                     help="one delta per turn instead of per exchange")

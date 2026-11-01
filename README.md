@@ -51,7 +51,7 @@ python3 winnow.py transcript.txt --out log.wno --replay fixtures.txt   # offline
 python3 winnow.py transcript.txt --out log.wno --seed prior.wno        # continue a session
 ```
 
-Every backend thinks at max effort unless `--think` says otherwise. `--checker MODEL` adds a second model, on the same backend, that checks each delta against the new turns before it's committed. On the Claude backends (`anthropic`, `claude-code`) the pairing is fixed: haiku only with a sonnet or opus checker, sonnet solo or with an opus checker, opus solo; anything else is refused.
+Every backend thinks at max effort unless `--think` says otherwise. `--checker MODEL` adds a second model, on the same backend, that checks each delta against the new turns before it's committed. On the Claude backends (`anthropic`, `claude-code`) the only rule is: a haiku extractor needs a checker that isn't haiku (sonnet or opus); everything else is allowed.
 
 When the extractor can't place a reference it emits `(reach QUERY)`; the orchestrator walks the §10.5 resolution ladder (resident hit → warm widening → cold scan → honest miss), promotes what it finds into the fire tier with a TTL, re-passes the extractor with the pull results, and turns unresolvable references into open questions addressed to the human — never a fabricated referent.
 
