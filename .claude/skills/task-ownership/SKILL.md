@@ -56,6 +56,13 @@ be committed (keys, scratch files), irreversible steps.
 Commit message: `claim: <task-slug>`. Push before starting the work.
 If you can't push the claim, you don't own the task.
 
+**Timestamps come from the clock, never from memory.** Stamp `claimed:`
+and `completed:` with `$(date -u +%Y-%m-%dT%H:%MZ)` expanded in the same
+command that writes the file, never a typed or estimated time. The
+posture table below trusts these stamps; a guessed one misleads every
+session that reads it (seen 2026-10-13: two stamps typed 8 and 10 minutes
+ahead of the clock).
+
 ## Completing a task
 
 Append to the same file, in the same commit as the final work and its

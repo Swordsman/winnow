@@ -1,0 +1,191 @@
+{
+ "summary": "Relation signatures (`:sig`): an optional key on `term` entries that makes the \u00a74 direction gloss checkable. The closest fit to Lambek types here is a product signature with nothing directional in it. winnow payloads are prefix, so argument position already encodes order, and the left/right slash has nothing to express. A sig is an ordered list of slots, one per argument in R3 order. Each slot is a capitalised role name, optionally followed by the sorts it admits. Those sorts are the four `arg` alternatives the \u00a78 grammar already names (termid, id, string, number), joined with `|`. A bare role admits anything. Example: `(term fails :gloss \"...\" :sig (THING KIND:termid))`.\n\nR3 becomes a typing rule. A typed relation takes exactly its slots, each with an admitted sort. The procedural Normalizer rejects an ill-typed proposition, with one coercion: when a two-slot proposition fits only with its args swapped, it is swapped (R5 done procedurally). The swap happens before the R11 key is computed, so swapped restatements also dedup. Untyped relations behave exactly as today.\n\nThe fold itself is unchanged and still never looks inside propositions, as \u00a74's transport rule requires. Checking sigs belongs to the registry-v0.1 mode. After the fold, Graph.validate checks every node against the final registry and only warns, so old logs fold to the same graph with no new warnings.\n\nHow sigs get declared:\n- The failure design's seed table gives sigs to causes `(CAUSE EFFECT)` and fails `(THING KIND:termid)`, and adds maps-to `(SOURCE TARGET)`. These three are the only relations whose direction gloss the spec or the failure design actually states. The other 20 seeded relations stay untyped until someone decides their sigs.\n- The stage-B model may add `:sig` when it mints a relation, but doesn't have to.\n- A sig is added later (idle-time maintenance, like canon anchors) by re-declaring the term. The normalizer lets that through only when it adds a sig the entry lacks, and carries the rest of the entry forward. A conflicting retype is rejected on the live path.\n\nmerge.py: an untyped entry adopts the other log's sig. When both are typed and differ, the first wins and the conflict goes to an optional `term_conflicts` list, so the return shape stays the same.\n\nNothing changes in frames, edges, statuses, annotation keys, delta ops or node grammar. What is added: one term-entry key (`:sig`), one closed four-value sort set reused from \u00a78 `arg`, and grammar rules for sig/slot/role/sort. The extractor prompt is unchanged. About 25 new tests take the suite from 189 to about 214.",
+ "wire_format": "NEW ON THE WIRE: exactly one thing, the `:sig` key inside a `term` declaration. Nothing changes in node, edge, update, supersede, merge, del or meta forms.\n\nSlot syntax: each slot is a single symbol. sexpr.tokenize only splits symbols on whitespace, parens and double quotes, so `:` and `|` inside a symbol are safe (checked at sexpr.py lines 36-41).\n  ROLE                     admits any arg\n  ROLE:termid              a term id only\n  ROLE:id                  a node id only (c d q k f a r + digits)\n  ROLE:string              a string literal only\n  ROLE:number              a number only\n  ROLE:id|termid           either (any union of the four sorts)\nRoles must match [A-Z][A-Z0-9-]*, be unique within a sig, and number at least one.\n\nSeeded declarations (emitted by the normalizer on first use, through the failure design's seed table):\n  (term causes :gloss \"CAUSE brings about EFFECT\" :sig (CAUSE EFFECT))\n  (term maps-to :gloss \"SOURCE corresponds to TARGET\" :sig (SOURCE TARGET))\n  (term fails :gloss \"THING failed in the way KIND names\" :sig (THING KIND:termid))\n\nIdle-time maintenance adding a sig to a relation an extractor minted earlier:\n  (delta :turn 9\n    (term stores-in :sig (THING STORE)))\nIf the registry already holds (term stores-in :gloss \"THING is kept in STORE\" :aka (\"saved to\")), the normalizer emits the whole entry with the sig appended, so the fold's last-declaration-wins replacement loses nothing:\n  (delta :turn 9\n    (term stores-in :gloss \"THING is kept in STORE\" :aka (\"saved to\") :sig (THING STORE)))\n\nWORKED EXAMPLE\n\nCommitted log so far:\n  (meta :winnow-version \"0.2\" :semantic-rep \"registry-v0.1\" :log-id \"wno-20261015-sig-demo-3b7e\")\n  (delta :turn 1\n    (term fails :gloss \"THING failed in the way KIND names\" :sig (THING KIND:termid))\n    (term causes :gloss \"CAUSE brings about EFFECT\" :sig (CAUSE EFFECT))\n    (term timeout :gloss \"operation exceeded its time limit\")\n    (term rate-limit :gloss \"provider throttling of request volume\")\n    (add (artifact r1 \"scripts/export.py\" :by user :src t1))\n    (add (claim c1 (fails r1 timeout) :by user :src t1)))\n\nCandidate from stage A/B at turn 2 (loose):\n  (add (claim x1 (fails timeout r1) :by user :src t2))\n  (add (claim x2 (fails r1 \"timed out\") :by user :src t2))\n  (add (claim x3 (causes rate-limit c1 r1) :by assistant :src t2))\n  (add (claim x4 (causes rate-limit c1) :by assistant :src t2 :modal may))\n\nWhat the procedural Normalizer does:\n- x1: slot 2 KIND takes termid but gets id r1, so it misfits. The swapped order (r1 timeout) fits, so the args are swapped and noted in Normalizer.coercions. The swapped payload equals c1's, so R11 drops it silently and maps idmap x1 to c1.\n- x2: slot 2 KIND takes termid but gets the string \"timed out\". Swapped, slot 2 would get id r1, which also misfits. Rejected: `sig mismatch (fails r1 \"timed out\"): slot 2 KIND of fails takes termid, got string \"timed out\"`.\n- x3: rejected, `sig mismatch (causes rate-limit c1 r1): 3 args, causes takes 2 (CAUSE EFFECT)`.\n- x4: fits, and is committed as c2.\nCanonical delta:\n  (delta :turn 2\n    (add (claim c2 (causes rate-limit c1) :by assistant :src t2 :modal may)))\nThe failure design's normalizer step then adds its (depends ...) edges for c2 as specified there.\n\nA hand-written or pre-sig log containing\n  (delta :turn 3 (add (claim c3 (causes c1) :by user :src t3)))\nfolds normally: c3 is in the graph and errors stay empty. Graph.validate() appends one warning:\n  sig mismatch c3: (causes c1) has 1 arg, causes takes 2 (CAUSE EFFECT)\nA malformed declaration such as (term foo :sig (cause effect)) gives the warning\n  malformed :sig on term foo: role 'cause' must be capitals\nand foo is treated as untyped.\n\nMerge of two logs that both declare causes, A with :sig (CAUSE EFFECT) and B (log-id \"wno-20261014-other-9c1d\") with :sig (EFFECT CAUSE): the merged registry keeps A's entry, and merge.py main prints to stderr (a report, not log content):\n  sig conflict causes: kept (CAUSE EFFECT), dropped (EFFECT CAUSE) from wno-20261014-other-9c1d\nIf A's causes were untyped, the merged entry would adopt B's :sig instead.",
+ "spec_changes": [
+  {
+   "section": "\u00a74 Terms, relations, propositions: direction-gloss paragraph",
+   "change": "Replace \"Each registry entry for a relation records its **direction gloss**, e.g. ... Direction ambiguity is a registry problem, solved once, not a per-extraction judgment call.\" with: \"Each registry entry for a relation records its **direction gloss**: as `:sig` where it can (below), otherwise in `:gloss` prose. Direction ambiguity is a registry problem, solved once, not a per-extraction judgment call.\""
+  },
+  {
+   "section": "\u00a74: new paragraph **Signatures**, placed after the seeded relation list",
+   "change": "\"**Signatures.** A relation's registry entry may carry `:sig`, its direction gloss in checkable form: one slot per argument, in R3 order. Each slot is a role name in capitals, optionally followed by `:` and the sorts it admits: `(term causes :gloss \\\"CAUSE brings about EFFECT\\\" :sig (CAUSE EFFECT))`, `(term maps-to :sig (SOURCE TARGET))`, `(term fails :sig (THING KIND:termid))`. Sorts are the four `arg` alternatives of \u00a78: `termid`, `id` (a node id), `string`, `number`. They join with `|` (`OWNER:id|termid`), and a bare role admits any arg. A slot is one symbol, with no spaces. A proposition is **well-typed** when its relation has a sig, it has exactly one arg per slot, and each arg is of a sort its slot admits. A relation without `:sig` is untyped (any arity, any args), and a relation whose arity varies stays untyped. Sigs are declared, never inferred from usage. No per-node typing result is ever logged (\u00a76 graduation principle): fitness is checked by the normalizer before commit (R3) and reported by validation after the fold (\u00a77). Of the seeded relations, `causes`, `maps-to` and `fails` carry the sigs above; the rest stay untyped until one is declared. To give an existing relation a sig, re-declare the term with `:sig`; the normalizer carries the rest of the entry forward. Retyping a relation that already has a different sig is a maintenance edit to the log, not something the live normalizer does.\""
+  },
+  {
+   "section": "\u00a74 Representation modes",
+   "change": "Add one sentence: \"Signature checking (`:sig`, R3) is part of the registry-v0.1 mode. Transport, the fold included, still never inspects a proposition.\""
+  },
+  {
+   "section": "\u00a76 R3",
+   "change": "Replace with: \"**R3** Fixed slot order per relation. A relation with `:sig` (\u00a74) takes exactly its slots, in order, each arg of an admitted sort. The normalizer rejects an ill-typed proposition, except that a two-slot proposition which fits only with its args swapped is swapped (R5, done procedurally). An untyped relation follows its prose direction gloss.\""
+  },
+  {
+   "section": "\u00a77 Fold semantics (normative): new bullet before `add`",
+   "change": "\"- `term` declares a registry entry. A later `term` with the same id replaces the entry whole (last declaration wins). The fold never inspects propositions. Checking them against `:sig` belongs to the registry-v0.1 mode: the normalizer does it before commit, and validation does it after the fold against the final registry. At validation a misfit is a warning, never an error, so logs written before a sig existed fold to the same graph.\""
+  },
+  {
+   "section": "\u00a78 Grammar",
+   "change": "Change termdecl to `termdecl = \"(\" \"term\" termid { \":gloss\" string | \":aka\" \"(\" {string} \")\" | \":canon\" string | \":sig\" sig | ann } \")\" ;` and add: `sig = \"(\" slot { slot } \")\" ;` / `slot = role [ \":\" sort { \"|\" sort } ] ;   (* one symbol, no spaces *)` / `role = upper { upper | digit | \"-\" } ;` / `sort = \"termid\" | \"id\" | \"string\" | \"number\" ;`. These four sorts are a closed set; adding one is a spec change."
+  },
+  {
+   "section": "Normalizer prompt (stage B), spec lines 279-283",
+   "change": "Append to the prompt text: \"A relation whose registry entry has `:sig` takes exactly one argument per slot, in slot order. A slot written `ROLE:termid|id` takes only those sorts (`termid`, `id` = node id, `string`, `number`); a bare `ROLE` takes anything. When you mint a relation and its argument roles are clear, you may give it `:sig (ROLE ROLE ...)`, with roles in capitals and subject/source first. Leave `:sig` off when unsure: an untyped relation is always accepted.\""
+  },
+  {
+   "section": "Checker paragraph, spec line 289",
+   "change": "Change \"argument order\" in the list of distortions to fix to \"argument order (per the relation's `:sig` where it has one)\"."
+  },
+  {
+   "section": "Extractor prompt (stage A), spec lines 263-275",
+   "change": "No change. Stage A stays loose by design (line 277), and the extractor never emits sigs."
+  },
+  {
+   "section": "Glossary",
+   "change": "Add \"**sig**: a relation's declared slots in R3 order, each a role name with optional sorts (\u00a74)\" and \"**well-typed**: a proposition that fits its relation's sig\". The words \"type\" (edge type, ETYPE), \"kind\" (the failure KIND slot) and \"support\" are deliberately avoided."
+  }
+ ],
+ "code_changes": [
+  {
+   "file": "/home/user/winnow/fold.py",
+   "change": "Module level, next to STATUSES:\n- `SORTS = (\"termid\", \"id\", \"string\", \"number\")`\n- `NODE_ID = re.compile(r\"^[cdqkfar]\\d+$\")`, `PROV_ID = re.compile(r\"^x\\d+$\")`, `NUMBER = re.compile(r\"^-?\\d+(\\.\\d+)?$\")`, `ROLE = re.compile(r\"^[A-Z][A-Z0-9-]*$\")`\n\nNew functions:\n- `parse_sig(value) -> list[(role, frozenset|None)]`: raises ValueError(reason) if the value is not a non-empty list of bare symbols, a role doesn't match ROLE, a role repeats, or a sort is outside SORTS.\n- `arg_sort(x, provisional=False) -> str|None`: Lit gives 'string'; int, float, or a bare str matching NUMBER gives 'number'; NODE_ID (or PROV_ID when provisional) gives 'id'; any other bare str gives 'termid'; a list gives None.\n- `sig_misfit(args, slots, provisional=False) -> None | reason`: returns an arity reason ('N args, REL takes M (ROLES)') or a slot reason ('slot i ROLE of REL takes S, got SORT X').\n\nGraph changes:\n- New `sig(self, rel)`: parses the `:sig` of self.terms[rel] via anns(); returns None for absent or malformed.\n- New `check_sigs(self) -> list[str]`: returns [] unless `self.meta.get('semantic-rep', 'registry-v0.1')` is registry-v0.1. It warns once per term with a malformed sig ('malformed :sig on term T: reason'). For every node whose frame is not def or artifact and whose payload is a list headed by a relation with a sig, it warns 'sig mismatch NID: PAYLOAD reason'.\n- `validate()` ends with `for w in self.check_sigs(): if w not in self.warnings: self.warnings.append(w)`. The dedupe makes repeated validate() calls safe.\n\nUnchanged: apply(), _add(), and the snapshot/term storage. Term tails are stored verbatim, so `:sig` round-trips through snapshot()."
+  },
+  {
+   "file": "/home/user/winnow/winnow.py",
+   "change": "Normalizer:\n- Import parse_sig, arg_sort, sig_misfit from fold.\n- `__init__` adds `self.coercions = []`.\n- In `normalize()`, `new_terms` becomes a dict tid -> tail. Membership tests such as `b in new_terms` keep working.\n- New helper `_sig(self, rel, new_terms)`: looks in new_terms first, then self.g.terms, and returns parsed slots or None.\n- New module helper `_drop_key(tail, key)`.\n\nTerm branch, replacing lines 721-725:\n- If the op's tail has `:sig`, validate it with parse_sig. On failure, append the reject 'malformed :sig on term T: reason', strip the key, and keep the term.\n- Term unknown in both g.terms and new_terms: emit as today and record it in new_terms.\n- Term known, the op carries a sig, and the known entry has none: emit `['term', tid] + known_tail + [':sig', sig]` and update new_terms.\n- Term known and both have sigs that differ (compared as parse_sig results, so sort order inside a union doesn't matter): append the reject 'sig conflict for T: registry has (..), got (..)'.\n- Otherwise drop, as today.\n\nNode-add branch, after the status check and before `key = (frame, sx(payload))`:\n1. For frames other than def and artifact with a list payload, map args through `self._map(x, idmap)`. Payloads currently keep provisional x ids (lines 776-786); the failure design's (causes CAUSE F) needs F mapped.\n2. Run the failure design's seed-on-first-use declaration for payload[0]. Its SEED table gains `:sig` on fails `(THING KIND:termid)` and causes `(CAUSE EFFECT)`, plus a maps-to entry `(SOURCE TARGET)`. If a seeded relation is already declared without a sig, emit the additive re-declaration from the term branch.\n3. Look up `slots = self._sig(payload[0], new_terms)`. If slots exist and `sig_misfit(payload[1:], slots, provisional=True)` returns a reason: when len(slots) == 2 and the swapped args fit, rebuild the payload swapped and append 'swapped to sig order: OLD -> NEW' to self.coercions; otherwise append the reject 'sig mismatch (PAYLOAD): reason' and continue.\n4. R11 proceeds on the possibly swapped payload.\n\nOther changes:\n- Wherever run() prints rejects in verbose mode, print normalizer.coercions as well.\n- Update the stage-B normalizer prompt string and the checker prompt string with the spec wording.\n- If the registry text given to the stage-B and checker models is built from id plus gloss only, include `:sig` in it."
+  },
+  {
+   "file": "/home/user/winnow/merge.py",
+   "change": "Signature becomes `merge(graphs, term_conflicts=None)`, with the same 4-tuple return.\n\nNew helper `_join_sig(terms, kept_tid, other_anns, log_id, out)`:\n- Parse the kept entry's sig and the other entry's sig; a malformed one counts as absent.\n- Kept untyped and other typed: `terms[kept_tid] = list(terms[kept_tid]) + [':sig', other_anns['sig']]`. This builds a new list and never mutates the source graph's tail.\n- Both typed and different: if `out` is a list, append `(kept_tid, sx(kept), sx(other), log_id)`.\n\nIn the term loop at lines 118-127:\n- Canon-join branch: after `term_remap[tid] = canon_to_tid[canon]`, call _join_sig against canon_to_tid[canon].\n- The 'tid already present, no canon conflict' case, currently a silent skip, becomes an else branch that calls _join_sig against tid.\n\nmain() passes `term_conflicts=[]` and prints each conflict to stderr as 'sig conflict T: kept K, dropped O from LOG'. Other callers, mega-fold.py included, are unaffected because the kwarg defaults to None."
+  },
+  {
+   "file": "/home/user/winnow/tests/test_sig.py",
+   "change": "New stdlib unittest module with four classes, TestSigParse, TestFoldValidation, TestNormalizerSig and TestMergeSig, covering the tests listed below."
+  },
+  {
+   "file": "/home/user/winnow/winnow-spec-v0.2.md",
+   "change": "Apply the spec_changes: \u00a74, \u00a76 R3, \u00a77, \u00a78, the prompt and checker paragraphs, and the glossary."
+  }
+ ],
+ "fold_and_validation": "The fold itself is not touched. Graph.apply still stores `self.terms[tid] = op[2:]` verbatim, with last declaration winning, and still never inspects a proposition, as \u00a74 requires of transport. Old logs therefore fold to byte-identical graphs and snapshots.\n\nSignature checking runs in Graph.validate() through check_sigs(), after the fold and against the final registry:\n- It runs only when the meta header's semantic-rep is registry-v0.1, which is also the default for files with no header.\n- Every non-def, non-artifact node whose payload relation has a well-formed sig is checked. A misfit appends a warning to Graph.warnings (the same advisory channel off-spec statuses already use) and never touches Graph.errors.\n- A malformed `:sig` produces one warning, and that relation is treated as untyped.\n- Because the check runs against the final registry, a sig declared later by maintenance flags nodes committed before it existed. That is the useful repair list, and it changes no node.\n- A log with no `:sig` anywhere produces zero new warnings.\n- Untyped relations are never checked.\n- Warnings are deduped, so repeated validate() calls (orchestrator, wno.py) don't accumulate copies.\n- Nested lists in a typed slot have no sort and so misfit. In untyped relations they pass as today.",
+ "normalizer_rules": "The procedural Normalizer (winnow.py) enforces sigs. The stage-B model only consults them.\n\n1. **Sort classification** (fold.arg_sort with provisional=True):\n   - a Lit is `string`\n   - an int or float, or a bare token matching -?\\d+(\\.\\d+)?, is `number`\n   - c/d/q/k/f/a/r plus digits, or a provisional `x` plus digits, is `id`\n   - any other bare symbol is `termid`\n   - a nested list has no sort\n2. **Payload ids are mapped first.** Before checking, payload args go through idmap, so provisional ids resolve to final ones and R11 compares like with like.\n3. **Typed relation, args fit:** commit unchanged.\n4. **Typed relation, args misfit:**\n   - If the sig has exactly two slots, the payload has two args, and the swapped args fit, swap them. This is R5 done procedurally; it is recorded in Normalizer.coercions and is not a reject.\n   - Otherwise reject the op with 'sig mismatch (...): reason'. Edges that referenced its provisional id are then rejected as dangling by the existing edge check, as for any rejected node.\n   - A swap never fires when the original order fits, and never for three or more slots.\n5. **Untyped relation:** no check at all, which is the current behavior.\n6. **Term declarations:**\n   - A malformed `:sig` is stripped with a reject note and the term is still declared.\n   - A new term with a valid sig is emitted as given.\n   - A re-declaration of a known term passes only to add a sig the entry lacks, and is emitted with the full existing tail plus `:sig`.\n   - A differing sig on an already-typed term is rejected ('sig conflict').\n   - Anything else is dropped, as today.\n7. **Seeded relations:** first use declares them with their sig (the failure design's seed table extended). Seeded relations already declared untyped get the additive re-declaration.\n8. **Who declares sigs:** sigs for extractor-minted relations come from the optional stage-B `:sig`, or later from a maintenance delta of bare `(term REL :sig (...))` forms run through the normalizer. Retyping is not possible on the live path; it is a hand edit appended to the log, where the fold's last-wins replacement applies.",
+ "views": "- **frontier.py:** no change.\n- **basis.py:** no change. It reads edges only. The failure design's normalizer-added (depends D CAUSE) edges now read a canonical slot, because swaps happen before commit.\n- **digest.py:** no code change and no tier or cooling change. If the digest renders term lines, `:sig` rides along as part of the term tail, which shows the extractor the slot order without forcing it. Whether to spend those tokens is an open question.\n- **query.py:** no change.\n  - `hashes`: node hashes depend on frame plus payload, so swap-normalized payloads make independent extractions of the same fact hash alike. Old logs' hashes are unchanged.\n  - `concepts`: shows terms as before; `:sig` appears if tails are printed.\n- **No new view.** Sig fitness is a validation warning, never stored or logged. The graduation principle holds: a sig is declared registry structure, not a per-node score.\n- **Equivalence test (\u00a76):** compares nodes and edges and excludes the registry, so sigs don't affect it, except through the deterministic swap, which makes R3 collapse more reliably.",
+ "extractor_prompt_changes": "Extractor prompt (stage A): no change. Stage A stays loose by design (\"Rigid form-filling at this stage measurably degrades what models notice\"), and the extractor never emits `:sig`.\n\nNormalizer prompt (stage B): append this paragraph after \"If an op references an unknown id, return `(reject \\\"reason\\\")` for that op and continue.\":\n\"A relation whose registry entry has `:sig` takes exactly one argument per slot, in slot order. A slot written `ROLE:termid|id` takes only those sorts (`termid`, `id` = node id, `string`, `number`); a bare `ROLE` takes anything. When you mint a relation and its argument roles are clear, you may give it `:sig (ROLE ROLE ...)`, with roles in capitals and subject/source first. Leave `:sig` off when unsure: an untyped relation is always accepted.\"\n\nChecker: in \"distorted ones fixed (speaker, turn, polarity, modality, argument order, frame, status, edge type)\", change \"argument order\" to \"argument order (per the relation's `:sig` where it has one)\".",
+ "tests": [
+  {
+   "name": "TestSigParse.test_valid_sigs",
+   "asserts": "parse_sig on parsed `(CAUSE EFFECT)` gives [('CAUSE', None), ('EFFECT', None)]. `(THING KIND:termid)` gives KIND the frozenset {'termid'}. `(A:id|termid B:string|number)` parses with both unions."
+  },
+  {
+   "name": "TestSigParse.test_malformed_sigs",
+   "asserts": "ValueError for: `(cause effect)` (lowercase role), `(A:node)` (unknown sort), `(A A)` (duplicate role), `()` (empty), the Lit \"CAUSE EFFECT\" (not a list), `(A (B))` (nested)."
+  },
+  {
+   "name": "TestSigParse.test_slot_tokenizes_as_one_symbol",
+   "asserts": "tokenize('(term r :sig (OWNER:id|termid))') keeps 'OWNER:id|termid' as one token, and _dangling_key on the parsed form is False."
+  },
+  {
+   "name": "TestSigParse.test_arg_sort",
+   "asserts": "Lit('70km') gives string; '3', '0.9' and 3 give number; 'c12' and 'r1' give id; 'fuse-vfs' gives termid; 'x3' gives termid by default and id with provisional=True; a list gives None."
+  },
+  {
+   "name": "TestFoldValidation.test_log_without_sig_unchanged",
+   "asserts": "Folding demo-deltas.wno gives no warning containing 'sig'. errors equal []. Snapshot output is identical whether or not check_sigs ran (call snapshot() before and after validate())."
+  },
+  {
+   "name": "TestFoldValidation.test_misfit_warns_never_errors",
+   "asserts": "A log declaring causes with :sig (CAUSE EFFECT) plus `(claim c1 (causes a b c) ...)` folds with c1 in nodes, errors == [], and a warning starting 'sig mismatch c1'."
+  },
+  {
+   "name": "TestFoldValidation.test_sig_checked_against_final_registry",
+   "asserts": "A node added at delta 1 and an untyped term re-declared with :sig at delta 2 still produce the c1 warning. Nodes and edges are equal to the fold without delta 2."
+  },
+  {
+   "name": "TestFoldValidation.test_malformed_sig_warns_and_untyped",
+   "asserts": "`(term r :sig (cause))` gives the warning 'malformed :sig on term r'. Nodes using r produce no sig mismatch warnings."
+  },
+  {
+   "name": "TestFoldValidation.test_validate_twice_no_duplicates",
+   "asserts": "Calling validate() twice leaves each sig warning in Graph.warnings exactly once."
+  },
+  {
+   "name": "TestFoldValidation.test_other_semantic_rep_skips",
+   "asserts": "A meta with :semantic-rep \"other-mode\" and an ill-typed node gives no sig warnings."
+  },
+  {
+   "name": "TestFoldValidation.test_snapshot_roundtrip_sig",
+   "asserts": "snapshot() contains `(term fails` with `:sig (THING KIND:termid)`, and re-folding the snapshot text gives an equal terms dict."
+  },
+  {
+   "name": "TestNormalizerSig.test_rejects_arity",
+   "asserts": "With causes typed (CAUSE EFFECT), the candidate `(add (claim x1 (causes a b c) :by user :src t1))` gives no add in out and a reject starting 'sig mismatch'. A following edge from x1 is rejected as dangling."
+  },
+  {
+   "name": "TestNormalizerSig.test_rejects_sort_no_swap",
+   "asserts": "With fails typed (THING KIND:termid) and node r1 existing, `(fails r1 \"timed out\")` is rejected. coercions == []."
+  },
+  {
+   "name": "TestNormalizerSig.test_swaps_binary_when_only_swap_fits",
+   "asserts": "`(fails timeout r1)` is emitted as `(claim c1 (fails r1 timeout) ...)`, with one coercion and no reject."
+  },
+  {
+   "name": "TestNormalizerSig.test_swap_then_dedup",
+   "asserts": "With c1 `(fails r1 timeout)` already in the graph, candidate `(fails timeout r1)` adds no node and maps idmap['x1'] to 'c1'."
+  },
+  {
+   "name": "TestNormalizerSig.test_no_swap_when_original_fits",
+   "asserts": "With causes typed bare (CAUSE EFFECT), `(causes b a)` is emitted as given, with coercions empty."
+  },
+  {
+   "name": "TestNormalizerSig.test_untyped_relation_unchanged",
+   "asserts": "A relation with no :sig accepts 1-, 2- and 3-arg payloads, with strings, nested lists and ids, exactly as before (same out and rejects as with the sig code bypassed)."
+  },
+  {
+   "name": "TestNormalizerSig.test_payload_provisional_ids_mapped",
+   "asserts": "`(add (claim x1 (fails r1 timeout) ...))` followed by `(add (claim x2 (causes rate-limit x1) ...))` emits c2 with payload `(causes rate-limit c1)`."
+  },
+  {
+   "name": "TestNormalizerSig.test_term_redecl_adds_sig",
+   "asserts": "With registry entry `(term causes :gloss \"g\" :aka (\"brings\"))`, the op `(term causes :sig (CAUSE EFFECT))` emits `(term causes :gloss \"g\" :aka (\"brings\") :sig (CAUSE EFFECT))`. After g.apply, terms['causes'] keeps gloss, aka and sig."
+  },
+  {
+   "name": "TestNormalizerSig.test_term_redecl_conflict_rejected",
+   "asserts": "An existing sig (CAUSE EFFECT) plus an op with :sig (EFFECT CAUSE) emits nothing for the term and gives a reject starting 'sig conflict for causes'. An op with the same sig, unions reordered, emits nothing and gives no reject."
+  },
+  {
+   "name": "TestNormalizerSig.test_term_redecl_without_sig_dropped",
+   "asserts": "Re-declaring a known term with only a new :gloss emits nothing (today's behavior)."
+  },
+  {
+   "name": "TestNormalizerSig.test_malformed_sig_on_new_term",
+   "asserts": "`(term widget-of :gloss \"g\" :sig (part whole))` emits `(term widget-of :gloss \"g\")` plus the reject 'malformed :sig on term widget-of'."
+  },
+  {
+   "name": "TestNormalizerSig.test_seed_sig_first_use",
+   "asserts": "In a fresh graph, the first claim using fails emits a term declaration for fails carrying `:sig (THING KIND:termid)` before the add. Where causes is already declared untyped, the first causes use emits the additive re-declaration. Coordinate with the failure design's seed tests."
+  },
+  {
+   "name": "TestMergeSig.test_adopt_sig",
+   "asserts": "Graph A has causes untyped and graph B has it with :sig (CAUSE EFFECT). The merged terms['causes'] carries the sig. A's own g.terms tail is unmutated."
+  },
+  {
+   "name": "TestMergeSig.test_conflict_first_wins",
+   "asserts": "A (CAUSE EFFECT) and B (EFFECT CAUSE): the merged entry keeps A's sig. term_conflicts == [('causes', '(CAUSE EFFECT)', '(EFFECT CAUSE)', B's log-id)]. merge([A, B]) without the kwarg still returns a 4-tuple and doesn't raise."
+  },
+  {
+   "name": "TestMergeSig.test_canon_join_conflict",
+   "asserts": "Different tids with the same :canon and different sigs: B's tid is remapped to A's, A's sig is kept, and the conflict is recorded under A's tid."
+  }
+ ],
+ "compatibility": "Old logs:\n- No log written today carries `:sig`, so the fold, snapshot, hashes, merge results and all views are unchanged.\n- check_sigs adds zero warnings for such logs.\n- v0.1 header-less logs default to registry-v0.1 and behave the same.\n\nOld logs continued in a new run (seed= or a live session):\n- The first use of a seeded relation (causes, maps-to, fails) appends an additive `:sig` re-declaration to the registry.\n- Earlier nodes that misfit then appear as validation warnings only. No node changes.\n\nGrammar and closed sets:\n- The \u00a78 termdecl gains one optional key. Frames, edge types, statuses, \u00a73 annotation keys, delta ops and node grammar are untouched.\n- The only new closed set is the four sorts, which are the existing \u00a78 `arg` alternatives.\n\nNormalizer behavior, which affects new runs only:\n- Newly rejected: ill-typed propositions of typed relations, and sig conflicts.\n- Newly swapped: two-slot misfits that fit reversed.\n- Newly mapped: provisional x ids inside payloads.\n- Newly passed: term re-declarations that add a sig.\n\nmerge.py: keeps its return shape; the new kwarg is optional.\n\nFits the failure design: no new frame, edge, status or op. Its seeded fails and causes get sigs through the same first-use seeding.\n\nDownstream: the sync_swords_plugin winnow skill copies the spec and scripts and distills the spec into SKILL.md, so it needs a resync after this lands.",
+ "risks": "- **Content loss from rejection.** An ill-typed proposition is dropped, not repaired. Mitigations: only three relations are typed at first, and two of them are arity-only; the binary swap recovers the commonest error (reversed args where sorts differ); the checker model fixes argument order before the procedural pass.\n- **A wrong swap.** It only fires when the given order misfits and exactly the reversed order fits, so it needs sorts that disambiguate. When both slots admit the same sorts, reversed args go undetected; sigs catch arity and sort errors, not role confusion between same-sort args.\n- **Id-shaped term ids.** A term id shaped like a node id (e.g. a term literally named `a1`) is classified as `id`. Kebab-case convention makes this rare.\n- **Number handling.** Classification depends on whether sexpr.parse returns numbers as int or str; arg_sort handles both. R12 quantities with units are Lit strings, which is correct.\n- **Wrong sigs from the stage-B model.** A model that mints sigs eagerly can lock in a wrong one, which the live path then refuses to change. The prompt says to leave sigs off when unsure, and a retype is a hand-appended term re-declaration (the fold's last-wins replacement applies).\n- **Merge with reversed role orders.** Under a shared canon anchor, the second log's payloads are remapped without permuting args. The conflict is reported and later validation warnings expose the misfits, but nothing is auto-fixed.\n- **Payload-id mapping.** This is a behavior change. I inferred the gap from winnow.py lines 776-786 (payload taken unmapped) and did not check whether some upstream step already rewrites x ids. If one does, the mapping is a harmless no-op.\n- **Token cost.** The registry handed to the stage-B and checker models grows by the sig text.",
+ "open_questions": [
+  "The other 20 seeded relations (is-a, has, uses, stores-in, encodes, ..., design, implement) stay untyped here. Their arities and role names should come from observed usage in runs/ and from Joe, not be guessed. Should a follow-up type them?",
+  "Keep the binary-swap coercion, or reject strictly with no coercion? The swap recovers reversed (fails timeout r1)-style output but goes beyond the bare minimum.",
+  "Restricted slot sorts are deferred: for example, KIND accepting only the failure design's seven seeded terms would need a sort over term classes. Is that wanted, or does the failure design validate KIND itself?",
+  "Optional and variadic slots are deferred: relations with varying arity stay untyped. Is any relation known to need them?",
+  "Does some step upstream of the procedural Normalizer already rewrite provisional x ids inside payloads? This design adds that mapping because the read code (winnow.py ~776-786) shows none, and the failure design's (causes CAUSE F) depends on it.",
+  "Version: amend v0.2 in place, or bump :winnow-version and/or :semantic-rep (e.g. registry-v0.2)? The change is backward-compatible either way.",
+  "Should the extractor's digest show `:sig` on term lines (better R3 accuracy, more tokens), or should only the stage-B and checker models see sigs?",
+  "There is a gap in the existing \u00a78 grammar: termdecl's `ann` keys don't include `:new`, though \u00a74 says a minted term carries `:new`. Fix it in the same spec edit?",
+  "Merge: when two sigs under one canon anchor differ only in role order, should merge permute the second log's payload args automatically? Deferred here; it is only reported as a conflict."
+ ]
+}

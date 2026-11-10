@@ -1,0 +1,196 @@
+{
+ "summary": "Assumptions with discharge, built almost entirely from existing parts. It adds one status value and one basis rule, plus R13, a normalizer rule that writes nothing derived into the log.\n\n(1) An assumption is an ordinary claim with a new claim status, `:status assumed`. A status fits better than `:modal`: an assumption has a lifecycle. It settles by an ordinary update, `live` when confirmed and `retracted` when refuted. It still combines with `:modal` (for example \"assume the client must retry\"), and it never needs a way to clear an annotation.\n\n(2) A conclusion drawn under an assumption is an ordinary claim with `(depends Y A)`. basis.py already reads that as \"Y holds so long as A holds\". Adding `assumed` to UNSETTLED makes Y pending until A settles.\n\n(3) A conditional, the discharged form \"if A then C\", reuses the seeded relation `implies` with node-id arguments, as \u00a74 allows: `(claim K (implies A C))`. This is \u00a75's \"proposition-level relation\". basis.py gains one structural rule: K's grounds are C plus K's own grounds, walked with A treated as holding on every path below K. So K holds outright when everything except A holds. Refuting A undermines C but leaves K standing. Correcting any other premise of C undermines both. There is no proof search, no modus ponens or tollens across implies nodes, and basis never builds a conditional nobody stated.\n\n(4) Scope is not stored anywhere. The scope of an assumption is what rests on it (`basis.py --rests-on A`, made exact under discharge). A conditional closes that scope for whatever rests on the conditional.\n\n(5) The view shows the natural-deduction sequent. Each conclusion lists its open assumptions on a `; under:` line, and each conditional gets a `; discharges:` line. The three labels (holds/pending/undermined) stay as they are.\n\n(6) What is borrowed from Lambek/natural deduction: hypothesis plus \u2192-introduction as a structural rule, no vacuous discharge (relevance: the normalizer guarantees A is among C's grounds), and the \u0393 \u22a2 Y display. What is not borrowed: resource counting, premise order, directional implications, proof search.\n\n(7) `:modal may` is unchanged on the wire, in the fold and in basis: still a hedge, still pending. Extractor guidance now sends suppositions to `:status assumed` instead. Discharge works on any antecedent, hedged ones included, so old may-logs lose nothing.\n\nFit with the failure design: there is no new frame, edge, annotation key, delta op or grammar rule. `implies` is seeded and declared on first use. The normalizer adds a `depends` edge so basis cascades, just as that design does. An assumed failure claim, or a diagnosis that rests on an assumption, works without special cases.\n\nCaveats: under the budget I did not read frontier.py, digest.py, winnow.py, merge.py, \u00a79 or \u00a710. The changes named for those (and the Graph node-dict key names) are stated intent, still to be checked against the code. One assumption is load-bearing: that Lit is not a plain str, or is excluded explicitly.",
+ "wire_format": "EVERYTHING NEW ON THE WIRE (no new op, frame, edge, key or grammar production):\n\n1. Status value `assumed`, legal on claims only:\n   (add (claim c7 (excludes fuse-vfs partial-write) :status assumed :by user :src t12))\n2. Settling an assumption uses existing ops:\n   (update c7 :status live)        confirmed\n   (update c7 :status retracted)   refuted (plus the counter-claim and a contradicts edge when one is stated)\n3. A conditional is an ordinary claim using the seeded relation `implies` over two node ids:\n   (add (claim c9 (implies c7 c8) :by user :src t13))\n   Over terms, (implies rain wet-ground) stays an ordinary proposition, not a conditional.\n4. Registry declaration of the seeded relation on first use (normalizer-emitted):\n   (term implies :gloss \"(implies ANTECEDENT CONSEQUENT): if the first node holds, so does the second\")\n\nWORKED EXAMPLE\nt9 assistant: \"Partial writes are what need the journal.\"\nt12 user: \"Suppose the FUSE layer never sees partial writes. Then it doesn't need the journal.\"\nt13 user: \"And that holds whatever FUSE turns out to do, so v1 ships with a write-pattern check.\"\nt20 user: \"Checked: vim does partial writes through it.\"\n\nExtractor output, stage A, provisional ids:\n(delta :turn 12\n  (add (claim x1 (excludes fuse-vfs partial-write) :status assumed :by user :src t12))\n  (add (claim x2 (requires fuse-vfs journal) :by user :src t12 :neg true))\n  (add (edge (depends x2 x1)))\n  (add (edge (depends x2 c3))))\n(delta :turn 13\n  (add (claim x1 (implies c7 c8) :by user :src t13))\n  (add (decision x2 (requires v1 write-pattern-check) :status frozen :by user :src t13))\n  (add (edge (motivates x1 x2))))\n\nCanonical log, after the normalizer:\n(delta :turn 9\n  (add (claim c3 (requires partial-write journal) :by assistant :src t9)))\n(delta :turn 12\n  (add (claim c7 (excludes fuse-vfs partial-write) :status assumed :by user :src t12))\n  (add (claim c8 (requires fuse-vfs journal) :by user :src t12 :neg true))\n  (add (edge (depends c8 c7)))\n  (add (edge (depends c8 c3))))\n(delta :turn 13\n  (term implies :gloss \"(implies ANTECEDENT CONSEQUENT): if the first node holds, so does the second\")\n  (add (claim c9 (implies c7 c8) :by user :src t13))\n  (add (decision d4 (requires v1 write-pattern-check) :status frozen :by user :src t13))\n  (add (edge (motivates c9 d4))))\n(delta :turn 20\n  (add (claim c10 (uses vim partial-write) :by user :src t20))\n  (add (edge (contradicts c10 c7)))\n  (update c7 :status retracted))\n\nVacuous-discharge repair: suppose the t12 extractor had omitted (depends x2 x1). Then the t13 normalizer appends (add (edge (depends c8 c7))) to that delta, because c7 is not in c8's grounds.\n\nbasis.py output, a view and never logged. Payload lines are illustrative of _payload_line.\nAt --upto 3 (after t13):\n; basis @ turn 13 -- derived, never logged; 3 nodes with grounds: 2 hold, 1 pending, 0 undermined\n(claim c8 (requires fuse-vfs journal) :neg true)  pending\n  ; c8 -> c7: assumed\n  ; under: c7\n  ; rests on: c3, c7\n(claim c9 (implies c7 c8))  holds\n  ; discharges: c7\n  ; rests on: c3\n(decision d4 (requires v1 write-pattern-check))  holds\n  ; rests on: c3\nd4 holds because its reason is the conditional. Had it been motivated by c8, it would be pending.\nbasis.py --rests-on c7 gives c8 only: c9 discharges c7, so neither c9 nor d4 is in c7's scope.\nbasis.py --rests-on c3 gives c8, c9, d4.\n\nAfter t20:\n; basis @ turn 20 -- derived, never logged; 3 nodes with grounds: 2 hold, 0 pending, 1 undermined\n(claim c8 ...)  undermined\n  ; c8 -> c7: retracted (last changed t20)\n  ; rests on: c3, c7\n(claim c9 (implies c7 c8))  holds\n  ; discharges: c7\n  ; rests on: c3\n(decision d4 ...)  holds\n  ; rests on: c3\n\nIf c3 is later corrected instead: c8, c9 and d4 all read undermined, with path c9 -> c8 -> c3. The cascade reaches the conditional because the error lies outside the discharged assumption.",
+ "spec_changes": [
+  {
+   "section": "\u00a72 Frames table",
+   "change": "claim row statuses become `live` `assumed` `corrected` `retracted` `superseded`. No other frame changes."
+  },
+  {
+   "section": "\u00a72 Notes",
+   "change": "New bullet: \"`assumed` marks a supposition: a claim entertained so something can be reasoned from it, not asserted. It settles by status flip: `live` when confirmed, `retracted` when refuted (with the counter-claim and a `contradicts` edge if one was stated). Only claims are assumed. A supposed decision is a `proposed` one. A plain 'if/when X, Y' describing how something behaves is an ordinary claim, not a supposition.\""
+  },
+  {
+   "section": "\u00a73 Annotations, :modal row",
+   "change": "Values unchanged (must/should/may/can). Add after the table: \"`:modal may` is a hedge: the speaker half-asserts the payload. A supposition is not a modality. It is `:status assumed` (\u00a72).\""
+  },
+  {
+   "section": "\u00a74 Relations",
+   "change": "Record the seeded direction gloss `implies: (implies ANTECEDENT CONSEQUENT)`. Add one sentence: \"With two node-id arguments, `implies` writes a conditional (\u00a75).\""
+  },
+  {
+   "section": "\u00a75 Premises and reasons",
+   "change": "Append: \"An `assumed` claim is unsettled, so whatever rests on it reads pending: Y resting on assumed X holds so long as X does, and the open assumptions a node rests on are part of its view. A claim whose payload is `(implies A C)` over two node ids, not negated, is a *conditional*: it *discharges* A. basis reads its grounds as C plus its own, with A treated as holding along every path below it. So a conditional holds outright when everything except A holds. Confirming A makes C hold; refuting A undermines C but not the conditional; correcting anything else C rests on undermines both. What rests on an assumption is its scope (`basis.py --rests-on`); a conditional closes it. Discharge is structural: basis never derives a conditional nobody stated, and never chains conditionals.\" The paragraph's pending list gains \"an open assumption\"."
+  },
+  {
+   "section": "\u00a75 edge table",
+   "change": "None. Still eight edges."
+  },
+  {
+   "section": "\u00a76 R4",
+   "change": "\"Tense, modality, polarity, supposition \u2192 annotations (`:time` `:modal` `:neg`; supposition is `:status assumed`, \u00a72), never new relations or terms.\""
+  },
+  {
+   "section": "\u00a76 R10",
+   "change": "Append: \"A supposition someone reasons from is not rhetoric: it is R4's `:status assumed`, not a reduction to its payload.\""
+  },
+  {
+   "section": "\u00a76 new R13",
+   "change": "\"R13 Conditionals. A conclusion drawn under a supposition gets `(depends CONCLUSION ASSUMPTION)`. A conditional is written as a node, a claim `(implies ANTECEDENT CONSEQUENT)` over node ids, only when something attaches to the conditional itself (it motivates, answers, supports, contradicts or is refined by another node) or the speaker says it holds either way. Otherwise the depends edge is the record. The normalizer adds `(depends CONSEQUENT ANTECEDENT)` when the antecedent is not already among the consequent's grounds (no vacuous discharge). It rejects a conditional whose two arguments are not distinct existing nodes other than itself.\""
+  },
+  {
+   "section": "\u00a76 Graduation principle",
+   "change": "No text change. The design conforms: the assumption is a discrete status, the conditional is structure, and the under/discharges lines are views."
+  },
+  {
+   "section": "\u00a77 Delta protocol / fold semantics",
+   "change": "None. No new op; the fold does not inspect payloads."
+  },
+  {
+   "section": "\u00a78 Grammar",
+   "change": "None. The EBNF does not enumerate status values; `implies` is an ordinary relation."
+  },
+  {
+   "section": "\u00a79 Frontier",
+   "change": "One sentence: \"An `assumed` claim is an open thread until it flips to `live` or `retracted`.\" (\u00a79 text not read under budget; place it beside the proposed-decision pattern.)"
+  },
+  {
+   "section": "\u00a710 Digest",
+   "change": "One sentence: \"Assumed claims are current state: wherever tiering names live claims (the tail included), assumed claims count too.\" (Not read under budget; check the wording against \u00a710.)"
+  },
+  {
+   "section": "Glossary",
+   "change": "Add: assumption (a claim with `:status assumed`), conditional (a claim `(implies A C)` over node ids), discharge (the basis reading of a conditional: A treated as holding below it). This avoids 'scope', 'hypothesis' and 'support' as coined terms."
+  },
+  {
+   "section": "Extractor prompt (stage A)",
+   "change": "Add the three bullets given in extractor_prompt_changes."
+  },
+  {
+   "section": "Normalizer prompt (stage B)",
+   "change": "Add the paragraph given in extractor_prompt_changes."
+  }
+ ],
+ "code_changes": [
+  {
+   "file": "/home/user/winnow/fold.py",
+   "change": "STATUSES[\"claim\"] becomes {\"live\", \"assumed\", \"corrected\", \"retracted\", \"superseded\"}. That is the whole change. DEFAULT_STATUS, ANN_ORDER, ETYPES, FRAMES and MASS_GATE are untouched. `:status assumed` on any other frame still takes the existing warn-not-error path (Graph._check_status). The fold never inspects payloads."
+  },
+  {
+   "file": "/home/user/winnow/basis.py",
+   "change": "(a) Imports: `import re`; `from fold import load, flag_value, Lit`. (b) UNSETTLED gains \"assumed\", so own_state returns (\"pending\", \"assumed\"). (c) New `COND = \"implies\"` (seeded relation, \u00a74) and `_IDLIKE = re.compile(r\"[cdqkfar][0-9]+\\Z\")`. (d) New `conditional(g, nid)`: returns (A, C) when the node is a claim, has no :neg, its payload is a 3-element list with head COND, both args are non-Lit strings present in g.nodes, A != C and nid not in (A, C). Otherwise None. (e) own_state: after the REJECTED branch, if the payload is (implies A C) with an id-shaped arg missing from g.nodes (merge/del), return (\"pending\", \"conditional over missing node X\"). Term-level implies is unaffected. (f) analyze.visit(nid, stack, off): memo key becomes (nid, off). It opens with `if nid in off: return Basis(\"holds\", {}, set()), False`. If conditional(g, nid) is (A, C), set off = off | {A} and append C to prem when absent. Pass off to every recursive visit. The top level calls visit(nid, frozenset(), frozenset()). Cycle detection is unchanged (stack of nids). (g) has_grounds: also True when conditional(g, nid). (h) New grounds_closure(g, nid): iterative walk over premises + reasons + the consequent, with seen keyed by (node, off). A conditional adds its antecedent to off for its subtree; discharged nodes are skipped. (i) rests_on_closure(g, nid) becomes exact under discharge: {x for x in g.nodes if x != nid and nid in grounds_closure(g, x)}. As an optional prefilter, use the existing upward walk plus C -> conditional up-edges as candidates. (j) _render_one: after the cause lines, add `  ; under: ...` listing the cause nodes whose status is \"assumed\", and `  ; discharges: A` for conditionals. (k) Docstring: pending list gains \"an open assumption\", plus a short conditional/discharge paragraph. RANK and the labels are unchanged. Node-dict keys for frame and payload: use whatever Graph stores (not read under budget)."
+  },
+  {
+   "file": "/home/user/winnow/winnow.py",
+   "change": "Procedural normalizer pass, beside the failure design's seeded-term declaration and depends insertion: (1) `:status assumed` on a decision is rewritten to `proposed`. On question/action/constraint/def/artifact the op gets (reject \"assumed is a claim status\"). (2) For an added claim with payload (implies A C) after x-id mapping (x ids inside the payload map like any claim-about-claim arg): reject unless A and C are distinct existing or same-delta node ids other than the claim's own. If A is not in basis.grounds_closure(graph, C), append (add (edge (depends C A))). Emit (term implies :gloss \"(implies ANTECEDENT CONSEQUENT): if the first node holds, so does the second\") on first use if the registry lacks it. (3) Update the stage-A and stage-B prompt strings to the wording in extractor_prompt_changes. Function names are not read under budget; put this in the pass that assigns serials and applies R11."
+  },
+  {
+   "file": "/home/user/winnow/frontier.py",
+   "change": "Where unsettled nodes are collected (proposed decisions, open questions), also collect claims with status \"assumed\", labeled as open assumptions. Not read under budget; check the selection code before editing."
+  },
+  {
+   "file": "/home/user/winnow/digest.py",
+   "change": "Wherever claim residency or the hot tail filters on status \"live\", accept {\"live\", \"assumed\"}, so the extractor keeps seeing open assumptions and can settle them. Not read under budget; check first."
+  },
+  {
+   "file": "/home/user/winnow/winnow-spec-v0.2.md",
+   "change": "The edits listed in spec_changes (\u00a72, \u00a73 note, \u00a74 gloss, \u00a75 paragraph, \u00a76 R4/R10/R13, \u00a79, \u00a710, glossary, prompts)."
+  },
+  {
+   "file": "/home/user/winnow/tests/ (basis, fold and normalizer test modules)",
+   "change": "Add the unittest cases listed in tests, in the existing basis, fold and normalizer test modules (file names not read under budget). The 189 existing tests must pass unmodified."
+  }
+ ],
+ "fold_and_validation": "The fold is unchanged apart from widening one table. `(update ID :status assumed|live|retracted)` and `add` behave as today. STATUSES[\"claim\"] gains `assumed`, so the fold no longer warns on it for claims. On any other frame it still warns and never errors, as with grandfathered off-spec values. The fold never inspects payloads (\u00a74 transport principle), so it does not validate conditionals.\n\nConditional validation is the normalizer's job (R13): two distinct existing node ids other than the conditional's own, the consequent made to rest on the antecedent, `implies` declared on first use, and `assumed` on a decision rewritten to `proposed` (rejected on other frames).\n\nbasis.py is the safety net for logs the normalizer never saw. A term-argument `implies` is an ordinary claim. An id-shaped argument missing from the graph (after merge or del, which never rewrite payload ids) gives the conditional a pending label: \"conditional over missing node X\". A self-referential or A==C implies is treated as a plain claim. A cycle through a conditional reads \"circular basis\" pending, as today.\n\nNo proof search anywhere. Discharge is one structural rule applied during the existing depth-first walk. The memo key becomes (node, discharged-set).",
+ "normalizer_rules": "R4 extended: supposition becomes `:status assumed` on a claim, never a new relation, term or modal value. On a decision, `assumed` becomes `proposed`. On any other non-claim frame, the op gets (reject \"assumed is a claim status\").\n\nR10 clarified: rhetorical hypotheticals still reduce to their payload. A supposition someone reasons from is R4's `assumed`.\n\nR11 interplay: restating an assumption with an identical payload and status `live` or `retracted` is a status-changing restatement, so it becomes `(update A :status live|retracted)`, never a second node.\n\nR13 (new):\n(1) A conclusion drawn under an assumption needs `(depends C A)`. The extractor emits it, and the normalizer supplies it for conditionals.\n(2) Accept a conditional `(claim K (implies A C))` only if A and C are distinct node ids (existing, or provisional x ids from the same delta, mapped), neither equal to K. Otherwise reject.\n(3) No vacuous discharge: if A is not in basis.grounds_closure(graph, C), append `(add (edge (depends C A)))`.\n(4) Declare `(term implies :gloss \"(implies ANTECEDENT CONSEQUENT): if the first node holds, so does the second\")` on first use, through the same seeded-declaration path the failure design uses for `fails` and its KIND terms.\n(5) Do not add edges from K to its antecedent or consequent. basis derives K's grounds; such edges are inert anyway, because basis discharges A across all of K's grounds.\n\nThe checker needs no prompt change: \"status\" and \"modality\" are already on its list of distortions to fix.",
+ "views": "basis: `assumed` is unsettled, so its own state is pending (\"assumed\") and dependents read pending through the existing AND/OR walk. Conditionals discharge their antecedent, so they hold when everything except the antecedent holds. Refuting an assumption undermines its conclusions but not the conditionals that discharge it. Labels stay holds/pending/undermined. Render lines are added: `; under: A1, A2` (open assumptions among the causes, the \u0393 of \u0393 \u22a2 Y) and `; discharges: A`. has_grounds includes conditionals, so they appear in the listing. `--rests-on A` is the assumption's scope, now exact under discharge. `--node A` gives \"rested on by\" the same way. `--undermined` is unchanged. No new flag.\n\nfrontier: open assumptions (claims with status `assumed`) are listed as open threads until flipped, like proposed decisions.\n\ndigest: assumed claims are current material, eligible for the hot tail like live claims, so the extractor can settle them. They are not gated by MASS_GATE.\n\nquery: no change. `assumed` is just a status value in query/concepts/stale/hashes output. The equivalence test (\u00a76) is unchanged: status is part of graph identity, and a conditional is an ordinary claim node.\n\nNothing derived is logged: the under, discharges and scope readings are recomputed each run.",
+ "extractor_prompt_changes": "Stage A (loose) \u2014 add these bullets to the \"What matters\" list, after \"if a new statement kills or changes an old node, say so (update / supersede)\":\n\n> - when someone reasons from a supposition (\"assume\", \"suppose\", \"say that\", \"for the sake of argument\", \"if we take X as given\"), note the supposition as a claim with `:status assumed`, and hang what they conclude from it on it with `(depends CONCLUSION SUPPOSITION)`; a plain \"if/when X, Y\" describing how something behaves is an ordinary claim, not a supposition\n> - when an assumption gets checked, flip it: `(update ID :status live)` if it held, `:status retracted` if it didn't; never add it again\n> - if the conditional itself gets used (it's someone's reason, it answers something, or they say it holds either way), note it too, as a claim `(implies SUPPOSITION CONCLUSION)` over the two nodes\n\nStage B (strict) \u2014 append to the normalizer prompt:\n\n> Suppositions are claims with `:status assumed` (R4). `:status assumed` on a decision becomes `proposed`; on any other frame, return `(reject \"assumed is a claim status\")` for that op. Conditionals follow R13: `(implies A C)` needs two distinct existing node ids, neither of them the conditional's own; if A is not already among C's grounds, add `(depends C A)`; declare `implies` on first use. A restated assumption whose status changed is an `update`, not a new node.",
+ "tests": [
+  {
+   "name": "test_assumed_is_legal_claim_status",
+   "asserts": "Folding (claim c1 P :status assumed ...) yields no status warning and status 'assumed'. The same status on a decision still warns, and the graph keeps the value (warn-not-error)."
+  },
+  {
+   "name": "test_conclusion_under_assumption_is_pending",
+   "asserts": "c2 depends c1 (assumed): analyze gives c2 pending, causes[c1] == ((c2, c1), 'pending', 'assumed'), and the render contains '; under: c1'."
+  },
+  {
+   "name": "test_confirming_assumption_makes_conclusion_hold",
+   "asserts": "After (update c1 :status live), c2 holds and the render has no 'under' line."
+  },
+  {
+   "name": "test_conditional_holds_while_assumption_open",
+   "asserts": "c3 (implies c1 c2), c1 assumed: c3 holds, its render has '; discharges: c1', and c2 is still pending."
+  },
+  {
+   "name": "test_refuting_assumption_undermines_conclusion_not_conditional",
+   "asserts": "(update c1 :status retracted): c2 undermined, c3 holds, and a decision motivated by c3 holds."
+  },
+  {
+   "name": "test_conditional_keeps_other_premises",
+   "asserts": "c2 depends c1 (assumed) and c4 (live). Correcting c4 makes c3 undermined, with cause path (c3, c2, c4)."
+  },
+  {
+   "name": "test_conditional_still_under_other_assumptions",
+   "asserts": "c2 depends c1 and c5, both assumed. c3 (implies c1 c2) is pending, with '; under: c5' only."
+  },
+  {
+   "name": "test_nested_discharge",
+   "asserts": "c6 (implies c5 c3) over the previous case holds, with no open assumptions."
+  },
+  {
+   "name": "test_decision_motivated_by_conclusion_vs_conditional",
+   "asserts": "A frozen d1 motivated by c3 (the conditional) holds; a frozen d1 motivated by c2 (the conclusion) is pending."
+  },
+  {
+   "name": "test_term_level_implies_is_not_conditional",
+   "asserts": "(claim c1 (implies rain wet-ground)) has no grounds, holds, and is absent from render() (has_grounds False)."
+  },
+  {
+   "name": "test_conditional_over_missing_node_pending",
+   "asserts": "(claim c3 (implies c1 c9)) with c9 absent (deleted) reads pending, with why 'conditional over missing node c9'."
+  },
+  {
+   "name": "test_rests_on_respects_discharge",
+   "asserts": "rests_on_closure(g, 'c1') == {'c2'}; c3 and the decision on c3 are excluded. rests_on_closure(g, 'c4') contains c2, c3 and the decision."
+  },
+  {
+   "name": "test_cycle_through_conditional",
+   "asserts": "c3 (implies c1 c2) with (depends c2 c3) terminates, and the label is pending with why 'circular basis'."
+  },
+  {
+   "name": "test_modal_may_unchanged",
+   "asserts": "A premise with :modal may still gives the dependent pending with why 'hedged (:modal may)'. A conditional whose antecedent is the hedged node holds (discharge ignores the antecedent's state)."
+  },
+  {
+   "name": "test_normalizer_conditional_adds_depends",
+   "asserts": "A candidate (implies c7 c8) where c8 lacks grounds on c7 gets (add (edge (depends c8 c7))) in the output delta. When the edge exists, nothing is added."
+  },
+  {
+   "name": "test_normalizer_conditional_rejects_malformed",
+   "asserts": "(implies c7 c7), (implies c7 c99) with c99 unknown, and a conditional naming its own id each produce (reject ...) for that op."
+  },
+  {
+   "name": "test_normalizer_maps_provisional_ids_in_conditional",
+   "asserts": "(implies x1 x2) in the same delta as x1/x2 comes out as (implies c7 c8), and `implies` is declared exactly once on first use."
+  },
+  {
+   "name": "test_normalizer_assumed_on_other_frames",
+   "asserts": "(decision x1 P :status assumed) becomes :status proposed. (action x1 P :status assumed) gives (reject \"assumed is a claim status\")."
+  },
+  {
+   "name": "test_existing_suite_unchanged",
+   "asserts": "All 189 existing tests pass with no edits. The demo-deltas.wno snapshot and warnings are identical before and after."
+  }
+ ],
+ "compatibility": "Old logs fold to the same graph. There is no new op, frame, edge, annotation key, grammar production or fold semantics; the only fold change widens STATUSES[\"claim\"]. A pre-existing off-spec `assumed` on a claim keeps its graph and loses only its warning.\n\nBasis labels are views and can change for old logs in two narrow cases. (a) A claim with `:status assumed` was holds with a warning and is now pending. (b) An old claim `(implies A C)` with both args existing node ids was holds with no grounds and now reads as a conditional over C's grounds. These are reinterpretations, never graph changes.\n\n`:modal may` keeps its wire meaning, fold behaviour and basis reading (hedge, pending), so every may-node labels exactly as before.\n\nForward compatibility: older tools reading new logs fold the same graph and only warn on `assumed`, through the grandfathered off-spec path. The \u00a76 equivalence test is unchanged.\n\nDownstream: the sync_swords_plugin copy of winnow (scripts/winnow/, plus SKILL.md, which distills the spec) picks this up through its normal upstream sync. SKILL.md's spec distillation needs the \u00a72/\u00a75/R13 text when that sync runs.",
+ "risks": "1. Extractor variance on when to write a conditional node. R13's attach rule (write it only when something attaches to the conditional, or the speaker says it holds either way) narrows this, but two extractors may still differ. The equivalence test catches it, and the checker can fix it.\n2. Over-marking: an LLM may tag generic \"if/when X, Y\" behaviour descriptions as suppositions. The prompt bullet names this case explicitly. Under-marking (using :modal may for a supposition) is benign: it reads pending, and discharge still works on any antecedent.\n3. basis.py reads one payload shape, `implies` with node args. That couples the view to the registry-v0.1 relation id; a future :semantic-rep must map its equivalent. Mitigation: COND is a single constant.\n4. merge and del do not rewrite payload node-id args. This already affects every claim-about-claim, and merge.py's cross-log id handling of payload args was not read. A conditional can end up over a missing node: basis reads it as pending with a warning, so it never silently holds.\n5. Cost: rests_on_closure becomes O(N\u00b7(N+E)), and the analyze memo is keyed by (node, discharged-set). Fine at session scale. Mega-fold graphs may want the upward-walk prefilter.\n6. Unsettled assumptions can pile up. The frontier surfaces them, but nothing forces them to settle.\n7. frontier.py, digest.py and winnow.py edits are specified without reading those files under the budget. If digest.py filters claims on status 'live' and is left unpatched, assumed claims fall out of the window and never get settled.",
+ "open_questions": [
+  "Should constraints be assumable (\"assume a 100ms budget\")? This design limits `assumed` to claims and maps supposed decisions to `proposed`.",
+  "Should basis ever apply modus tollens? If a conditional holds and its consequent is refuted, should the antecedent read undermined? This design says no: no inference beyond the one discharge rule. Joe's call.",
+  "Should `:modal may` be split into an epistemic hedge and a deontic permission? Today basis reads every `may` as a hedge; permission arguably belongs in the `permits` relation.",
+  "Is R13's 'write the conditional only when something attaches to it' the right trigger, or should every stated 'if X then Y' get a conditional node (more nodes, less extractor variance)?",
+  "When the normalizer merges or deletes a node that a conditional names, should it also supersede the conditional with a rewritten payload, rather than relying on basis's 'conditional over missing node' pending fallback?",
+  "The frontier.py, digest.py and winnow.py changes, and the Graph node-dict key names (frame, payload), need checking against code this budget did not allow reading."
+ ]
+}

@@ -1,6 +1,41 @@
 # winnow — open items
 
 ## Blocked on input
+- [ ] **`:modal assumed` (Joe to decide, 2026-10-13).** basis.py treats a
+  `:modal may` premise as a hedge, so whatever rests on it is pending. A
+  stated assumption ("assuming X...") is a different stance from "X may
+  be so", but spec §3 closes `:modal` at must/should/may/can. Add
+  `assumed` there, add an epistemic key beside `:modal`, or keep `may`?
+- [ ] **Failure frame (design, Joe 2026-10-13).** A ninth frame, `failure`,
+  for something that went wrong: what happened is the node (provenance
+  via `:src`), its kind is a `:mode` term from the registry
+  (miscommunication, wrong-assumption, instruction-violation,
+  tool-failure, regression, omission, stale-state), its statuses run open
+  → diagnosed → repaired → prevented (plus dismissed, superseded). The
+  cause is an ordinary claim, a hypothesis until shown: `(motivates CAUSE
+  F)`; repair `(answers FIX F)` (answers widens from questions to open
+  items); prevention `(motivates F GUARD)`. No blame in payloads: name the
+  faulty assumption or action, and `:by` records who spotted it. basis.py
+  already cascades through those edges, so a retracted cause reopens the
+  failure's explanation. Cheap first step, no spec change: a trouble view
+  listing the failure signals logs already hold (corrected/retracted
+  claims, abandoned decisions, blocked/dropped actions, live contradicts,
+  honest misses) with their `:src` turns. Test cases from this session:
+  the false "uploads can't be compressed" claim (wrong-assumption), the
+  normalizer crash on a dangling key (tool-failure), "fold" meaning three
+  things (miscommunication).
+- [ ] **Extractor guidance for premises.** basis.py is only as good as the
+  `depends`/`motivates` edges the extractor writes. Candidate prompt line:
+  when someone reasons from a premise ("since X", "assuming X", "if X
+  then"), record the conclusion and a `depends` edge to the premise. A
+  prompt change, so measure on a live run before adopting.
+- [ ] **Extractor prompt rewording (Joe to confirm, 2026-10-13).** The
+  fold/frontier/digest split reworded one phrase in the extractor prompt
+  (winnow.py and spec §9): "the note graph so far (just the live
+  frontier)" became "(a digest of what's live, not the whole graph)",
+  because the extractor gets the digest. Prompt wording has moved
+  extraction quality before (see the quality comparison below), so the
+  next live run should watch for drift; revert the phrase if it hurts.
 - [ ] **Further neutral-wording changes (Joe to decide, 2026-10-13).**
   The plugin's winnow, wash and sync skills were reworded in
   sync_swords_plugin#4. These candidates are still open:
@@ -216,6 +251,77 @@
 - [ ] UEL / embedding-anchor representation mode (§12) — v2 identity engine.
 
 ## Done
+- [x] **Reach queries drop annotations (2026-10-13).** Seen live
+      (claude-code haiku): `(reach the-export :by user :src t1)` searched for
+      `:by user :src t1` too, missed, and became the open question
+      `(locate the-export by user src t1)`. `extract_reaches` now strips
+      `:key value` pairs and skips a query left empty. 1 test (188 total).
+- [x] **Prompts reach ds as files (2026-10-13).** Joe: shoving content in
+      as an argument is insane. winnow's deepseek client passed the system
+      prompt and the whole user message as argv; one argument over 128 KiB
+      fails exec (a 300 KB task: "Argument list too long"), and argv shows
+      in `ps`. Now both go in files: `ds --system-file` and the new
+      `ds --task-file` (verbatim; dry-run request identical to the argument
+      form), stdin closed so ds can't read the caller's. ds-guide's winnow
+      commands use files. 1 test (187 total).
+      2026-10-15: ds's own self-calls too (`--help-me-out` put its ~89 KB
+      source plus the help text in one argument, ~98 KB and growing;
+      auto-titling used the same path). Both go through `_call_self`:
+      temp files, stdin closed, and this same ds file instead of whatever
+      `ds` is on PATH (none here, so `--help-me-out` crashed). It also no
+      longer prints the whole help text before answering. 1 test (189).
+- [x] **Claude subagent backend and checker (2026-10-13).** Joe: a
+      subagent instead of DeepSeek is fine; Haiku only if Sonnet or better
+      double-checks it, Sonnet solo or with Opus checking, Opus solo.
+      `--backend claude-code` runs a tool-less `claude -p` from an empty
+      scratch directory (project settings only, no MCP, no skills, so no
+      hooks, plugins or CLAUDE.md reach it), at `--effort` from `--think`,
+      prompt on stdin. `--checker MODEL` runs a second model on the same
+      backend over each delta (digest, registry, pulls, new turns,
+      candidate) before the procedural normalizer; `claude_policy_error`
+      enforces the pairing on both Claude backends. `--model` now defaults
+      per backend (deepseek-anthropic no longer gets a Claude model id),
+      and `--global-kb` no longer dies on an undefined `verbose`. 5 tests
+      (186 total).
+- [x] **Max thinking effort by default (2026-10-13).** Joe: running winnow
+      below max effort is a bad idea. winnow.py `--think` (default `max`)
+      now reaches every backend: `ds --think max` for deepseek, and
+      `output_config.effort` with streaming (each model's full output
+      capacity as max_tokens) for the
+      anthropic and deepseek-anthropic backends. CLAUDE.md's live-run
+      convention says so. 2 tests.
+- [x] **basis view (2026-10-13).** `basis.py` (`wno.py basis`) labels every
+      node with grounds holds / pending / undermined, with the chain to
+      each cause, what it rests on, and `--rests-on ID` for a premise's
+      blast radius. Joe's design: logic chains, no scores ("Y holds so long
+      as X holds"). `depends` premises are all needed, `motivates` reasons
+      need one survivor; evidence edges don't cascade except that a live
+      `contradicts` leaves the target pending. fold now records each
+      delta's turn (`Graph.delta_turns`, `touched_at_turn`). Spec: glossary
+      row, §5 note, Files. 14 tests (177 total).
+- [x] **ds on DeepSeek-V4.1-Flash (2026-10-13).** `-m flash` asks for
+      `deepseek-flash` (the retired `deepseek-v4-flash` is redirected to it
+      anyway), `--think low` added, cost estimates use current off-peak and
+      peak prices. Flash output went from $0.28 to $0.60/M off-peak, $1.20
+      peak. Joe: update ds here, ds-worker is being phased out.
+- [x] **fold / frontier / digest split (2026-10-13).** "Fold" had come to
+      mean three things in the docs: the replay, the open-items view, and
+      the tiered window. Now one script per job behind `wno.py`:
+      `sexpr.py` (reader), `fold.py` (log → graph only), `frontier.py`
+      (what's still open), `digest.py` (tiers + the window the extractor
+      sees; owns P3 promotions as expiry indices the fold never ages),
+      `query.py` (query, concepts, stale, hashes). The recency tail moved
+      from the frontier into the digest's hot tier, so the frontier is
+      strictly open items; digest output is unchanged apart from the hot
+      tier's label (checked against the old code on every prefix of both
+      repo logs: 81 outputs identical or exactly as intended). Spec gained
+      a glossary and §1/§7/§9/§10/§11/Files/Appendix rewrites; §11 now
+      shows the real digest entering turn 8 (~460 tokens, not the v0.1
+      frontier's 175). CLAUDE.md has a vocabulary rule. 162 tests (144
+      kept, 18 new; a test file per script).
+      Follow-up: `fold.py --frontier/--digest/--query/--hashes/--concepts/
+      --stale` still forward to the new scripts with a deprecation note;
+      remove them next release.
 - [x] **Mega-fold (2026-07-24).** `mega-fold.py` merges every source
       `.wno` into one graph via content-hash dedup and folds it;
       `--scope sessions|runs|all`, `--overlap`, `--canon-map`,
