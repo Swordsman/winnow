@@ -193,10 +193,10 @@
   plainly that a whole conversation can be one-shot (spec first, entire
   conversation, winnow log as direct output); streaming is for live use.
   Joe's clarification: about 99% of his winnows are made this way.
-  **Open for Joe:** §9's bulk-ingestion rule ("checkpoint per document,
-  never per batch"), the README line "Batch extraction degrades as input
-  grows" and §12 "one-shot batch degrades" read as contrary to one-shot.
-  Left unchanged, since they are recorded spec rulings.
+  Joe's ruling (2026-11-10): no contradiction once scoped. One
+  conversation is one document; the degradation claims stay, and the fold
+  check plus a fix pass is what catches it. A clause added to each of §1,
+  §9, §12 and the README.
 - [x] **winnow copied into the plugin (2026-10-13).** Code, data files,
   `ds`, `demo-deltas.wno` and `tests/` went to
   Swordsman/sync_swords_plugin `scripts/winnow/`. The spec,

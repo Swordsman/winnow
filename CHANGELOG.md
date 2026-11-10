@@ -4,6 +4,12 @@ Version log, newest first. Each user-visible change gets a line in the
 same commit (see CLAUDE.md's Commits convention). Keep entries in plain
 language so a problem can be traced to the change that caused it.
 
+## 2026-11-10
+
+- One-shot handoff in §9: a whole conversation in one prompt, spec first,
+  winnow log as output, checked by the fold and one fix pass. The batch
+  warnings now say how they apply to it.
+
 ## 2026-11-01
 
 - Failure records: something that went wrong is a claim
