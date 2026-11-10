@@ -12,7 +12,7 @@ turns ──► extractor (loose) ──► normalizer (strict) ──► delta 
                 └──────────────── digest ◄────── fold ◄──────────┘
 ```
 
-The extractor never sees the whole transcript or the whole graph — only a bounded digest plus the newest turns. Batch extraction degrades as input grows; winnow's per-step input is constant-ish, no matter how long the conversation runs.
+The extractor never sees the whole transcript or the whole graph — only a bounded digest plus the newest turns. Batch extraction degrades as input grows; winnow's per-step input is constant-ish, no matter how long the conversation runs. One-shot extraction of a whole conversation works too, with the fold check and a fix pass catching what degrades (spec §9).
 
 ## Spec
 
